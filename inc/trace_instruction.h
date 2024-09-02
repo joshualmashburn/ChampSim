@@ -29,8 +29,8 @@ constexpr char REG_INSTRUCTION_POINTER = 26;
 
 // instruction format
 constexpr std::size_t NUM_INSTR_DESTINATIONS_SPARC = 4;
-constexpr std::size_t NUM_INSTR_DESTINATIONS = 2;
-constexpr std::size_t NUM_INSTR_SOURCES = 4;
+constexpr std::size_t NUM_INSTR_DESTINATIONS = 4;
+constexpr std::size_t NUM_INSTR_SOURCES = 6;
 
 struct input_instr {
   // instruction pointer or PC (Program Counter)
@@ -45,6 +45,9 @@ struct input_instr {
 
   unsigned long long destination_memory[NUM_INSTR_DESTINATIONS]; // output memory
   unsigned long long source_memory[NUM_INSTR_SOURCES];           // input memory
+
+  unsigned char flags;
+  unsigned char pref;
 };
 
 struct cloudsuite_instr {
@@ -62,6 +65,9 @@ struct cloudsuite_instr {
   unsigned long long source_memory[NUM_INSTR_SOURCES];                 // input memory
 
   unsigned char asid[2];
+
+  unsigned char flags;
+  unsigned char pref;
 };
 
 #endif
