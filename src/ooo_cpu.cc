@@ -112,7 +112,9 @@ void O3_CPU::initialize_instruction()
   if (fetch_resume_cycle == std::numeric_limits<uint64_t>::max()) {
     sim_stats.fetch_mispred_block_cycles++;
   } else if (sim_stats.fetch_mispred_block_cycles) {
-    fmt::print("blocked cycles {}\n", sim_stats.fetch_mispred_block_cycles);
+    if constexpr (champsim::wp_debug_print) {
+      fmt::print("blocked cycles {}\n", sim_stats.fetch_mispred_block_cycles);
+    }
     sim_stats.fetch_mispred_block_cycles = 0;
   }
 
@@ -125,7 +127,9 @@ void O3_CPU::initialize_instruction()
       }
       sim_stats.wrong_path_insts++;
       sim_stats.wrong_path_skipped++;
-      fmt::print("exec_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("exec_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+      }
       input_queue.pop_front();
     }
 
@@ -134,14 +138,20 @@ void O3_CPU::initialize_instruction()
       flush_after = 0;
       fetch_instr_id = 0;
       fetch_resume_cycle = current_cycle + BRANCH_MISPREDICT_PENALTY;
-      fmt::print("finished flushing\n");
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("finished flushing\n");
+      }
     } else {
-      fmt::print("still finished flushing\n");
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("still finished flushing\n");
+      }
     }
   }
 
   if (flush_after) {
-    fmt::print("flushing\n");
+    if constexpr (champsim::wp_debug_print) {
+      fmt::print("flushing\n");
+    }
     while (!input_queue.empty() && input_queue.front().is_wrong_path) {
       auto inst = input_queue.front();
       if (inst.is_wrong_path && std::size(inst.source_memory)) {
@@ -149,16 +159,22 @@ void O3_CPU::initialize_instruction()
       }
       sim_stats.wrong_path_insts++;
       sim_stats.wrong_path_skipped++;
-      fmt::print("decode_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("decode_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+      }
       input_queue.pop_front();
     }
 
     if (!input_queue.empty() && !input_queue.front().is_wrong_path) {
       in_wrong_path = false;
       flush_after = 0;
-      fmt::print("finished flushing\n");
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("finished flushing\n");
+      }
     } else {
-      fmt::print("still finished flushing\n");
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("still finished flushing\n");
+      }
     }
   }
 
@@ -173,12 +189,16 @@ void O3_CPU::initialize_instruction()
         }
         sim_stats.wrong_path_insts++;
         sim_stats.wrong_path_skipped++;
-        fmt::print("ignore ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+        if constexpr (champsim::wp_debug_print) {
+          fmt::print("ignore ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
+        }
         input_queue.pop_front();
       }
 
       if (input_queue.empty()) {
-        fmt::print("INPUT Queue empty!");
+        if constexpr (champsim::wp_debug_print) {
+          fmt::print("INPUT Queue empty!");
+        }
         break;
       }
     }
@@ -200,7 +220,9 @@ void O3_CPU::initialize_instruction()
       stop_fetch = true;
       in_wrong_path = false;
       fetch_resume_cycle = std::numeric_limits<uint64_t>::max();
-      fmt::print("wrong path over at ip: {:#x}\n", inst.ip);
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("wrong path over at ip: {:#x}\n", inst.ip);
+      }
       break;
     }
 
@@ -228,12 +250,16 @@ void O3_CPU::initialize_instruction()
     }
 
     if (inst.branch_taken) {
-      fmt::print("taken branch found at ip: {:#x}\n", inst.ip);
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("taken branch found at ip: {:#x}\n", inst.ip);
+      }
       stop_fetch = true;
     }
 
     if (inst.before_wrong_path) {
-      fmt::print("before wrong path instr_id {}\n", inst.instr_id);
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("before wrong path instr_id {}\n", inst.instr_id);
+      }
       if (enable_wrong_path) {
         fetch_instr_id = inst.instr_id;
       }
@@ -475,7 +501,9 @@ long O3_CPU::decode_instruction()
         // update_branch_stats(db_entry); // WP-TODO: implement this
         prev_fetch_block = 0;
         restart = true;
-        fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER here at ip: {:#x}\n", db_entry.ip);
+        if constexpr (champsim::wp_debug_print) {
+          fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER here at ip: {:#x}\n", db_entry.ip);
+        }
         flushed = db_entry.instr_id;
         db_entry.squashed = true;
       }
@@ -494,12 +522,14 @@ long O3_CPU::decode_instruction()
 
   if (flushed) {
     flush_after = flushed;
-    fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER "
-               "after instr_id: {} DECODE_BUFFER size {} "
-               "IFETCH_BUFFER size {}\n",
-               flushed, DECODE_BUFFER.size(), IFETCH_BUFFER.size());
-    for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER),
-             [](auto inst) { fmt::print("ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path); });
+    if constexpr (champsim::wp_debug_print) {
+      fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER "
+                 "after instr_id: {} DECODE_BUFFER size {} "
+                 "IFETCH_BUFFER size {}\n",
+                 flushed, DECODE_BUFFER.size(), IFETCH_BUFFER.size());
+      for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER),
+               [](auto inst) { fmt::print("ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path); });
+    }
     DECODE_BUFFER.clear();
     IFETCH_BUFFER.clear();
   }
@@ -559,6 +589,13 @@ long O3_CPU::schedule_instruction()
       --search_bw;
   }
 
+  if (progress == 0) {
+    sim_stats.sched_idle_cycles++;
+    if (!ROB.empty() && !ROB.back().scheduled) {
+      sim_stats.sched_none_cycles++;
+    }
+  }
+
   return progress;
 }
 
@@ -567,8 +604,14 @@ void O3_CPU::do_scheduling(ooo_model_instr& instr)
   // Mark register dependencies
   for (auto src_reg : instr.source_registers) {
     if (!std::empty(reg_producers[src_reg])) {
-      ooo_model_instr& prior = reg_producers[src_reg].back();
+      ooo_model_instr& prior = *reg_producers.at(src_reg).back();
       if (prior.registers_instrs_depend_on_me.empty() || prior.registers_instrs_depend_on_me.back().get().instr_id != instr.instr_id) {
+        if (prior.instr_id > instr.instr_id) {
+          if constexpr (champsim::wp_debug_print) {
+            fmt::print("something is wrong! src_reg: {} prior: instr_id {} cur: instr_id {}\n", src_reg, prior.instr_id, instr.instr_id);
+          }
+          print_deadlock();
+        }
         prior.registers_instrs_depend_on_me.push_back(instr);
         instr.num_reg_dependent++;
       }
@@ -576,13 +619,15 @@ void O3_CPU::do_scheduling(ooo_model_instr& instr)
   }
 
   for (auto dreg : instr.destination_registers) {
-    auto begin = std::begin(reg_producers[dreg]);
-    auto end = std::end(reg_producers[dreg]);
-    auto ins = std::lower_bound(begin, end, instr, [](const ooo_model_instr& lhs, const ooo_model_instr& rhs) { return lhs.instr_id < rhs.instr_id; });
-    reg_producers[dreg].insert(ins, std::ref(instr));
+    // auto begin = std::begin(reg_producers[dreg]);
+    // auto end = std::end(reg_producers[dreg]);
+    // auto ins = std::lower_bound(begin, end, instr, [](const ooo_model_instr& lhs, const ooo_model_instr& rhs) { return lhs.instr_id < rhs.instr_id; });
+    reg_producers.at(dreg).clear();
+    reg_producers.at(dreg).push_back(&instr);
+    // reg_producers[dreg].insert(ins, std::ref(instr));
   }
 
-  instr.scheduled = COMPLETED;
+  instr.scheduled = true;
   instr.event_cycle = current_cycle + (warmup ? 0 : SCHEDULING_LATENCY);
 }
 
@@ -590,9 +635,35 @@ long O3_CPU::execute_instruction()
 {
   auto exec_bw = EXEC_WIDTH;
   for (auto rob_it = std::begin(ROB); rob_it != std::end(ROB) && exec_bw > 0; ++rob_it) {
-    if (rob_it->scheduled == COMPLETED && rob_it->executed == 0 && rob_it->num_reg_dependent == 0 && rob_it->event_cycle <= current_cycle) {
+    if (rob_it->scheduled && rob_it->executed == 0 && rob_it->num_reg_dependent == 0 && rob_it->event_cycle <= current_cycle) {
       do_execution(*rob_it);
       --exec_bw;
+    }
+  }
+
+  if ((EXEC_WIDTH - exec_bw) == 0) {
+    sim_stats.execute_idle_cycles++;
+    if (!ROB.empty()) {
+      sim_stats.execute_none_cycles++;
+      auto exec_it = std::find_if(std::begin(ROB), std::end(ROB), [](auto& x) { return x.scheduled && !x.executed; });
+
+      if (exec_it != std::end(ROB)) {
+        sim_stats.execute_pending_cycles++;
+      }
+
+      if (!ROB.front().executed) {
+        sim_stats.execute_head_not_ready++;
+      }
+      if (ROB.front().executed && !ROB.front().completed) {
+        if constexpr (champsim::wp_debug_print) {
+          fmt::print("ip: {:#x} instr_id {} cycle {}\n", ROB.front().ip, ROB.front().instr_id, current_cycle);
+        }
+        sim_stats.execute_head_not_completed++;
+
+        if (std::size(ROB.front().source_memory)) {
+          sim_stats.execute_load_blocked_cycles++;
+        }
+      }
     }
   }
 
@@ -601,18 +672,36 @@ long O3_CPU::execute_instruction()
 
 void O3_CPU::do_execution(ooo_model_instr& rob_entry)
 {
-  rob_entry.executed = INFLIGHT;
+  rob_entry.executed = true;
   rob_entry.event_cycle = current_cycle + (warmup ? 0 : EXEC_LATENCY);
 
   // Mark LQ entries as ready to translate
-  for (auto& lq_entry : LQ)
-    if (lq_entry.has_value() && lq_entry->instr_id == rob_entry.instr_id)
+  for (auto& lq_entry : LQ) {
+    if (lq_entry.has_value() && lq_entry->instr_id == rob_entry.instr_id) {
+      sim_stats.loads_executed++;
       lq_entry->event_cycle = current_cycle + (warmup ? 0 : EXEC_LATENCY);
+    }
+  }
 
   // Mark SQ entries as ready to translate
-  for (auto& sq_entry : SQ)
-    if (sq_entry.instr_id == rob_entry.instr_id)
+  for (auto& sq_entry : SQ) {
+    if (sq_entry.instr_id == rob_entry.instr_id) {
       sq_entry.event_cycle = current_cycle + (warmup ? 0 : EXEC_LATENCY);
+      for (std::optional<LSQ_ENTRY>& dependent : sq_entry.lq_depend_on_me) {
+        if (!dependent.has_value()) {
+          continue;
+        }
+        // assert(dependent.has_value()); // LQ entry is still allocated
+        // assert(dependent->producer_id == sq_entry.instr_id);
+
+        if (dependent->producer_id == sq_entry.instr_id) {
+          // fmt::print("store finished but found dependent load!");
+          dependent->finish(std::begin(ROB), std::end(ROB));
+          dependent.reset();
+        }
+      }
+    }
+  }
 
   if constexpr (champsim::debug_print) {
     fmt::print("[ROB] {} instr_id: {} event_cycle: {}\n", __func__, rob_entry.instr_id, rob_entry.event_cycle);
@@ -691,8 +780,13 @@ long O3_CPU::operate_lsq()
         && lq_entry->event_cycle < current_cycle) {
       auto success = execute_load(*lq_entry);
       if (success) {
+        sim_stats.loads_success++;
         --load_bw;
         lq_entry->fetch_issued = true;
+
+        if (lq_entry->is_wrong_path) {
+          sim_stats.wrong_path_loads_executed++;
+        }
       }
     }
   }
@@ -706,16 +800,27 @@ void O3_CPU::do_finish_store(const LSQ_ENTRY& sq_entry)
 
   // Release dependent loads
   for (std::optional<LSQ_ENTRY>& dependent : sq_entry.lq_depend_on_me) {
-    assert(dependent.has_value()); // LQ entry is still allocated
-    assert(dependent->producer_id == sq_entry.instr_id);
+    if (!dependent.has_value()) {
+      continue;
+    }
+    // assert(dependent.has_value()); // LQ entry is still allocated
+    // assert(dependent->producer_id == sq_entry.instr_id);
 
-    dependent->finish(std::begin(ROB), std::end(ROB));
-    dependent.reset();
+    if (dependent->producer_id == sq_entry.instr_id) {
+      dependent->finish(std::begin(ROB), std::end(ROB));
+      dependent.reset();
+    }
   }
 }
 
 bool O3_CPU::do_complete_store(const LSQ_ENTRY& sq_entry)
 {
+  if (sq_entry.is_wrong_path) {
+    print_deadlock();
+    std::cout << std::flush;
+  }
+  assert(!sq_entry.is_wrong_path && "Do not issue store for wrong path entry\n");
+
   CacheBus::request_type data_packet;
   data_packet.v_address = sq_entry.virtual_address;
   data_packet.instr_id = sq_entry.instr_id;
@@ -745,25 +850,134 @@ bool O3_CPU::execute_load(const LSQ_ENTRY& lq_entry)
 void O3_CPU::do_complete_execution(ooo_model_instr& instr)
 {
   for (auto dreg : instr.destination_registers) {
-    auto begin = std::begin(reg_producers[dreg]);
-    auto end = std::end(reg_producers[dreg]);
-    auto elem = std::find_if(begin, end, [id = instr.instr_id](ooo_model_instr& x) { return x.instr_id == id; });
-    assert(elem != end);
-    reg_producers[dreg].erase(elem);
+    // auto begin = std::begin(reg_producers[dreg]);
+    // auto end = std::end(reg_producers[dreg]);
+    // auto elem = std::find_if(begin, end, [id = instr.instr_id](ooo_model_instr& x) { return x.instr_id == id; });
+    // assert(elem != end);
+    // reg_producers[dreg].erase(elem);
+    if (!reg_producers.at(dreg).empty() && reg_producers.at(dreg).back()->instr_id == instr.instr_id) {
+      reg_producers.at(dreg).clear();
+    }
   }
 
-  instr.executed = COMPLETED;
+  instr.completed = true;
 
   for (ooo_model_instr& dependent : instr.registers_instrs_depend_on_me) {
     dependent.num_reg_dependent--;
     assert(dependent.num_reg_dependent >= 0);
 
     if (dependent.num_reg_dependent == 0)
-      dependent.scheduled = COMPLETED;
+      dependent.scheduled = true;
   }
 
-  if (instr.branch_mispredicted)
+  if (instr.branch_mispredicted && !instr.is_wrong_path && !instr.squashed) {
+    // update_branch_stats(instr); // WP-TODO: implement this
     fetch_resume_cycle = current_cycle + BRANCH_MISPREDICT_PENALTY;
+    prev_fetch_block = 0;
+    restart = true;
+    if constexpr (champsim::wp_debug_print) {
+      fmt::print("flush ROB cycle {} instr_id {} ROB_SIZE {}\n", current_cycle, instr.instr_id, ROB.size());
+    }
+  }
+
+  if (!instr.is_wrong_path && (instr.before_wrong_path || instr.branch_mispredicted) && !instr.squashed && instr.instr_id == fetch_instr_id) {
+    if constexpr (champsim::wp_debug_print) {
+      fmt::print("flush ROB cycle {} instr_id {} ROB_SIZE {} fetch_instr_id {}\n", current_cycle, instr.instr_id, ROB.size(), fetch_instr_id);
+    }
+    if (instr.before_wrong_path && !instr.is_branch) {
+      sim_stats.non_branch_squashes++;
+    }
+    instr.squashed = true;
+
+    for_each(std::begin(ROB), std::end(ROB), [id = instr.instr_id, this](auto& x) {
+      if (x.instr_id > id) {
+        std::cout << std::flush;
+        assert(x.is_wrong_path && "Must be wrong path instruction\n");
+
+        if (!x.is_prefetch && x.executed)
+          sim_stats.wrong_path_insts_executed++;
+
+        if constexpr (champsim::wp_debug_print) {
+          if (!x.executed && x.num_mem_ops()) {
+            fmt::print("FLUSH instr_id: {} is_wrong_path: {} mem_ops: {} ", x.instr_id, x.is_wrong_path, x.num_mem_ops());
+            for (auto& smem : x.source_memory) {
+              fmt::print("{:#x} ", smem);
+            }
+            fmt::print("\n");
+          }
+        }
+        x.scheduled = true;
+        x.executed = true;
+        // do_complete_execution(x);
+        x.completed = true;
+        if constexpr (champsim::wp_debug_print) {
+          fmt::print("FLUSH instr_id: {} is_wrong_path: {}\n", x.instr_id, x.is_wrong_path);
+        }
+        std::cout << std::flush;
+        // Remove dependences by wrong path instructions which
+        // are tracked by reg_producers
+        for (auto dreg : x.destination_registers) {
+          auto begin = std::begin(reg_producers.at(dreg));
+          auto end = std::end(reg_producers.at(dreg));
+          auto elem = std::find_if(begin, end, [wp_id = x.instr_id](ooo_model_instr* y) { return y->instr_id == wp_id; });
+          if (elem != end) {
+            reg_producers.at(dreg).erase(elem);
+          }
+        }
+      } else {
+
+        auto first_wp_inst = find_if(std::begin(x.registers_instrs_depend_on_me), std::end(x.registers_instrs_depend_on_me), [id = id](auto& y) {
+          auto& z = y.get();
+          return z.instr_id > id;
+        });
+
+        // assert(first_wp_inst.is_wrong_path && "This should wrong path instruction");
+
+        for_each(first_wp_inst, std::end(x.registers_instrs_depend_on_me), [](auto& y) { assert(y.get().is_wrong_path && "Should be wrong path inst\n"); });
+        x.registers_instrs_depend_on_me.erase(first_wp_inst, std::end(x.registers_instrs_depend_on_me));
+      }
+    });
+    auto sq_it_squash_begin = find_if(std::begin(SQ), std::end(SQ), [id = instr.instr_id](auto& x) { return x.instr_id > id; });
+    if (sq_it_squash_begin != SQ.end()) {
+      for_each(sq_it_squash_begin, std::end(SQ), [](auto& x) {
+        // fmt::print("Erasing SQ entry instr_id {} \n", x.instr_id);
+        assert(x.is_wrong_path && "This should be wrong path entry");
+      });
+      SQ.erase(sq_it_squash_begin, std::end(SQ));
+    }
+
+    for_each(std::begin(LQ), std::end(LQ), [id = instr.instr_id](auto& x) {
+      if (x->instr_id > id) {
+        // fmt::print("Erasing LQ entry instr_id {} \n", x->instr_id);
+        assert(x->is_wrong_path && "This should be wrong path entry\n");
+        x.reset();
+      }
+    });
+    auto rob_it = find_if(std::begin(ROB), std::end(ROB), [id = instr.instr_id, this](auto& x) { return x.instr_id > id; });
+
+    if (rob_it != std::end(ROB)) {
+      ROB.erase(rob_it, std::end(ROB));
+    }
+    // if(std::size(IFETCH_BUFFER)){
+    //     fmt::print("IFETCH_BUFFER flush begin\n");
+    //     for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](auto &x){
+    //         if(!x.executed && x.num_mem_ops()){
+    //             fmt::print("IFETCH_BUFFER flushed instr_id: {} is_wrong_path: {} mem_ops: {} ", x.instr_id, x.is_wrong_path, x.num_mem_ops());
+    //             for (auto& smem : x.source_memory) {
+    //                 fmt::print("{:#x} ",smem);
+    //             }
+    //             fmt::print("\n");
+    //         }
+    //         });
+    //     fmt::print("IFETCH_BUFFER flush end\n");
+    // }
+    // flush ROB, DISPATH_BUFFER, DECODE_BUFFER, IFETCH_BUFFER
+    DISPATCH_BUFFER.clear();
+    DECODE_BUFFER.clear();
+    IFETCH_BUFFER.clear();
+
+    exec_instr_id = instr.instr_id;
+  }
 }
 
 long O3_CPU::complete_inflight_instruction()
@@ -771,9 +985,12 @@ long O3_CPU::complete_inflight_instruction()
   // update ROB entries with completed executions
   auto complete_bw = EXEC_WIDTH;
   for (auto rob_it = std::begin(ROB); rob_it != std::end(ROB) && complete_bw > 0; ++rob_it) {
-    if ((rob_it->executed == INFLIGHT) && (rob_it->event_cycle <= current_cycle) && rob_it->completed_mem_ops == rob_it->num_mem_ops()) {
+    if (rob_it->scheduled && rob_it->executed && !rob_it->completed && (rob_it->event_cycle <= current_cycle)
+        && rob_it->completed_mem_ops == rob_it->num_mem_ops()) {
       do_complete_execution(*rob_it);
-      --complete_bw;
+      if (!rob_it->is_wrong_path && !rob_it->is_prefetch) {
+        --complete_bw;
+      }
     }
   }
 
@@ -787,25 +1004,37 @@ long O3_CPU::handle_memory_return()
   for (auto l1i_bw = FETCH_WIDTH, to_read = L1I_BANDWIDTH; l1i_bw > 0 && to_read > 0 && !L1I_bus.lower_level->returned.empty(); --to_read) {
     auto& l1i_entry = L1I_bus.lower_level->returned.front();
 
-    while (l1i_bw > 0 && !l1i_entry.instr_depend_on_me.empty()) {
-      ooo_model_instr& fetched = l1i_entry.instr_depend_on_me.front();
-      if ((fetched.ip >> LOG2_BLOCK_SIZE) == (l1i_entry.v_address >> LOG2_BLOCK_SIZE) && fetched.fetched != 0) {
-        fetched.fetched = COMPLETED;
-        --l1i_bw;
+    // while (l1i_bw > 0 && !l1i_entry.instr_depend_on_me.empty()) {
+    for (auto fetched = std::begin(IFETCH_BUFFER); fetched != std::end(IFETCH_BUFFER); fetched++) {
+      // ooo_model_instr& fetched = l1i_entry.instr_depend_on_me.front();
+
+      if (fetched != std::end(IFETCH_BUFFER) && (fetched->ip >> LOG2_BLOCK_SIZE) == (l1i_entry.v_address >> LOG2_BLOCK_SIZE) && !fetched->fetch_issued) {
+        prev_fetch_block = 0;
+      }
+
+      if (fetched != std::end(IFETCH_BUFFER) && (fetched->ip >> LOG2_BLOCK_SIZE) == (l1i_entry.v_address >> LOG2_BLOCK_SIZE) && fetched->fetch_issued) {
+        fetched->fetch_completed = true;
+        // --l1i_bw;
         ++progress;
 
         if constexpr (champsim::debug_print) {
-          fmt::print("[IFETCH] {} instr_id: {} fetch completed\n", __func__, fetched.instr_id);
+          fmt::print("[IFETCH] {} instr_id: {} fetch completed\n", __func__, fetched->instr_id);
         }
       }
-
-      l1i_entry.instr_depend_on_me.erase(std::begin(l1i_entry.instr_depend_on_me));
+      // l1i_entry.instr_depend_on_me.erase(std::begin(l1i_entry.instr_depend_on_me));
     }
 
     // remove this entry if we have serviced all of its instructions
-    if (l1i_entry.instr_depend_on_me.empty()) {
-      L1I_bus.lower_level->returned.pop_front();
-      ++progress;
+    // if (l1i_entry.instr_depend_on_me.empty()) {
+    //   L1I_bus.lower_level->returned.pop_front();
+    //   ++progress;
+    // }
+
+    L1I_bus.lower_level->returned.pop_front();
+    ++progress;
+
+    if (!IFETCH_BUFFER.empty() && IFETCH_BUFFER.back().fetch_completed) {
+      prev_fetch_block = 0;
     }
   }
 
@@ -827,13 +1056,59 @@ long O3_CPU::handle_memory_return()
 
 long O3_CPU::retire_rob()
 {
-  auto [retire_begin, retire_end] = champsim::get_span_p(std::cbegin(ROB), std::cend(ROB), RETIRE_WIDTH, [](const auto& x) { return x.executed == COMPLETED; });
+  auto [retire_begin, retire_end] = champsim::get_span_p(std::cbegin(ROB), std::cend(ROB), RETIRE_WIDTH, [](const auto& x) { return x.completed; });
   if constexpr (champsim::debug_print) {
     std::for_each(retire_begin, retire_end, [](const auto& x) { fmt::print("[ROB] retire_rob instr_id: {} is retired\n", x.instr_id); });
   }
-  auto retire_count = std::distance(retire_begin, retire_end);
+
+  // auto retire_count = std::distance(retire_begin, retire_end);
+
+  auto retire_count = 0;
+  auto it = retire_begin;
+  while (it != retire_end) {
+    if (std::size(it->source_memory)) {
+      sim_stats.loads_retired++;
+    }
+
+    if (it->is_wrong_path) {
+      print_deadlock();
+    }
+    assert(!it->is_wrong_path && "ROB should not contain WP instrutions\n");
+
+    if (it->branch_mispredicted || it->before_wrong_path) {
+      if (!it->squashed) {
+        print_deadlock();
+      }
+      assert(it->squashed && "This should have been squashed\n");
+    }
+
+    if (!it->is_wrong_path) {
+      retire_instr_id = it->instr_id;
+    }
+
+    if (it->is_wrong_path) {
+      if constexpr (champsim::wp_debug_print) {
+        fmt::print("[RESTART]: ip:{:#x} wrong path: {}\n", it->ip, it->is_wrong_path);
+      }
+      restart = true;
+      prev_fetch_block = 0;
+    }
+
+    if (prev_ip != it->ip) {
+      if (!it->is_wrong_path && !it->is_prefetch) {
+        retire_count++;
+        prev_ip = it->ip;
+      }
+    }
+    it++;
+  }
+
   num_retired += retire_count;
   ROB.erase(retire_begin, retire_end);
+
+  if (retire_count == 0) {
+    sim_stats.rob_idle_cycles++;
+  }
 
   return retire_count;
 }
@@ -869,19 +1144,21 @@ void O3_CPU::print_deadlock()
     if (entry->producer_id != std::numeric_limits<uint64_t>::max()) {
       depend_id = std::to_string(entry->producer_id);
     }
-    return std::tuple{entry->instr_id, entry->virtual_address, entry->fetch_issued, entry->event_cycle, depend_id};
+    return std::tuple{entry->instr_id, entry->virtual_address, entry->fetch_issued, entry->event_cycle, depend_id, entry->is_wrong_path};
   };
-  std::string_view lq_fmt{"instr_id: {} address: {:#x} fetch_issued: {} event_cycle: {} waits on {}"};
+  std::string_view lq_fmt{"instr_id: {} address: {:#x} fetch_issued: {} event_cycle: {} waits on {} wrong_path: {}"};
 
   auto sq_pack = [](const auto& entry) {
     std::vector<uint64_t> depend_ids;
     std::transform(std::begin(entry.lq_depend_on_me), std::end(entry.lq_depend_on_me), std::back_inserter(depend_ids),
                    [](const std::optional<LSQ_ENTRY>& lq_entry) { return lq_entry->producer_id; });
-    return std::tuple{entry.instr_id, entry.virtual_address, entry.fetch_issued, entry.event_cycle, depend_ids};
+    return std::tuple{entry.instr_id, entry.virtual_address, entry.fetch_issued, entry.event_cycle, depend_ids, entry.is_wrong_path};
   };
-  std::string_view sq_fmt{"instr_id: {} address: {:#x} fetch_issued: {} event_cycle: {} LQ waiting: {}"};
+  std::string_view sq_fmt{"instr_id: {} address: {:#x} fetch_issued: {} event_cycle: {} LQ waiting: {} wrong_path: {}"};
   champsim::range_print_deadlock(LQ, "cpu" + std::to_string(cpu) + "_LQ", lq_fmt, lq_pack);
   champsim::range_print_deadlock(SQ, "cpu" + std::to_string(cpu) + "_SQ", sq_fmt, sq_pack);
+
+  std::cout << std::flush;
 }
 // LCOV_EXCL_STOP
 
@@ -894,15 +1171,7 @@ void LSQ_ENTRY::finish(std::deque<ooo_model_instr>::iterator begin, std::deque<o
 {
   auto rob_entry = std::partition_point(begin, end, [id = this->instr_id](auto x) { return x.instr_id < id; });
   assert(rob_entry != end);
-  assert(rob_entry->instr_id == this->instr_id);
-
-  ++rob_entry->completed_mem_ops;
-  assert(rob_entry->completed_mem_ops <= rob_entry->num_mem_ops());
-
-  if constexpr (champsim::debug_print) {
-    fmt::print("[LSQ] {} instr_id: {} full_address: {:#x} remain_mem_ops: {} event_cycle: {}\n", __func__, instr_id, virtual_address,
-               rob_entry->num_mem_ops() - rob_entry->completed_mem_ops, event_cycle);
-  }
+  finish(*rob_entry);
 }
 
 void LSQ_ENTRY::finish(ooo_model_instr& rob_entry) const

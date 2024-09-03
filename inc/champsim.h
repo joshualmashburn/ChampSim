@@ -41,6 +41,13 @@ constexpr bool trace_debug_print = true;
 constexpr bool trace_debug_print = false;
 #endif
 
+// #define WP_DEBUG_PRINT
+#ifdef WP_DEBUG_PRINT
+constexpr bool wp_debug_print = true;
+#else
+constexpr bool wp_debug_print = false;
+#endif
+
 } // namespace champsim
 
 #endif
