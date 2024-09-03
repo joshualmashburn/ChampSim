@@ -117,7 +117,6 @@ void O3_CPU::initialize_instruction()
   }
 
   if (fetch_instr_id && fetch_instr_id == exec_instr_id) {
-
     prev_fetch_block = 0;
     while (!input_queue.empty() && input_queue.front().is_wrong_path) {
       auto inst = input_queue.front();
@@ -129,6 +128,7 @@ void O3_CPU::initialize_instruction()
       fmt::print("exec_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
       input_queue.pop_front();
     }
+
     if (!input_queue.empty() && !input_queue.front().is_wrong_path) {
       in_wrong_path = false;
       flush_after = 0;
@@ -152,6 +152,7 @@ void O3_CPU::initialize_instruction()
       fmt::print("decode_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
       input_queue.pop_front();
     }
+
     if (!input_queue.empty() && !input_queue.front().is_wrong_path) {
       in_wrong_path = false;
       flush_after = 0;
@@ -187,6 +188,7 @@ void O3_CPU::initialize_instruction()
     if (std::size(inst.source_memory)) {
       sim_stats.loads++;
     }
+
     if (std::size(inst.destination_memory)) {
       sim_stats.stores++;
     }
@@ -335,7 +337,7 @@ long O3_CPU::check_dib()
 {
   // scan through IFETCH_BUFFER to find instructions that hit in the decoded instruction buffer
   auto begin = std::find_if(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](const ooo_model_instr& x) { return !x.dib_checked; });
-  auto [window_begin, window_end] = champsim::get_span(begin, std::end(IFETCH_BUFFER), FETCH_WIDTH);
+  auto [window_begin, window_end] = champsim::get_span(begin, std::end(IFETCH_BUFFER), FETCH_WIDTH * 10); // WP-TODO: What is this 10?
   std::for_each(window_begin, window_end, [this](auto& ifetch_entry) { this->do_check_dib(ifetch_entry); });
   return std::distance(window_begin, window_end);
 }
@@ -345,16 +347,16 @@ void O3_CPU::do_check_dib(ooo_model_instr& instr)
   // Check DIB to see if we recently fetched this line
   if (auto dib_result = DIB.check_hit(instr.ip); dib_result) {
     // The cache line is in the L0, so we can mark this as complete
-    instr.fetched = COMPLETED;
+    instr.fetch_completed = true;
 
     // Also mark it as decoded
-    instr.decoded = COMPLETED;
+    instr.decoded = true;
 
     // It can be acted on immediately
     instr.event_cycle = current_cycle;
   }
 
-  instr.dib_checked = COMPLETED;
+  instr.dib_checked = true;
 }
 
 long O3_CPU::fetch_instruction()
@@ -363,7 +365,7 @@ long O3_CPU::fetch_instruction()
 
   // Fetch a single cache line
   auto fetch_ready = [](const ooo_model_instr& x) {
-    return x.dib_checked == COMPLETED && !x.fetched;
+    return x.dib_checked && !x.fetch_issued;
   };
 
   // Find the chunk of instructions in the block
@@ -380,11 +382,26 @@ long O3_CPU::fetch_instruction()
     // Issue to L1I
     auto success = do_fetch_instruction(l1i_req_begin, l1i_req_end);
     if (success) {
-      std::for_each(l1i_req_begin, l1i_req_end, [](auto& x) { x.fetched = INFLIGHT; });
+      std::for_each(l1i_req_begin, l1i_req_end, [](auto& x) { x.fetch_issued = true; });
       ++progress;
+    } else {
+      sim_stats.fetch_failed_events++;
     }
 
     l1i_req_begin = std::find_if(l1i_req_end, std::end(IFETCH_BUFFER), fetch_ready);
+  }
+
+  if (progress == 0) {
+    sim_stats.fetch_idle_cycles++;
+    if (!IFETCH_BUFFER.empty()) {
+      if (!IFETCH_BUFFER.back().fetch_issued) {
+        sim_stats.fetch_buffer_not_empty++;
+      }
+    }
+  }
+
+  if (fetch_resume_cycle == std::numeric_limits<uint64_t>::max()) {
+    sim_stats.fetch_blocked_cycles++;
   }
 
   return progress;
@@ -392,11 +409,18 @@ long O3_CPU::fetch_instruction()
 
 bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, std::deque<ooo_model_instr>::iterator end)
 {
+  if (prev_fetch_block && begin->ip >> LOG2_BLOCK_SIZE == prev_fetch_block) {
+    return true;
+  }
+
   CacheBus::request_type fetch_packet;
   fetch_packet.v_address = begin->ip;
   fetch_packet.instr_id = begin->instr_id;
   fetch_packet.ip = begin->ip;
-  fetch_packet.instr_depend_on_me = {begin, end};
+  // fetch_packet.instr_depend_on_me = {begin, end};
+  last_fetch_packet = fetch_packet;
+
+  std::transform(begin, end, std::back_inserter(fetch_packet.instr_depend_on_me), [](const auto& instr) { return instr.instr_id; });
 
   if constexpr (champsim::debug_print) {
     fmt::print("[IFETCH] {} instr_id: {} ip: {:#x} dependents: {} event_cycle: {}\n", __func__, begin->instr_id, begin->ip,
@@ -408,9 +432,13 @@ bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, s
 
 long O3_CPU::promote_to_decode()
 {
+  // Erase is_prefetch entries whose fetch was completed
+  IFETCH_BUFFER.erase(std::remove_if(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](const auto& x) { return x.fetch_completed && x.is_prefetch; }),
+                      std::end(IFETCH_BUFFER));
+
   auto available_fetch_bandwidth = std::min<long>(FETCH_WIDTH, DECODE_BUFFER_SIZE - std::size(DECODE_BUFFER));
   auto [window_begin, window_end] = champsim::get_span_p(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), available_fetch_bandwidth,
-                                                         [cycle = current_cycle](const auto& x) { return x.fetched == COMPLETED && x.event_cycle <= cycle; });
+                                                         [cycle = current_cycle](const auto& x) { return x.fetch_completed && x.event_cycle <= cycle; });
   long progress{std::distance(window_begin, window_end)};
 
   std::for_each(window_begin, window_end,
@@ -434,7 +462,7 @@ long O3_CPU::decode_instruction()
     this->do_dib_update(db_entry);
 
     // Resume fetch
-    if (db_entry.branch_mispredicted) {
+    if (db_entry.branch_mispredicted && !db_entry.is_wrong_path) {
       // These branches detect the misprediction at decode
       if ((db_entry.branch == BRANCH_DIRECT_JUMP) || (db_entry.branch == BRANCH_DIRECT_CALL)) {
         // || (((db_entry.branch == BRANCH_CONDITIONAL) || (db_entry.branch == BRANCH_OTHER)) && db_entry.branch_taken == db_entry.branch_prediction)) {
@@ -447,7 +475,7 @@ long O3_CPU::decode_instruction()
         // update_branch_stats(db_entry); // WP-TODO: implement this
         prev_fetch_block = 0;
         restart = true;
-        // fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER here at ip: {:#x}\n", db_entry.ip);
+        fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER here at ip: {:#x}\n", db_entry.ip);
         flushed = db_entry.instr_id;
         db_entry.squashed = true;
       }
@@ -457,8 +485,28 @@ long O3_CPU::decode_instruction()
     db_entry.event_cycle = this->current_cycle + (this->warmup ? 0 : this->DISPATCH_LATENCY);
   });
 
+  if (flushed) {
+    window_end = find_if(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), [id = flushed](auto& x) { return id == x.instr_id; });
+  }
+
   std::move(window_begin, window_end, std::back_inserter(DISPATCH_BUFFER));
   DECODE_BUFFER.erase(window_begin, window_end);
+
+  if (flushed) {
+    flush_after = flushed;
+    fmt::print("flush DECODE_BUFFER and IFETCH_BUFFER "
+               "after instr_id: {} DECODE_BUFFER size {} "
+               "IFETCH_BUFFER size {}\n",
+               flushed, DECODE_BUFFER.size(), IFETCH_BUFFER.size());
+    for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER),
+             [](auto inst) { fmt::print("ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path); });
+    DECODE_BUFFER.clear();
+    IFETCH_BUFFER.clear();
+  }
+
+  if (progress == 0) {
+    sim_stats.decode_idle_cycles++;
+  }
 
   return progress;
 }
@@ -469,16 +517,29 @@ long O3_CPU::dispatch_instruction()
 {
   auto available_dispatch_bandwidth = DISPATCH_WIDTH;
 
+  if (((std::size_t)std::count_if(std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return !lq_entry.has_value(); })) == 0) {
+    sim_stats.lq_full_events++;
+  }
+
+  if (std::size(SQ) == SQ_SIZE) {
+    sim_stats.sq_full_events++;
+  }
+
   // dispatch DISPATCH_WIDTH instructions into the ROB
   while (available_dispatch_bandwidth > 0 && !std::empty(DISPATCH_BUFFER) && DISPATCH_BUFFER.front().event_cycle < current_cycle && std::size(ROB) != ROB_SIZE
          && ((std::size_t)std::count_if(std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return !lq_entry.has_value(); })
              >= std::size(DISPATCH_BUFFER.front().source_memory))
          && ((std::size(DISPATCH_BUFFER.front().destination_memory) + std::size(SQ)) <= SQ_SIZE)) {
     ROB.push_back(std::move(DISPATCH_BUFFER.front()));
+
     DISPATCH_BUFFER.pop_front();
     do_memory_scheduling(ROB.back());
 
     available_dispatch_bandwidth--;
+  }
+
+  if ((DISPATCH_WIDTH - available_dispatch_bandwidth) == 0) {
+    sim_stats.dispatch_idle_cycles++;
   }
 
   return DISPATCH_WIDTH - available_dispatch_bandwidth;
@@ -564,19 +625,16 @@ void O3_CPU::do_memory_scheduling(ooo_model_instr& instr)
   for (auto& smem : instr.source_memory) {
     auto q_entry = std::find_if_not(std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return lq_entry.has_value(); });
     assert(q_entry != std::end(LQ));
-    q_entry->emplace(instr.instr_id, smem, instr.ip, instr.asid); // add it to the load queue
+    q_entry->emplace(instr.instr_id, smem, instr.ip, instr.asid, instr.is_wrong_path); // add it to the load queue
 
     // Check for forwarding
     auto sq_it = std::max_element(std::begin(SQ), std::end(SQ), [smem](const auto& lhs, const auto& rhs) {
       return lhs.virtual_address != smem || (rhs.virtual_address == smem && lhs.instr_id < rhs.instr_id);
     });
-    if (sq_it != std::end(SQ) && sq_it->virtual_address == smem) {
+    if (sq_it != std::end(SQ) && sq_it->virtual_address == smem && !instr.is_wrong_path) {
       if (sq_it->fetch_issued) { // Store already executed
+        (*q_entry)->finish(instr);
         q_entry->reset();
-        ++instr.completed_mem_ops;
-
-        if constexpr (champsim::debug_print)
-          fmt::print("[DISPATCH] {} instr_id: {} forwards_from: {}\n", __func__, instr.instr_id, sq_it->event_cycle);
       } else {
         assert(sq_it->instr_id < instr.instr_id);   // The found SQ entry is a prior store
         sq_it->lq_depend_on_me.push_back(*q_entry); // Forward the load when the store finishes
@@ -585,12 +643,17 @@ void O3_CPU::do_memory_scheduling(ooo_model_instr& instr)
         if constexpr (champsim::debug_print)
           fmt::print("[DISPATCH] {} instr_id: {} waits on: {}\n", __func__, instr.instr_id, sq_it->event_cycle);
       }
+
+      // Update wrong_path load stats here since entry will not be counted in lsq operate stage
+      if (instr.is_wrong_path) {
+        sim_stats.wrong_path_loads_executed++;
+      }
     }
   }
 
   // store
   for (auto& dmem : instr.destination_memory)
-    SQ.emplace_back(instr.instr_id, dmem, instr.ip, instr.asid); // add it to the store queue
+    SQ.emplace_back(instr.instr_id, dmem, instr.ip, instr.asid, instr.is_wrong_path); // add it to the store queue
 
   if constexpr (champsim::debug_print) {
     fmt::print("[DISPATCH] {} instr_id: {} loads: {} stores: {}\n", __func__, instr.instr_id, std::size(instr.source_memory),
@@ -781,11 +844,20 @@ void O3_CPU::print_deadlock()
   fmt::print("DEADLOCK! CPU {} cycle {}\n", cpu, current_cycle);
 
   auto instr_pack = [](const auto& entry) {
-    return std::tuple{entry.instr_id,   +entry.fetched,           +entry.scheduled,
-                      +entry.executed,  +entry.num_reg_dependent, entry.num_mem_ops() - entry.completed_mem_ops,
-                      entry.event_cycle};
+    return std::tuple{entry.instr_id,
+                      entry.ip,
+                      entry.fetch_issued,
+                      entry.fetch_completed,
+                      entry.scheduled,
+                      entry.executed,
+                      entry.completed,
+                      +entry.num_reg_dependent,
+                      entry.num_mem_ops() - entry.completed_mem_ops,
+                      entry.event_cycle,
+                      entry.is_wrong_path};
   };
-  std::string_view instr_fmt{"instr_id: {} fetched: {} scheduled: {} executed: {} num_reg_dependent: {} num_mem_ops: {} event: {}"};
+  std::string_view instr_fmt{"instr_id: {} ip: {:#x} fetch_issued: {} fetch_completed: {} scheduled: {} executed: {} completed: {} num_reg_dependent: {} "
+                             "num_mem_ops: {} event: {} wrong_path: {}"};
   champsim::range_print_deadlock(IFETCH_BUFFER, "cpu" + std::to_string(cpu) + "_IFETCH", instr_fmt, instr_pack);
   champsim::range_print_deadlock(DECODE_BUFFER, "cpu" + std::to_string(cpu) + "_DECODE", instr_fmt, instr_pack);
   champsim::range_print_deadlock(DISPATCH_BUFFER, "cpu" + std::to_string(cpu) + "_DISPATCH", instr_fmt, instr_pack);
@@ -813,8 +885,8 @@ void O3_CPU::print_deadlock()
 }
 // LCOV_EXCL_STOP
 
-LSQ_ENTRY::LSQ_ENTRY(uint64_t id, uint64_t addr, uint64_t local_ip, std::array<uint8_t, 2> local_asid)
-    : instr_id(id), virtual_address(addr), ip(local_ip), asid(local_asid)
+LSQ_ENTRY::LSQ_ENTRY(uint64_t id, uint64_t addr, uint64_t local_ip, std::array<uint8_t, 2> local_asid, bool is_wp)
+    : instr_id(id), virtual_address(addr), ip(local_ip), asid(local_asid), is_wrong_path(is_wp)
 {
 }
 
@@ -830,6 +902,19 @@ void LSQ_ENTRY::finish(std::deque<ooo_model_instr>::iterator begin, std::deque<o
   if constexpr (champsim::debug_print) {
     fmt::print("[LSQ] {} instr_id: {} full_address: {:#x} remain_mem_ops: {} event_cycle: {}\n", __func__, instr_id, virtual_address,
                rob_entry->num_mem_ops() - rob_entry->completed_mem_ops, event_cycle);
+  }
+}
+
+void LSQ_ENTRY::finish(ooo_model_instr& rob_entry) const
+{
+  assert(rob_entry.instr_id == this->instr_id);
+
+  ++rob_entry.completed_mem_ops;
+  assert(rob_entry.completed_mem_ops <= rob_entry.num_mem_ops());
+
+  if constexpr (champsim::debug_print) {
+    fmt::print("[LSQ] {} instr_id: {} full_address: {:#x} remain_mem_ops: {} event_cycle: {}\n", __func__, instr_id, virtual_address,
+               rob_entry.num_mem_ops() - rob_entry.completed_mem_ops, event_cycle);
   }
 }
 
