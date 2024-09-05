@@ -49,6 +49,39 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   for (auto [str, idx] : types)
     fmt::print(stream, "{}: {:.3}\n", str, mpkis[idx]);
   fmt::print(stream, "\n");
+
+  fmt::print(stream, "Wrong Path Stats\n");
+  fmt::print(stream, "Loads: Count {} Issued {}\n", stats.wrong_path_loads, stats.wrong_path_loads_executed);
+  fmt::print(stream, "\n");
+
+  fmt::print(stream, "IDLE Cycles\n");
+  fmt::print(stream, "Fetch Idle Cycles {}\n", stats.fetch_idle_cycles);
+  fmt::print(stream, "Fetch Blocked Cycles {}\n", stats.fetch_blocked_cycles);
+  fmt::print(stream, "IFetch Failed Events {}\n", stats.fetch_failed_events);
+  fmt::print(stream, "Fetch Buffer Not Empty {}\n", stats.fetch_buffer_not_empty);
+  fmt::print(stream, "Decode Idle Cycles {}\n", stats.decode_idle_cycles);
+  fmt::print(stream, "Dispatch Idle Cycles {}\n", stats.dispatch_idle_cycles);
+  fmt::print(stream, "Execute Idle Cycles {}\n", stats.execute_idle_cycles);
+  fmt::print(stream, "Execute None Cycles {}\n", stats.execute_none_cycles);
+  fmt::print(stream, "Execute Head Not Ready Cycles {}\n", stats.execute_head_not_ready);
+  fmt::print(stream, "Execute Head Not Completed Cycles {}\n", stats.execute_head_not_completed);
+  fmt::print(stream, "Execute Pending Cycles {}\n", stats.execute_pending_cycles);
+  fmt::print(stream, "Execute Load Blocked Cycles {}\n", stats.execute_load_blocked_cycles);
+  fmt::print(stream, "Scheduler Idle Cycles {}\n", stats.sched_idle_cycles);
+  fmt::print(stream, "Scheduler None Cycles {}\n", stats.sched_none_cycles);
+  fmt::print(stream, "ROB Idle Cycles {}\n", stats.rob_idle_cycles);
+  fmt::print(stream, "LQ Full Events {}\n", stats.lq_full_events);
+  fmt::print(stream, "SQ Full Events {}\n", stats.sq_full_events);
+  fmt::print(stream, "Non Branch Squashes {}\n", stats.non_branch_squashes);
+  fmt::print(stream, "\n");
+
+  fmt::print(stream, "Inst Stats\n");
+  fmt::print(stream, "Loads: {} \n", stats.loads);
+  fmt::print(stream, "Loads Success: {} \n", stats.loads_success);
+  fmt::print(stream, "Loads Executed: {} \n", stats.loads_executed);
+  fmt::print(stream, "Loads Retired: {} \n", stats.loads_retired);
+  fmt::print(stream, "Stores: {} \n", stats.stores);
+  fmt::print(stream, "\n");
 }
 
 void champsim::plain_printer::print(CACHE::stats_type stats)
