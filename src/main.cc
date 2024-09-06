@@ -55,6 +55,7 @@ int main(int argc, char** argv)
   auto set_wrong_path_callback = [&](auto) {
     for (O3_CPU& cpu : gen_environment.cpu_view()) {
       cpu.enable_wrong_path = true;
+      fmt::print("Wrong path enabled\n");
     }
   };
 

@@ -274,7 +274,7 @@ void O3_CPU::initialize_instruction()
 
     // Update stats of non mispredicting branches here
     if (!inst.branch_mispredicted) {
-      // update_branch_stats(input_queue.front()); // WP-TODO: implement this
+      update_branch_stats(input_queue.front());
     }
 
     // Add to IFETCH_BUFFER
@@ -282,6 +282,17 @@ void O3_CPU::initialize_instruction()
     input_queue.pop_front();
 
     IFETCH_BUFFER.back().event_cycle = current_cycle;
+  }
+}
+
+void O3_CPU::update_branch_stats(ooo_model_instr& instr)
+{
+  if (instr.is_branch && !instr.is_wrong_path) {
+    sim_stats.total_branch_types.at(instr.branch)++;
+    if (instr.branch_mispredicted) {
+      sim_stats.total_rob_occupancy_at_branch_mispredict += std::size(ROB);
+      sim_stats.branch_type_misses.at(instr.branch)++;
+    }
   }
 }
 
@@ -498,7 +509,7 @@ long O3_CPU::decode_instruction()
         this->fetch_resume_cycle = this->current_cycle + BRANCH_MISPREDICT_PENALTY;
 
         // update branch stats here
-        // update_branch_stats(db_entry); // WP-TODO: implement this
+        update_branch_stats(db_entry);
         prev_fetch_block = 0;
         restart = true;
         if constexpr (champsim::wp_debug_print) {
@@ -871,7 +882,7 @@ void O3_CPU::do_complete_execution(ooo_model_instr& instr)
   }
 
   if (instr.branch_mispredicted && !instr.is_wrong_path && !instr.squashed) {
-    // update_branch_stats(instr); // WP-TODO: implement this
+    update_branch_stats(instr);
     fetch_resume_cycle = current_cycle + BRANCH_MISPREDICT_PENALTY;
     prev_fetch_block = 0;
     restart = true;
