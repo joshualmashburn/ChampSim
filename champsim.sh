@@ -2,7 +2,8 @@ make
 
 job_submition() {
     # Define the file path
-    directory="logs"
+    data_directory="${1}-data"
+    logs_directory="${1}-logs"
     file_path="jobs/run.job"
 
     # Backup the original file
@@ -23,9 +24,10 @@ job_submition() {
     # Submit the job
     job_name="${trace_name}"
 
-    mkdir -p "${directory}"
+    mkdir -p "${data_directory}"
+    mkdir -p "${logs_directory}"
 
-    sbatch -Q -J ${job_name} --output=${directory}/%x.out --error=${directory}/%x.err $file_path
+    sbatch -Q -J ${job_name} --output=${logs_directory}/%x.out --error=${logs_directory}/%x.err $file_path
 
     # Revert the changes by restoring the backup
     cp "$backup_file" "$file_path"
@@ -51,11 +53,16 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-for trace in $(ls ../wp-traces/*.gz); do
-    echo "Processing ${trace}"
+for trace in $(ls ../traces/*.wp.trace.gz); do
     trace_name=$(basename $trace)
-    champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path $trace > logs/${trace_name}.log'"
-    job_submition
+    trace_name=${trace_name%.wp.trace.gz}
+    echo "Processing ${trace_name}"
+
+    champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 20000000 $trace > cp-data/${trace_name}.txt'"
+    job_submition "cp"
+
+    champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 20000000 --wrong-path $trace > wp-data/${trace_name}.txt'"
+    job_submition "wp"
 done
 
 start_watcher

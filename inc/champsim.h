@@ -34,7 +34,7 @@ constexpr bool debug_print = true;
 constexpr bool debug_print = false;
 #endif
 
-#define TRACE_DEBUG_PRINT
+// #define TRACE_DEBUG_PRINT
 #ifdef TRACE_DEBUG_PRINT
 constexpr bool trace_debug_print = true;
 #else
