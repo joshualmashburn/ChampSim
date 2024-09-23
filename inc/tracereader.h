@@ -125,10 +125,11 @@ ooo_model_instr bulk_tracereader<T, F>::operator()()
     auto end = std::next(begin, bytes_read / sizeof(T));
 
     // auto prev_end = std::end(instr_buffer);
-    // auto dist = std::distance(std::begin(instr_buffer),  prev_end); 
+    // auto dist = std::distance(std::begin(instr_buffer), prev_end);
     std::transform(begin, end, std::back_inserter(instr_buffer), [cpu = this->cpu](T t) { return ooo_model_instr{cpu, t}; });
 
     // auto new_begin = std::begin(instr_buffer) + dist;
+    // instr_buffer.erase(std::remove_if(new_begin, std::end(instr_buffer), [](auto &x){ return x.is_prefetch; }), std::end(instr_buffer));
 
     // Set branch targets
     set_branch_targets(std::begin(instr_buffer), std::end(instr_buffer));

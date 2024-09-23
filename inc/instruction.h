@@ -45,7 +45,7 @@ enum flags { NON_SPEC = 0, SERIAL, SERIAL_AFTER, SERIAL_BEFORE, READ_BARRIER, WR
 struct ooo_model_instr {
   uint64_t instr_id = 0;
   uint64_t ip = 0;
-  uint64_t event_cycle = 0;
+  uint64_t event_cycle = std::numeric_limits<uint64_t>::max();
 
   bool is_branch = 0;
   bool branch_taken = 0;

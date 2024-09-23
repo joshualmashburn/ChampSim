@@ -192,7 +192,7 @@ public:
   // branch
   uint64_t fetch_resume_cycle = 0;
 
-  const long IN_QUEUE_SIZE = 2 * FETCH_WIDTH;
+  const long IN_QUEUE_SIZE = 10 * FETCH_WIDTH; // WP-TODO: What is this 10?
   std::deque<ooo_model_instr> input_queue;
 
   CacheBus L1I_bus, L1D_bus;

@@ -103,7 +103,7 @@ def normalize_config(config_file):
             ({'name': util.read_element_name(c,'PTW'), **config_file['PTW']} for c in cores if isinstance(config_file.get('PTW'), dict)),
 
             # Apply defaults named after the cores
-            (defaults.core_defaults(cpu, 'PTW', ll_name='L1D') for cpu in cores)
+            (defaults.core_defaults(cpu, 'PTW', ll_name='L2C') for cpu in cores)
             )
 
     # Convert all core values to labels
