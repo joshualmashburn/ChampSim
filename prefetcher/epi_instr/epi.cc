@@ -135,7 +135,7 @@ uint32_t l1i_find_bb_merge_hist_table(uint64_t line_addr) {
 // return bere (best request -- entangled address)
 uint64_t l1i_get_bere_hist_table(uint64_t line_addr, uint64_t latency, uint32_t skip = 0) {
   uint64_t tag = line_addr & L1I_HIST_TAG_MASK; 
-  // assert(tag); // WP-TODO: Fix this
+  assert(tag);
   uint32_t first = (l1i_hist_table_head[l1i_cpu_id] + L1I_HIST_TABLE_MASK) % L1I_HIST_TABLE_ENTRIES;
   uint64_t time_i = l1i_hist_table_head_time[l1i_cpu_id];
   uint64_t req_time = 0;
@@ -233,7 +233,7 @@ uint32_t l1i_get_invalid_timing_cache_entry(uint64_t line_addr) {
   for (uint32_t j = 0; j < MAX_NUM_WAY; j++) {
     if (!l1i_timing_cache_table[l1i_cpu_id][i][j].valid) return j;
   }
-  // assert(false); // It must return a free entry // WP-TODO: Fix this
+  assert(false); // It must return a free entry //
   return MAX_NUM_WAY;  
 }
 
@@ -279,7 +279,7 @@ void l1i_move_timing_entry(uint64_t line_addr) {
 bool l1i_invalid_timing_cache_entry(uint64_t line_addr, uint64_t &bere_line_addr) {
   uint32_t set = line_addr % MAX_NUM_SET;
   uint32_t way = l1i_find_timing_cache_entry(line_addr);
-  // assert(way < MAX_NUM_WAY); // WP-TODO: Fix this
+  assert(way < MAX_NUM_WAY);
   l1i_timing_cache_table[l1i_cpu_id][set][way].valid = false;
   bere_line_addr = l1i_timing_cache_table[l1i_cpu_id][set][way].bere_line_addr;
   return l1i_timing_cache_table[l1i_cpu_id][set][way].accessed;

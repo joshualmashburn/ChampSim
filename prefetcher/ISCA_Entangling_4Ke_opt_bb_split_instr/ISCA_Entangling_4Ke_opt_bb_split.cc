@@ -405,7 +405,7 @@ uint32_t l1i_find_bb_merge_hist_table(uint64_t line_addr) {
 uint64_t l1i_get_src_entangled_hist_table(uint64_t line_addr, uint32_t pos_hist, uint64_t latency, bool& wrong_path, uint32_t skip = 0) {
   assert(pos_hist < L1I_HIST_TABLE_ENTRIES);
   uint64_t tag = line_addr & L1I_HIST_TAG_MASK;
-  // assert(tag); // WP-TODO: Fix this
+  assert(tag);
   if (l1i_hist_table[l1i_cpu_id][pos_hist].tag != tag) {
     return 0; // removed
   }
@@ -552,7 +552,7 @@ uint32_t l1i_get_invalid_timing_cache_entry(uint64_t line_addr) {
   for (uint32_t j = 0; j < MAX_NUM_WAY; j++) {
     if (!l1i_timing_cache_table[l1i_cpu_id][i][j].valid) return j;
   }
-  // assert(false); // It must return a free entry // WP-TODO: Fix this
+  assert(false); // It must return a free entry
   return MAX_NUM_WAY;  
 }
 
@@ -601,7 +601,7 @@ void l1i_move_timing_entry(uint64_t line_addr) {
 bool l1i_invalid_timing_cache_entry(uint64_t line_addr, uint32_t &source_set, uint32_t &source_way) {
   uint32_t set = line_addr % MAX_NUM_SET;
   uint32_t way = l1i_find_timing_cache_entry(line_addr);
-  // assert(way < MAX_NUM_WAY); // WP-TODO: Fix this
+  assert(way < MAX_NUM_WAY);
   l1i_timing_cache_table[l1i_cpu_id][set][way].valid = false;
   source_set = l1i_timing_cache_table[l1i_cpu_id][set][way].source_set;
   source_way = l1i_timing_cache_table[l1i_cpu_id][set][way].source_way;
@@ -1024,8 +1024,8 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
   uint64_t line_addr = addr >> LOG2_BLOCK_SIZE;
 
   //if (!cache_hit) assert(!prefetch_hit);
-  // if (!cache_hit) assert(l1i_find_timing_cache_entry(line_addr) == MAX_NUM_WAY); // WP-TODO: Fix this
-  // if (cache_hit) assert(l1i_find_timing_cache_entry(line_addr) < MAX_NUM_WAY); // WP-TODO: Fix this
+  if (!cache_hit) assert(l1i_find_timing_cache_entry(line_addr) == MAX_NUM_WAY);
+  if (cache_hit) assert(l1i_find_timing_cache_entry(line_addr) < MAX_NUM_WAY);
 
   l1i_stats_table[cpu][(line_addr & L1I_STATS_TABLE_MASK)].accesses++;
   if (!cache_hit) {
