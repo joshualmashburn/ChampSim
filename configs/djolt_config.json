@@ -1,0 +1,7 @@
+{
+    "executable_name": "champsim-djolt",
+
+    "L1I": {
+        "prefetcher": "djolt_instr"
+    }
+}

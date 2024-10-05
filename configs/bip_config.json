@@ -1,0 +1,7 @@
+{
+    "executable_name": "champsim-bip",
+
+    "L1I": {
+        "prefetcher": "bip_instr"
+    }
+}

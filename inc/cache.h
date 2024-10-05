@@ -150,6 +150,7 @@ class CACHE : public champsim::operable
   template <bool>
   auto initiate_tag_check(champsim::channel* ul = nullptr);
 
+public:
   std::deque<tag_lookup_type> internal_PQ{};
   std::deque<tag_lookup_type> inflight_tag_check{};
   std::deque<tag_lookup_type> translation_stash{};

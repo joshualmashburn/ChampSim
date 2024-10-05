@@ -1,0 +1,7 @@
+{
+    "executable_name": "champsim-pips",
+
+    "L1I": {
+        "prefetcher": "pips_instr"
+    }
+}

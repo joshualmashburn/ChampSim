@@ -1,0 +1,7 @@
+{
+    "executable_name": "champsim-no",
+
+    "L1I": {
+        "prefetcher": "no_instr"
+    }
+}

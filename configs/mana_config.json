@@ -1,0 +1,7 @@
+{
+    "executable_name": "champsim-mana",
+
+    "L1I": {
+        "prefetcher": "mana_instr"
+    }
+}
