@@ -18,13 +18,12 @@ uint32_t CACHE::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t
   // look for the maxRRPV line
   auto begin = std::next(std::begin(::rrpv_values[this]), set * NUM_WAY);
   auto end = std::next(begin, NUM_WAY);
-  auto victim = std::find(begin, end, ::maxRRPV); // hijack the lru field
-  while (victim == end) {
-    for (auto it = begin; it != end; ++it)
-      ++(*it);
 
-    victim = std::find(begin, end, ::maxRRPV);
-  }
+  auto victim = std::max_element(begin, end);
+  auto rrpv_update = ::maxRRPV - *victim;
+  if (rrpv_update != 0)
+    for (auto it = begin; it != end; ++it)
+      *it += rrpv_update;
 
   assert(begin <= victim);
   assert(victim < end);
