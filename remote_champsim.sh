@@ -1,5 +1,3 @@
-make
-
 job_submition() {
     # Define the file path
     data_directory="${1}-data"
@@ -46,6 +44,7 @@ start_watcher() {
     sed -i "s|#email|${EMAIL}|" "$file_path"
 
     if [ $(squeue -u $USER | grep watcher | wc -l) -eq 0 ]; then
+        echo "Starting Watcher"
         sbatch -Q -J watcher --output=/dev/null --error=/dev/null $file_path
     fi
 
@@ -53,16 +52,35 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-for trace in $(ls ../traces/*.wp.trace.gz); do
+# echo "Starting the old traces"
+# for trace in $(ls ../old-traces/*.gz); do
+#     trace_name=$(basename $trace)
+#     trace_name=${trace_name%.gz}
+#     echo "Processing ${trace_name}"
+
+#     champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 100000000 $trace > old/cp-data/${trace_name}.txt'"
+#     job_submition "old" "cp"
+
+#     champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path $trace > old/wp-data/${trace_name}.txt'"
+#     job_submition "old" "wp"
+# done
+
+echo "Starting the new traces"
+for trace in $(ls ../new-traces/*.gz); do
     trace_name=$(basename $trace)
-    trace_name=${trace_name%.wp.trace.gz}
+    trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
 
-    champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 20000000 $trace > cp-data/${trace_name}.txt'"
-    job_submition "cp"
+    for binary in $(ls bin/*); do
+        binary_name=$(basename $binary)
+        echo "Running ${binary_name}"
 
-    champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 20000000 --wrong-path $trace > wp-data/${trace_name}.txt'"
-    job_submition "wp"
+        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 ${trace} > cp-data/${trace_name}-${binary_name}.txt'"
+        job_submition "cp"
+
+        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path ${trace} > wp-data/${trace_name}-${binary_name}.txt'"
+        job_submition "wp"
+    done
 done
 
 start_watcher
