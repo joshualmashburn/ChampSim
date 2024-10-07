@@ -1,3 +1,6 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/Microsoft/vcpkg.git
+[submodule "tracer/pin/bzip2"]
+	path = tracer/pin/bzip2
+	url = git://sourceware.org/git/bzip2.git
