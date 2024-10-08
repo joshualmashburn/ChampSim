@@ -22,4 +22,5 @@
 # ./config.sh configs/champsim_config.json configs/tap_config.json && make
 
 # L1D prefetchers:
-./config.sh configs/champsim_config.json configs/berti_config.json && make
+# ./config.sh configs/champsim_config.json configs/berti_config.json && make
+./config.sh configs/champsim_config.json configs/ipcp_config.json && make

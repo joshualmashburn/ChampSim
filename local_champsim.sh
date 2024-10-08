@@ -15,6 +15,6 @@ for trace in $(ls ../new-traces/*.gz); do
     done
 done
 
-# ./bin/champsim-berti --warmup-instructions 100000 --simulation-instructions 200000 ../new-traces/tomcat.gz >cp-data/tomcat.txt
-# ./bin/champsim-berti --warmup-instructions 100000 --simulation-instructions 200000 --wrong-path ../new-traces/tomcat.gz >wp-data/tomcat.txt
+# ./bin/champsim-ipcp --warmup-instructions 100000 --simulation-instructions 200000 ../new-traces/tomcat.gz >cp-data/tomcat.txt
+# ./bin/champsim-ipcp --warmup-instructions 100000 --simulation-instructions 200000 --wrong-path ../new-traces/tomcat.gz >wp-data/tomcat.txt
 # gdb -q --tui -ex=r --args ./bin/champsim-djolt --warmup-instructions 100000 --simulation-instructions 200000 --wrong-path ../new-traces/tomcat.gz
