@@ -6,7 +6,7 @@
 
 ##NECESSARY JOB SPECIFICATIONS
 #SBATCH --account=#account
-#SBATCH --time=2:00:00
+#SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=500M
 
