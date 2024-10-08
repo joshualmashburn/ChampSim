@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-pips",
+    "name": "pips",
 
     "L1I": {
         "prefetcher": "pips_instr"

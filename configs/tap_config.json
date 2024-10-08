@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-tap",
+    "name": "tap",
 
     "L1I": {
         "prefetcher": "tap_instr"

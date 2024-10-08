@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-next_line",
+    "name": "next_line",
 
     "L1I": {
         "prefetcher": "next_line_instr"

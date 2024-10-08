@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-ISCA_Entangling_4Ke",
+    "name": "ISCA_Entangling_4Ke",
 
     "L1I": {
         "prefetcher": "ISCA_Entangling_4Ke_instr"

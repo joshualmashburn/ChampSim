@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-barsa",
+    "name": "barsa",
 
     "L1I": {
         "prefetcher": "barsa_instr"

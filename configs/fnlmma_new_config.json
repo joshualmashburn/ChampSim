@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-fnlmma_new",
+    "name": "fnlmma_new",
 
     "L1I": {
         "prefetcher": "fnlmma_new_instr"

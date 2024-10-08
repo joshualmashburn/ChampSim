@@ -46,9 +46,12 @@ def scale_frequencies(it):
         x['frequency'] = max_freq / x['frequency']
 
 def executable_name(*config_list):
-    for c in config_list:
-        if c.get('executable_name') is not None:
-            return (c.get('executable_name'))
+    name_by_parts = '-'.join(('champsim', *(c.get('name') for c in config_list if c.get('name') is not None)))
+    # Check if the generated name ends with '-champsim' and remove it
+    if name_by_parts.endswith('-champsim'):
+        name_by_parts = name_by_parts[:-len('-champsim')]
+    name_by_specification = next(reversed(list(c.get('executable_name') for c in config_list if c.get('executable_name') is not None)), name_by_parts)
+    return name_by_specification
 
 def duplicate_to_length(elements, n):
     repeat_factor = math.ceil(n / len(elements));

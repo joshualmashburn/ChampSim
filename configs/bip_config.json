@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-bip",
+    "name": "bip",
 
     "L1I": {
         "prefetcher": "bip_instr"

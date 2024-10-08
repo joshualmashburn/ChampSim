@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-djolt",
+    "name": "djolt",
 
     "L1I": {
         "prefetcher": "djolt_instr"

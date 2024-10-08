@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-epi",
+    "name": "epi",
 
     "L1I": {
         "prefetcher": "epi_instr"

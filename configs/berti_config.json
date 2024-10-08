@@ -1,5 +1,5 @@
 {
-    "executable_name": "champsim-berti",
+    "name": "berti",
 
     "L1D": {
         "prefetch_as_load": false,
