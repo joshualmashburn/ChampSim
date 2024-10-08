@@ -1,5 +1,5 @@
 {
-    "name": "ISCA_Entangling_4Ke",
+    "name": "l1i-ISCA_Entangling_4Ke",
 
     "L1I": {
         "prefetcher": "ISCA_Entangling_4Ke_instr"

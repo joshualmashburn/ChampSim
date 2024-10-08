@@ -1,5 +1,5 @@
 {
-    "name": "ipcp",
+    "name": "l1d-ipcp",
 
     "L1D": {
         "prefetcher": "ipcp"

@@ -1,5 +1,5 @@
 {
-    "name": "mana",
+    "name": "l1i-mana",
 
     "L1I": {
         "prefetcher": "mana_instr"

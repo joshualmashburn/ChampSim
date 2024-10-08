@@ -1,5 +1,5 @@
 {
-    "name": "next_line",
+    "name": "l1i-next_line",
 
     "L1I": {
         "prefetcher": "next_line_instr"

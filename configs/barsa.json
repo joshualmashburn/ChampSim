@@ -1,5 +1,5 @@
 {
-    "name": "barsa",
+    "name": "l1i-barsa",
 
     "L1I": {
         "prefetcher": "barsa_instr"

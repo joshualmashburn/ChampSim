@@ -1,5 +1,5 @@
 {
-    "name": "fnlmma",
+    "name": "l1i-fnlmma",
 
     "L1I": {
         "prefetcher": "fnlmma_instr"

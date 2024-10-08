@@ -1,5 +1,5 @@
 {
-    "name": "bip",
+    "name": "l1i-bip",
 
     "L1I": {
         "prefetcher": "bip_instr"

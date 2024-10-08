@@ -1,0 +1,7 @@
+{
+    "name": "l1d-next_line",
+
+    "L1D": {
+        "prefetcher": "next_line"
+    }
+}

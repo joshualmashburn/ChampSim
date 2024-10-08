@@ -1,5 +1,5 @@
 {
-    "name": "tap",
+    "name": "l1i-tap",
 
     "L1I": {
         "prefetcher": "tap_instr"

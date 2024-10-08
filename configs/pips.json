@@ -1,5 +1,5 @@
 {
-    "name": "pips",
+    "name": "l1i-pips",
 
     "L1I": {
         "prefetcher": "pips_instr"

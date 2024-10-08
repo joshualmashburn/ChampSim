@@ -1,5 +1,5 @@
 {
-    "name": "berti",
+    "name": "l1d-berti",
 
     "L1D": {
         "prefetch_as_load": false,

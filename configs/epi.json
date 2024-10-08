@@ -1,5 +1,5 @@
 {
-    "name": "epi",
+    "name": "l1i-epi",
 
     "L1I": {
         "prefetcher": "epi_instr"
