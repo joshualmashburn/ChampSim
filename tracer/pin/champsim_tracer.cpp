@@ -142,6 +142,10 @@ VOID Instruction(INS ins, VOID* v)
       // REG_FullRegName returns the ymm register for xmm, so we manually handle these
       regNum = REG_corresponding_zmm_reg(regNum_temp);
     }
+    else if (REG_is_st(regNum_temp)) {
+      // also alias x87 FP stack registers to MMX registers
+      regNum = (regNum_temp - REG_ST_BASE) + REG_MM_BASE;
+    }
     else {
       // this returns the full register if the register is partial
       // (e.g. AL, AH, AX, EAX, FLAGS, etc.),
@@ -162,6 +166,9 @@ VOID Instruction(INS ins, VOID* v)
       }
     else if (REG_is_xmm(regNum_temp)) {
       regNum = REG_corresponding_zmm_reg(regNum_temp);
+    }
+    else if (REG_is_st(regNum_temp)) {
+      regNum = (regNum_temp - REG_ST_BASE) + REG_MM_BASE;
     }
     else {
       regNum = REG_FullRegName(regNum_temp);
