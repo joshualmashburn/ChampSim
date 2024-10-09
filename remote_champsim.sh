@@ -52,19 +52,6 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-# echo "Starting the old traces"
-# for trace in $(ls ../old-traces/*.gz); do
-#     trace_name=$(basename $trace)
-#     trace_name=${trace_name%.gz}
-#     echo "Processing ${trace_name}"
-
-#     champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 100000000 $trace > old/cp-data/${trace_name}.txt'"
-#     job_submition "old" "cp"
-
-#     champsim_command="'./bin/champsim --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path $trace > old/wp-data/${trace_name}.txt'"
-#     job_submition "old" "wp"
-# done
-
 echo "Starting the new traces"
 for trace in $(ls ../new-traces/*.gz); do
     trace_name=$(basename $trace)
