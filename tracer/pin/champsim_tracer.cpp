@@ -69,6 +69,15 @@ INT32 Usage()
   return -1;
 }
 
+/*!
+ *  Return the corresponding zmm register for a given ymm register
+ *  (Current Pin doesn't report YMM as partial registers of ZMM)
+ */
+REG REG_ymm_to_zmm_reg(REG reg)
+{
+    return static_cast< REG >(reg - REG_YMM_BASE + REG_ZMM_BASE);
+}
+
 /* ===================================================================== */
 // Analysis routines
 /* ===================================================================== */
@@ -123,7 +132,22 @@ VOID Instruction(INS ins, VOID* v)
   // instrument register reads
   UINT32 readRegCount = INS_MaxNumRRegs(ins);
   for (UINT32 i = 0; i < readRegCount; i++) {
-    UINT32 regNum = INS_RegR(ins, i);
+    UINT32 regNum;
+    REG regNum_temp = INS_RegR(ins, i);
+    if (REG_is_ymm(regNum_temp)) {
+      // Current Pin doesn't correctly convert XMM and YMM to ZMM
+      regNum = REG_ymm_to_zmm_reg(regNum_temp);
+      }
+    else if (REG_is_xmm(regNum_temp)) {
+      // REG_FullRegName returns the ymm register for xmm, so we manually handle these
+      regNum = REG_corresponding_zmm_reg(regNum_temp);
+    }
+    else {
+      // this returns the full register if the register is partial
+      // (e.g. AL, AH, AX, EAX, FLAGS, etc.),
+      // otherwise it returns the same register
+      regNum = REG_FullRegName(regNum_temp);
+    }
     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)WriteToSet<unsigned char>, IARG_PTR, curr_instr.source_registers, IARG_PTR,
                    curr_instr.source_registers + NUM_INSTR_SOURCES, IARG_UINT32, regNum, IARG_END);
   }
@@ -131,7 +155,17 @@ VOID Instruction(INS ins, VOID* v)
   // instrument register writes
   UINT32 writeRegCount = INS_MaxNumWRegs(ins);
   for (UINT32 i = 0; i < writeRegCount; i++) {
-    UINT32 regNum = INS_RegW(ins, i);
+    UINT32 regNum;
+    REG regNum_temp = INS_RegW(ins, i);
+    if (REG_is_ymm(regNum_temp)) {
+      regNum = REG_ymm_to_zmm_reg(regNum_temp);
+      }
+    else if (REG_is_xmm(regNum_temp)) {
+      regNum = REG_corresponding_zmm_reg(regNum_temp);
+    }
+    else {
+      regNum = REG_FullRegName(regNum_temp);
+    }
     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)WriteToSet<unsigned char>, IARG_PTR, curr_instr.destination_registers, IARG_PTR,
                    curr_instr.destination_registers + NUM_INSTR_DESTINATIONS, IARG_UINT32, regNum, IARG_END);
   }
