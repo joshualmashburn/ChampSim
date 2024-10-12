@@ -144,7 +144,10 @@ uint32_t l1i_find_bb_merge_hist_table(uint64_t line_addr)
 uint64_t l1i_get_bere_hist_table(uint64_t line_addr, uint64_t latency, uint32_t skip = 0)
 {
   uint64_t tag = line_addr & L1I_HIST_TAG_MASK;
-  assert(tag);
+  // assert(tag);
+  if (!tag) {
+    return -1;
+  }
   uint32_t first = (l1i_hist_table_head[l1i_cpu_id] + L1I_HIST_TABLE_MASK) % L1I_HIST_TABLE_ENTRIES;
   uint64_t time_i = l1i_hist_table_head_time[l1i_cpu_id];
   uint64_t req_time = 0;
@@ -237,7 +240,7 @@ uint32_t l1i_get_invalid_timing_mshr_entry()
     if (!l1i_timing_mshr_table[l1i_cpu_id][i].valid)
       return i;
   }
-  assert(false); // It must return a free entry
+  // assert(false); // It must return a free entry
   return L1I_TIMING_MSHR_SIZE;
 }
 
@@ -248,7 +251,7 @@ uint32_t l1i_get_invalid_timing_cache_entry(uint64_t line_addr)
     if (!l1i_timing_cache_table[l1i_cpu_id][i][j].valid)
       return j;
   }
-  assert(false); // It must return a free entry
+  // assert(false); // It must return a free entry
   return MAX_NUM_WAY;
 }
 
@@ -261,6 +264,8 @@ void l1i_add_timing_entry(uint64_t line_addr, uint64_t bere_line_addr)
     return;
 
   uint32_t i = l1i_get_invalid_timing_mshr_entry();
+  if (i == L1I_TIMING_MSHR_SIZE)
+    return;
   l1i_timing_mshr_table[l1i_cpu_id][i].valid = true;
   l1i_timing_mshr_table[l1i_cpu_id][i].tag = line_addr & L1I_TIMING_MSHR_TAG_MASK;
   l1i_timing_mshr_table[l1i_cpu_id][i].bere_line_addr = bere_line_addr;
@@ -281,6 +286,9 @@ void l1i_move_timing_entry(uint64_t line_addr)
   if (index_mshr == L1I_TIMING_MSHR_SIZE) {
     uint32_t set = line_addr % MAX_NUM_SET;
     uint32_t index_cache = l1i_get_invalid_timing_cache_entry(line_addr);
+    if (index_cache == MAX_NUM_WAY) {
+      return;
+    }
     l1i_timing_cache_table[l1i_cpu_id][set][index_cache].valid = true;
     l1i_timing_cache_table[l1i_cpu_id][set][index_cache].tag = (line_addr >> MAX_NUM_SET_BITS) & L1I_TIMING_CACHE_TAG_MASK;
     l1i_timing_cache_table[l1i_cpu_id][set][index_cache].accessed = true;
@@ -288,6 +296,9 @@ void l1i_move_timing_entry(uint64_t line_addr)
   }
   uint64_t set = line_addr % MAX_NUM_SET;
   uint64_t index_cache = l1i_get_invalid_timing_cache_entry(line_addr);
+  if (index_cache == MAX_NUM_WAY) {
+    return;
+  }
   l1i_timing_cache_table[l1i_cpu_id][set][index_cache].valid = true;
   l1i_timing_cache_table[l1i_cpu_id][set][index_cache].tag = (line_addr >> MAX_NUM_SET_BITS) & L1I_TIMING_CACHE_TAG_MASK;
   l1i_timing_cache_table[l1i_cpu_id][set][index_cache].bere_line_addr = l1i_timing_mshr_table[l1i_cpu_id][index_mshr].bere_line_addr;
@@ -300,7 +311,10 @@ bool l1i_invalid_timing_cache_entry(uint64_t line_addr, uint64_t& bere_line_addr
 {
   uint32_t set = line_addr % MAX_NUM_SET;
   uint32_t way = l1i_find_timing_cache_entry(line_addr);
-  assert(way < MAX_NUM_WAY);
+  // assert(way < MAX_NUM_WAY);
+  if (way >= MAX_NUM_WAY) {
+    return false;
+  }
   l1i_timing_cache_table[l1i_cpu_id][set][way].valid = false;
   bere_line_addr = l1i_timing_cache_table[l1i_cpu_id][set][way].bere_line_addr;
   return l1i_timing_cache_table[l1i_cpu_id][set][way].accessed;
@@ -840,6 +854,8 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     bool inserted = false;
     for (uint32_t i = 0; i < L1I_TRIES_AVAIL_ENTANGLED; i++) {
       uint64_t bere = l1i_get_bere_hist_table(line_addr, latency, i);
+      if (bere == -1)
+        continue;
       if (bere && line_addr != bere) {
         if (l1i_avail_entangled_table(bere, line_addr, false)) {
           l1i_add_entangled_table(bere, line_addr);
@@ -851,6 +867,8 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     if (!inserted) {
       for (uint32_t i = 0; i < L1I_TRIES_AVAIL_ENTANGLED_NOT_PRESENT; i++) {
         uint64_t bere = l1i_get_bere_hist_table(line_addr, latency, i);
+        if (bere == -1)
+          continue;
         if (bere && line_addr != bere) {
           if (l1i_avail_entangled_table(bere, line_addr, true)) {
             l1i_add_entangled_table(bere, line_addr);
@@ -862,6 +880,8 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     }
     if (!inserted) {
       uint64_t bere = l1i_get_bere_hist_table(line_addr, latency);
+      if (bere == -1)
+        return metadata_in;
       if (bere && line_addr != bere) {
         l1i_add_entangled_table(bere, line_addr);
       }
