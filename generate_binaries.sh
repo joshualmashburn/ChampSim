@@ -30,4 +30,5 @@
 
 # L2C prefetchers:
 # ./config.sh configs/champsim_config.json configs/sms.json && make
-./config.sh configs/champsim_config.json configs/bop.json && make
+# ./config.sh configs/champsim_config.json configs/bop.json && make
+./config.sh configs/champsim_config.json configs/next_line_l2c.json && make

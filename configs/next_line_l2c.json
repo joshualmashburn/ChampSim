@@ -1,0 +1,7 @@
+{
+    "name": "l2c-next_line",
+
+    "L2C": {
+        "prefetcher": "next_line"
+    }
+}
