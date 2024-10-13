@@ -25,5 +25,8 @@
 # ./config.sh configs/champsim_config.json configs/no.json && make
 # ./config.sh configs/champsim_config.json configs/next_line.json && make
 # ./config.sh configs/champsim_config.json configs/berti.json && make
-./config.sh configs/champsim_config.json configs/ip_stride.json && make
+# ./config.sh configs/champsim_config.json configs/ip_stride.json && make
 # ./config.sh configs/champsim_config.json configs/ipcp.json && make
+
+# L2C prefetchers:
+./config.sh configs/champsim_config.json configs/sms.json && make

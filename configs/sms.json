@@ -1,0 +1,7 @@
+{
+    "name": "l2c-sms",
+
+    "L2C": {
+        "prefetcher": "sms"
+    }
+}
