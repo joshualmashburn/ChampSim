@@ -1,0 +1,7 @@
+{
+    "name": "l2c-bop",
+
+    "L2C": {
+        "prefetcher": "bop"
+    }
+}
