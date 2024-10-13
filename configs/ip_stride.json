@@ -1,0 +1,7 @@
+{
+    "name": "l1d-ip_stride",
+
+    "L1D": {
+        "prefetcher": "ip_stride"
+    }
+}
