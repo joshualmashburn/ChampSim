@@ -1,0 +1,7 @@
+{
+    "name": "l2c-sandbox",
+
+    "L2C": {
+        "prefetcher": "sandbox"
+    }
+}

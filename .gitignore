@@ -1,4 +1,5 @@
 .venv/
+libbf/
 
 .csconfig/
 _configuration.mk
