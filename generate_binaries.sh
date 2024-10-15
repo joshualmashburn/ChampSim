@@ -13,8 +13,8 @@
 # ./config.sh configs/champsim_config.json configs/epi.json && make
 # ./config.sh configs/champsim_config.json configs/fnlmma.json && make
 # ./config.sh configs/champsim_config.json configs/fnlmma_new.json && make
-# # ./config.sh configs/champsim_config.json configs/ISCA_Entangling_4Ke.json && make
-# # ./config.sh configs/champsim_config.json configs/ISCA_Entangling_4Ke_opt_bb_split.json && make
+# ./config.sh configs/champsim_config.json configs/ISCA_Entangling_4Ke.json && make
+# ./config.sh configs/champsim_config.json configs/ISCA_Entangling_4Ke_opt_bb_split.json && make
 # ./config.sh configs/champsim_config.json configs/mana.json && make
 # ./config.sh configs/champsim_config.json configs/next_line_instr.json && make
 # ./config.sh configs/champsim_config.json configs/no_instr.json && make
@@ -33,4 +33,4 @@
 # ./config.sh configs/champsim_config.json configs/bop.json && make
 # ./config.sh configs/champsim_config.json configs/next_line_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/sandbox.json && make
-./config.sh configs/champsim_config.json configs/streamer.json && make
+# ./config.sh configs/champsim_config.json configs/streamer.json && make

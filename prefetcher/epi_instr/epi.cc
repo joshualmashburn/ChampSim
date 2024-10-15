@@ -264,8 +264,9 @@ void l1i_add_timing_entry(uint64_t line_addr, uint64_t bere_line_addr)
     return;
 
   uint32_t i = l1i_get_invalid_timing_mshr_entry();
-  if (i == L1I_TIMING_MSHR_SIZE)
+  if (i == L1I_TIMING_MSHR_SIZE) {
     return;
+  }
   l1i_timing_mshr_table[l1i_cpu_id][i].valid = true;
   l1i_timing_mshr_table[l1i_cpu_id][i].tag = line_addr & L1I_TIMING_MSHR_TAG_MASK;
   l1i_timing_mshr_table[l1i_cpu_id][i].bere_line_addr = bere_line_addr;
@@ -854,8 +855,9 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     bool inserted = false;
     for (uint32_t i = 0; i < L1I_TRIES_AVAIL_ENTANGLED; i++) {
       uint64_t bere = l1i_get_bere_hist_table(line_addr, latency, i);
-      if (bere == -1)
+      if (bere == -1) {
         continue;
+      }
       if (bere && line_addr != bere) {
         if (l1i_avail_entangled_table(bere, line_addr, false)) {
           l1i_add_entangled_table(bere, line_addr);
@@ -867,8 +869,9 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     if (!inserted) {
       for (uint32_t i = 0; i < L1I_TRIES_AVAIL_ENTANGLED_NOT_PRESENT; i++) {
         uint64_t bere = l1i_get_bere_hist_table(line_addr, latency, i);
-        if (bere == -1)
+        if (bere == -1) {
           continue;
+        }
         if (bere && line_addr != bere) {
           if (l1i_avail_entangled_table(bere, line_addr, true)) {
             l1i_add_entangled_table(bere, line_addr);
@@ -880,8 +883,9 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t v_addr, uint32_t set, uint32_t wa
     }
     if (!inserted) {
       uint64_t bere = l1i_get_bere_hist_table(line_addr, latency);
-      if (bere == -1)
+      if (bere == -1) {
         return metadata_in;
+      }
       if (bere && line_addr != bere) {
         l1i_add_entangled_table(bere, line_addr);
       }
