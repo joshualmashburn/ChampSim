@@ -1,0 +1,7 @@
+{
+    "name": "l2c-ampm",
+
+    "L2C": {
+        "prefetcher": "ampm_l2c"
+    }
+}
