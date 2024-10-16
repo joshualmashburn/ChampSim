@@ -26,11 +26,14 @@
 # ./config.sh configs/champsim_config.json configs/ip_stride_l1d.json && make
 
 # ./config.sh configs/champsim_config.json configs/berti_l1d.json && make # ChampSim PR
+# ./config.sh configs/champsim_config.json configs/ipcp_l1d.json && make # DPC3
 
 ### L2C Prefetchers:
 # ./config.sh configs/champsim_config.json configs/no_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/next_line_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/ip_stride_l2c.json && make
+
+# ./config.sh configs/champsim_config.json configs/ipcp_l2c.json && make # DPC3
 
 # ./config.sh configs/champsim_config.json configs/sms.json && make
 # ./config.sh configs/champsim_config.json configs/bop.json && make

@@ -2,6 +2,6 @@
     "name": "l1d-ipcp",
 
     "L1D": {
-        "prefetcher": "ipcp"
+        "prefetcher": "ipcp_l1d"
     }
 }

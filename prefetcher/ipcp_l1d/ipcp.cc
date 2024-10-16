@@ -234,7 +234,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
     // issue a next line prefetch upon encountering new IP
     uint64_t pf_address = ((addr >> LOG2_BLOCK_SIZE) + 1) << LOG2_BLOCK_SIZE; // BASE NL=1, changing it to 3
     metadata = encode_metadata(1, NL_TYPE, spec_nl[cpu]);
-    prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+    prefetch_line(pf_address, true, metadata);
     return metadata_in;
   } else { // if same IP encountered, set valid bit
     trackers_l1[cpu][index].ip_valid = 1;
@@ -306,7 +306,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
         break;
       }
 
-      prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+      prefetch_line(pf_address, true, metadata);
       num_prefs++;
       SIG_DP(cout << "1, ");
     }
@@ -321,7 +321,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
       }
 
       metadata = encode_metadata(trackers_l1[cpu][index].last_stride, CS_TYPE, spec_nl[cpu]);
-      prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+      prefetch_line(pf_address, true, metadata);
       num_prefs++;
       SIG_DP(cout << trackers_l1[cpu][index].last_stride << ", ");
     }
@@ -340,7 +340,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
       // we are not prefetching at L2 for CPLX type, so encode delta as 0
       metadata = encode_metadata(0, CPLX_TYPE, spec_nl[cpu]);
       if (DPT_l1[cpu][signature].conf > 0) { // prefetch only when conf>0 for CPLX
-        prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+        prefetch_line(pf_address, true, metadata);
         num_prefs++;
         SIG_DP(cout << pref_offset << ", ");
       }
@@ -352,7 +352,7 @@ uint32_t CACHE::prefetcher_cache_operate(uint64_t addr, uint64_t ip, uint8_t cac
   if (num_prefs == 0 && spec_nl[cpu] == 1) { // NL IP
     uint64_t pf_address = ((addr >> LOG2_BLOCK_SIZE) + 1) << LOG2_BLOCK_SIZE;
     metadata = encode_metadata(1, NL_TYPE, spec_nl[cpu]);
-    prefetch_line(ip, addr, pf_address, FILL_L1, metadata);
+    prefetch_line(pf_address, true, metadata);
     SIG_DP(cout << "1, ");
   }
 

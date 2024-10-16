@@ -1,0 +1,7 @@
+{
+    "name": "l2c-ipcp",
+
+    "L2C": {
+        "prefetcher": "ipcp_l2c"
+    }
+}
