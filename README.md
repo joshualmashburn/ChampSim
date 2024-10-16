@@ -28,6 +28,15 @@ $ ./config.sh <configuration file>
 $ make
 ```
 
+# Bloomfilter library
+```
+git clone https://github.com/mavam/libbf.git libbf
+cd libbf
+mkdir build && cd build
+cmake ../
+make clean && make
+```
+
 # Download DPC-3 trace
 
 Traces used for the 3rd Data Prefetching Championship (DPC-3) can be found here. (https://dpc3.compas.cs.stonybrook.edu/champsim-traces/speccpu/) A set of traces used for the 2nd Cache Replacement Championship (CRC-2) can be found from this link. (http://bit.ly/2t2nkUj)

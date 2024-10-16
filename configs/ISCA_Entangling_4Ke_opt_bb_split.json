@@ -1,7 +1,0 @@
-{
-    "name": "l1i-ISCA_Entangling_4Ke_opt_bb_split",
-
-    "L1I": {
-        "prefetcher": "ISCA_Entangling_4Ke_opt_bb_split_instr"
-    }
-}
