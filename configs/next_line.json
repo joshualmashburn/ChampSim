@@ -1,7 +1,7 @@
 {
-    "name": "l1d-next_line",
+    "name": "l1i-next_line",
 
-    "L1D": {
-        "prefetcher": "next_line"
+    "L1I": {
+        "prefetcher": "next_line_instr"
     }
 }

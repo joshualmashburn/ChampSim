@@ -5,6 +5,6 @@
         "prefetch_as_load": false,
         "virtual_prefetch": true,
         "prefetch_activate": "LOAD,WRITE,PREFETCH",
-        "prefetcher": "berti"
+        "prefetcher": "berti-l1d"
     }
 }

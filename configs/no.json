@@ -1,7 +1,7 @@
 {
-    "name": "l1d-no",
+    "name": "l1i-no",
 
-    "L1D": {
-        "prefetcher": "no"
+    "L1I": {
+        "prefetcher": "no_instr"
     }
 }

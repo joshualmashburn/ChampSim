@@ -1,0 +1,7 @@
+{
+    "name": "l1d-no",
+
+    "L1D": {
+        "prefetcher": "no"
+    }
+}

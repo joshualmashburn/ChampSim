@@ -1,0 +1,7 @@
+{
+    "name": "llc-ip_stride",
+
+    "LLC": {
+        "prefetcher": "ip_stride"
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "name": "llc-next_line",
+
+    "LLC": {
+        "prefetcher": "next_line"
+    }
+}

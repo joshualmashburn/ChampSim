@@ -1,0 +1,7 @@
+{
+    "name": "l2c-no",
+
+    "L2C": {
+        "prefetcher": "no"
+    }
+}

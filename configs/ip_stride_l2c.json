@@ -1,0 +1,7 @@
+{
+    "name": "l2c-ip_stride",
+
+    "L2C": {
+        "prefetcher": "ip_stride"
+    }
+}
