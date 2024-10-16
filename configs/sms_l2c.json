@@ -2,6 +2,6 @@
     "name": "l2c-sms",
 
     "L2C": {
-        "prefetcher": "sms"
+        "prefetcher": "sms_l2c"
     }
 }

@@ -2,6 +2,6 @@
     "name": "l2c-streamer",
 
     "L2C": {
-        "prefetcher": "streamer"
+        "prefetcher": "streamer_l2c"
     }
 }

@@ -2,6 +2,6 @@
     "name": "l2c-bop",
 
     "L2C": {
-        "prefetcher": "bop"
+        "prefetcher": "bop_l2c"
     }
 }

@@ -2,6 +2,6 @@
     "name": "l2c-sandbox",
 
     "L2C": {
-        "prefetcher": "sandbox"
+        "prefetcher": "sandbox_l2c"
     }
 }
