@@ -55,6 +55,7 @@ struct cache_stats {
 
 class CACHE : public champsim::operable
 {
+public:
   enum [[deprecated(
       "Prefetchers may not specify arbitrary fill levels. Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] FILL_LEVEL{
       FILL_L1 = 1, FILL_L2 = 2, FILL_LLC = 4, FILL_DRC = 8, FILL_DRAM = 16};

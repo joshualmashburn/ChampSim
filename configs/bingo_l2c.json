@@ -1,0 +1,7 @@
+{
+    "name": "l2c-bingo",
+
+    "L2C": {
+        "prefetcher": "bingo_l2c"
+    }
+}
