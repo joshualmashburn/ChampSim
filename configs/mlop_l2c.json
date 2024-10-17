@@ -1,0 +1,7 @@
+{
+    "name": "l2c-mlop",
+
+    "L2C": {
+        "prefetcher": "mlop_l2c"
+    }
+}

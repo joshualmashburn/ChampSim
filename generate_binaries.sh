@@ -37,6 +37,7 @@
 ./config.sh configs/champsim_config.json configs/bingo_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/bop_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/ipcp_l2c.json && make # DPC3
+./config.sh configs/champsim_config.json configs/mlop_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sandbox_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sms_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/streamer_l2c.json && make # Pythia

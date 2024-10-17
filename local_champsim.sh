@@ -15,6 +15,6 @@ mkdir -p wp-data
 #     done
 # done
 
-./bin/champsim-l2c-bingo --warmup-instructions 1000000 --simulation-instructions 10000000 ../traces/tomcat.gz >cp-data/tomcat.txt
-./bin/champsim-l2c-bingo --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../traces/tomcat.gz >wp-data/tomcat.txt
+./bin/champsim-l2c-mlop --warmup-instructions 1000000 --simulation-instructions 10000000 ../traces/tomcat.gz >cp-data/tomcat.txt
+./bin/champsim-l2c-mlop --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../traces/tomcat.gz >wp-data/tomcat.txt
 # gdb -q -ex=r --args ./bin/champsim-l1i-epi --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../new-traces/tomcat.gz
