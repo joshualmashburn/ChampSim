@@ -57,15 +57,14 @@ SPP_PPF_dev::~SPP_PPF_dev() {}
 
 void SPP_PPF_dev::print_config() {}
 
-#define L2C_MSHR_SIZE 32 // WP-TODO: Change this to a knob
 void SPP_PPF_dev::invoke_prefetcher(uint64_t ip, uint64_t addr, uint8_t cache_hit, uint8_t type, std::vector<uint64_t>& pref_addr)
 {
   uint64_t page = addr >> LOG2_PAGE_SIZE;
-  uint32_t page_offset = (addr >> LOG2_BLOCK_SIZE) & (PAGE_SIZE / BLOCK_SIZE - 1), last_sig = 0, curr_sig = 0, confidence_q[100 * L2C_MSHR_SIZE], depth = 0;
+  uint32_t page_offset = (addr >> LOG2_BLOCK_SIZE) & (PAGE_SIZE / BLOCK_SIZE - 1), last_sig = 0, curr_sig = 0, confidence_q[100 * m_parent_cache->get_mshr_size()], depth = 0;
 
-  int32_t delta = 0, delta_q[100 * L2C_MSHR_SIZE], perc_sum_q[100 * L2C_MSHR_SIZE];
+  int32_t delta = 0, delta_q[100 * m_parent_cache->get_mshr_size()], perc_sum_q[100 * m_parent_cache->get_mshr_size()];
 
-  for (uint32_t i = 0; i < 100 * L2C_MSHR_SIZE; i++) {
+  for (uint32_t i = 0; i < 100 * m_parent_cache->get_mshr_size(); i++) {
     confidence_q[i] = 0;
     delta_q[i] = 0;
     perc_sum_q[i] = 0;

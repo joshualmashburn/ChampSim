@@ -137,8 +137,7 @@ public:
 
   uint64_t next_fill_cycle, next_schedule_cycle, next_process_cycle, ACCESS, FORWARD, MERGED, TO_CACHE, ROW_BUFFER_HIT, ROW_BUFFER_MISS, FULL;
 
-  #define MAX_READ_PER_CYCLE 8 // WP-TODO: Change this to a knob
-  PACKET *entry, processed_packet[2 * MAX_READ_PER_CYCLE];
+  PACKET *entry;
 
   // constructor
   PACKET_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2)

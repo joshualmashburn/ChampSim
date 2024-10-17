@@ -193,7 +193,6 @@ void PATTERN_TABLE::update_pattern(uint32_t last_sig, int curr_delta)
   }
 }
 
-#define L2C_MSHR_SIZE 32 // WP-TODO: Change this to a knob
 void PATTERN_TABLE::read_pattern(uint32_t curr_sig, int* delta_q, uint32_t* confidence_q, int32_t* perc_sum_q, uint32_t& lookahead_way,
                                  uint32_t& lookahead_conf, uint32_t& pf_q_tail, uint32_t& depth, uint64_t addr, uint64_t base_addr, uint64_t train_addr,
                                  uint64_t curr_ip, int32_t train_delta, uint32_t last_sig, uint32_t pq_occupancy, uint32_t pq_SIZE, uint32_t mshr_occupancy,
@@ -244,7 +243,7 @@ void PATTERN_TABLE::read_pattern(uint32_t curr_sig, int* delta_q, uint32_t* conf
                cout << " conf: " << local_conf << " pf_q_tail: " << (pf_q_tail) << " depth: " << depth << endl;);
       }
       // Recording Perc negatives
-      if (pf_conf && pf_q_tail < L2C_MSHR_SIZE && (perc_sum < knob::ppfh_perc_threshold_hi)) {
+      if (pf_conf && pf_q_tail < mshr_SIZE && (perc_sum < knob::ppfh_perc_threshold_hi)) {
         // Note: Using knob::ppfh_perc_threshold_hi as the decising factor for negative case
         // Because 'trueness' of a prefetch is decisded based on the feedback from L2C
         // So even though LLC prefetches go through, they are treated as false wrt L2C in this case
