@@ -383,7 +383,9 @@ public:
   {
     if (this->debug_level >= 2) {
       cerr << "PrefetchStreamer::prefetch(cache=" << cache->NAME << ", block_address=0x" << hex << block_address << ")" << dec << endl;
-      cerr << "[PrefetchStreamer::prefetch] " << cache->get_pq_occupancy().size() << "/" << cache->get_pq_size().size() << " PQ entries occupied." << dec << endl;
+      // cerr << "[PrefetchStreamer::prefetch] " << cache->PQ.occupancy << "/" << cache->PQ.SIZE << " PQ entries occupied." << dec << endl;
+      // cerr << "[PrefetchStreamer::prefetch] " << cache->MSHR.occupancy << "/" << cache->MSHR.SIZE << " MSHR entries occupied." << dec << endl;
+      cerr << "[PrefetchStreamer::prefetch] " << cache->get_pq_occupancy().back() << "/" << cache->get_pq_size().back() << " PQ entries occupied." << dec << endl;
       cerr << "[PrefetchStreamer::prefetch] " << cache->get_mshr_occupancy() << "/" << cache->get_mshr_size() << " MSHR entries occupied." << dec << endl;
     }
     uint64_t base_addr = block_address << LOG2_BLOCK_SIZE;
@@ -408,8 +410,8 @@ public:
         pf_offset = region_offset + sgn * d;
         if (0 <= pf_offset && pf_offset < this->pattern_len && pattern[pf_offset] > 0) {
           uint64_t pf_address = (region_number * this->pattern_len + pf_offset) << LOG2_BLOCK_SIZE;
-          // WP-TODO: Check pq and mshr occupancy
-          if (cache->get_pq_occupancy().size() + cache->get_mshr_occupancy() < cache->get_mshr_size() - 1 && cache->get_pq_occupancy().size() < cache->get_pq_size().size()) {
+          if (cache->get_pq_occupancy().back() + cache->get_mshr_occupancy() < cache->get_mshr_size() - 1 && cache->get_pq_occupancy().back() < cache->get_pq_size().back()) {
+          // if (cache->PQ.occupancy + cache->MSHR.occupancy < cache->MSHR.SIZE - 1 && cache->PQ.occupancy < cache->PQ.SIZE) {
             cache->prefetch_line(pf_address, pattern[pf_offset], 0);
             pf_issued += 1;
             pattern[pf_offset] = 0;
