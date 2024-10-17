@@ -32,7 +32,7 @@
 # ./config.sh configs/champsim_config.json configs/no_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/next_line_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/ip_stride_l2c.json && make
-./config.sh configs/champsim_config.json configs/spp_dev_l2c.json && make
+# ./config.sh configs/champsim_config.json configs/spp_dev_l2c.json && make
 
 # ./config.sh configs/champsim_config.json configs/ampm_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/bingo_l2c.json && make # Pythia
@@ -41,6 +41,7 @@
 # ./config.sh configs/champsim_config.json configs/mlop_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sandbox_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sms_l2c.json && make # Pythia
+./config.sh configs/champsim_config.json configs/spp_ppf_dev_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/streamer_l2c.json && make # Pythia
 
 # LLC Prefetchers:

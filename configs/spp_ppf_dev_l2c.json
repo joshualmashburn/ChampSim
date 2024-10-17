@@ -1,0 +1,7 @@
+{
+    "name": "l2c-spp_ppf_dev",
+
+    "L2C": {
+        "prefetcher": "spp_ppf_dev_l2c"
+    }
+}
