@@ -22,6 +22,8 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+#define CACHE_ACC_LEVELS 10
+
 #include <array>
 #include <bitset>
 #include <deque>
@@ -59,6 +61,12 @@ public:
   enum [[deprecated(
       "Prefetchers may not specify arbitrary fill levels. Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] FILL_LEVEL{
       FILL_L1 = 1, FILL_L2 = 2, FILL_LLC = 4, FILL_DRC = 8, FILL_DRAM = 16};
+
+  /* For cache accuracy measurement */
+  uint64_t cycle, next_measure_cycle;
+  uint64_t pf_useful_epoch, pf_filled_epoch;
+  uint32_t pref_acc;
+  uint64_t total_acc_epochs, acc_epoch_hist[CACHE_ACC_LEVELS];
 
   using channel_type = champsim::channel;
   using request_type = typename channel_type::request_type;
@@ -126,6 +134,9 @@ public:
   void issue_translation();
 
   void broadcast_bw(uint64_t bw_level);
+  void broadcast_ipc(uint64_t ipc);
+  void broadcast_acc(uint64_t acc_level);
+  void handle_prefetch_feedback();
 
   struct BLOCK {
     bool valid = false;
@@ -234,7 +245,10 @@ public:
     virtual void impl_prefetcher_final_stats() = 0;
     virtual void impl_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target) = 0;
 
+    virtual uint32_t impl_prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in) = 0;
     virtual void impl_prefetcher_broadcast_bw(uint64_t bw_level) = 0;
+    virtual void impl_prefetcher_broadcast_ipc(uint64_t ipc) = 0;
+    virtual void impl_prefetcher_broadcast_acc(uint64_t acc_level) = 0;
 
     virtual void impl_initialize_replacement() = 0;
     virtual uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr,
@@ -256,7 +270,10 @@ public:
     void impl_prefetcher_final_stats();
     void impl_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target);
 
+    uint32_t impl_prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in);
     void impl_prefetcher_broadcast_bw(uint64_t bw_level);
+    void impl_prefetcher_broadcast_ipc(uint64_t ipc);
+    void impl_prefetcher_broadcast_acc(uint64_t acc_level);
 
     void impl_initialize_replacement();
     uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr,
@@ -284,7 +301,13 @@ public:
     module_pimpl->impl_prefetcher_branch_operate(ip, branch_type, branch_target);
   }
 
+  uint32_t impl_prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in)
+  {
+    return module_pimpl->impl_prefetcher_prefetch_hit(addr, ip, metadata_in);
+  }
   void impl_prefetcher_broadcast_bw(uint64_t bw_level) { module_pimpl->impl_prefetcher_broadcast_bw(bw_level); }
+  void impl_prefetcher_broadcast_ipc(uint64_t ipc) { module_pimpl->impl_prefetcher_broadcast_ipc(ipc); }
+  void impl_prefetcher_broadcast_acc(uint64_t acc_level) { module_pimpl->impl_prefetcher_broadcast_acc(acc_level); }
 
   void impl_initialize_replacement() { module_pimpl->impl_initialize_replacement(); }
   uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
@@ -472,6 +495,12 @@ public:
         match_offset_bits(b.m_wq_full_addr), virtual_prefetch(b.m_va_pref), pref_activate_mask(b.m_pref_act_mask),
         module_pimpl(std::make_unique<module_model<P_FLAG, R_FLAG>>(this))
   {
+    cycle = 0;
+    next_measure_cycle = 0;
+    pf_useful_epoch = 0;
+    pf_filled_epoch = 0;
+    pref_acc = 0;
+    total_acc_epochs = 0;
   }
 };
 

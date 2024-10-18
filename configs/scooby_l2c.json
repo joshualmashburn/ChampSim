@@ -1,0 +1,7 @@
+{
+    "name": "l2c-scooby",
+
+    "L2C": {
+        "prefetcher": "scooby_l2c"
+    }
+}

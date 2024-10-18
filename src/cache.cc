@@ -196,6 +196,8 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
                                   champsim::to_underlying(handle_pkt.type), true);
 
+    impl_prefetcher_prefetch_hit(block[get_set_index(handle_pkt.address) * NUM_WAY + way_idx].address<<LOG2_BLOCK_SIZE, handle_pkt.ip, handle_pkt.pf_metadata);
+
     response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
     for (auto ret : handle_pkt.to_return)
       ret->push_back(response);
@@ -416,6 +418,7 @@ long CACHE::operate()
         channels_bandwidth_consumed, pq_bandwidth_consumed, tag_bw);
   }
 
+  handle_prefetch_feedback();
   return progress;
 }
 
@@ -587,6 +590,39 @@ void CACHE::issue_translation()
 void CACHE::broadcast_bw(uint64_t bw_level)
 {
   impl_prefetcher_broadcast_bw(bw_level);
+}
+
+void CACHE::broadcast_ipc(uint64_t ipc)
+{
+  impl_prefetcher_broadcast_ipc(ipc);
+}
+
+void CACHE::broadcast_acc(uint64_t acc_level)
+{
+  impl_prefetcher_broadcast_acc(acc_level);
+}
+
+void CACHE::handle_prefetch_feedback()
+{
+  uint32_t this_epoch_accuracy = 0, acc_level = 0;
+
+  cycle++;
+  if (cycle >= next_measure_cycle) {
+    this_epoch_accuracy = pf_filled_epoch ? 100 * (float)pf_useful_epoch / pf_filled_epoch : 0;
+    pref_acc = (pref_acc + this_epoch_accuracy) / 2;          // have some hysterisis
+    acc_level = (pref_acc / ((float)100 / CACHE_ACC_LEVELS)); // quantize into 8 buckets
+    if (acc_level >= CACHE_ACC_LEVELS)
+      acc_level = (CACHE_ACC_LEVELS - 1); // corner cases
+
+    pf_useful_epoch = 0;
+    pf_filled_epoch = 0;
+    next_measure_cycle = cycle + 1024; // measure_cache_acc_epoch
+
+    total_acc_epochs++;
+    acc_epoch_hist[acc_level]++;
+
+    broadcast_acc(acc_level);
+  }
 }
 
 std::size_t CACHE::get_mshr_occupancy() const { return std::size(MSHR); }

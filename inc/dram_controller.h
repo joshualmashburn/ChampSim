@@ -20,7 +20,6 @@
 #define DRAM_BW_LEVELS 4
 #define MEASURE_DRAM_BW_EPOCH 256
 
-
 #include <array>
 #include <cmath>
 #include <limits>
@@ -106,7 +105,6 @@ class MEMORY_CONTROLLER : public champsim::operable
   bool add_wq(const request_type& pkt);
 
 public:
-
   // Bandwidth measurements
   uint32_t DRAM_MTPS, DRAM_DBUS_MAX_CAS;
   uint64_t rq_enqueue_count, last_enqueue_count, epoch_enqueue_count, next_bw_measure_cycle;

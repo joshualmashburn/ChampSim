@@ -129,6 +129,10 @@ class O3_CPU : public champsim::operable
 public:
   uint32_t cpu = 0;
 
+  // Monitoring IPC
+  uint64_t cycle = 0;
+  uint64_t last_num_ins = 0, last_ins_in_epoch = 0, next_measure_ipc_cycle = 1;
+
   // cycle
   uint64_t begin_phase_cycle = 0;
   uint64_t begin_phase_instr = 0;

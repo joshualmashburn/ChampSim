@@ -61,7 +61,7 @@ def get_btb_data(module_name):
 def get_pref_data(module_name, is_instruction_cache=False):
     prefix = 'ipref' if is_instruction_cache else 'pref'
     return util.chain(
-            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats', 'prefetcher_broadcast_bw')),
+            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats', 'prefetcher_prefetch_hit', 'prefetcher_broadcast_bw', 'prefetcher_broadcast_ipc', 'prefetcher_broadcast_acc')),
             { 'deprecated_func_map' : {
                     'l1i_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
                     'l1d_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
@@ -81,9 +81,18 @@ def get_pref_data(module_name, is_instruction_cache=False):
                     'l2c_prefetcher_final_stats': '_'.join((prefix, module_name, 'prefetcher_final_stats')),
                     'llc_prefetcher_final_stats': '_'.join((prefix, module_name, 'prefetcher_final_stats')),
                     'l1i_prefetcher_branch_operate': '_'.join((prefix, module_name, 'prefetcher_branch_operate')),
+                    'l1d_prefetcher_prefetch_hit': '_'.join((prefix, module_name, 'prefetcher_prefetch_hit')),
+                    'l2c_prefetcher_prefetch_hit': '_'.join((prefix, module_name, 'prefetcher_prefetch_hit')),
+                    'llc_prefetcher_prefetch_hit': '_'.join((prefix, module_name, 'prefetcher_prefetch_hit')),
                     'l1d_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw')),
                     'l2c_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw')),
-                    'llc_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw'))
+                    'llc_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw')),
+                    'l1d_prefetcher_broadcast_ipc': '_'.join((prefix, module_name, 'prefetcher_broadcast_ipc')),
+                    'l2c_prefetcher_broadcast_ipc': '_'.join((prefix, module_name, 'prefetcher_broadcast_ipc')),
+                    'llc_prefetcher_broadcast_ipc': '_'.join((prefix, module_name, 'prefetcher_broadcast_ipc')),
+                    'l1d_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc')),
+                    'l2c_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc')),
+                    'llc_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc'))
                 }
             }
         )
@@ -206,7 +215,10 @@ def get_cache_module_lines(pref_data, repl_data):
         ('prefetcher_cache_fill', (('uint64_t', 'addr'), ('uint32_t', 'set'), ('uint32_t', 'way'), ('uint8_t', 'prefetch'), ('uint64_t', 'evicted_addr'), ('uint32_t', 'metadata_in')), 'uint32_t', 'std::bit_xor'),
         ('prefetcher_cycle_operate',),
         ('prefetcher_final_stats',),
-        ('prefetcher_broadcast_bw', (('uint64_t', 'bw_level'),))
+        ('prefetcher_prefetch_hit', (('uint64_t', 'addr'), ('uint64_t', 'ip'), ('uint32_t', 'metadata_in')), 'uint32_t', 'std::bit_xor'),
+        ('prefetcher_broadcast_bw', (('uint64_t', 'bw_level'),)),
+        ('prefetcher_broadcast_ipc', (('uint64_t', 'ipc'),)),
+        ('prefetcher_broadcast_acc', (('uint64_t', 'acc_level'),)),
     ]
 
     pref_branch_variant_data = [

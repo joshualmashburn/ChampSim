@@ -24,12 +24,12 @@ sim=5000000
 
 echo "Running CP no"
 ./bin/champsim-l2c-no --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-no.txt
-echo "Running CP dspatch"
-./bin/champsim-l2c-dspatch --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-dspatch.txt
+echo "Running CP scooby"
+./bin/champsim-l2c-scooby --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-scooby.txt
 
 echo "Running WP no"
 ./bin/champsim-l2c-no --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-no.txt
-echo "Running WP dspatch"
-./bin/champsim-l2c-dspatch --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-dspatch.txt
+echo "Running WP scooby"
+./bin/champsim-l2c-scooby --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-scooby.txt
 
 # gdb -q -ex=r --args ./bin/champsim-l1i-epi --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../new-traces/tomcat.gz

@@ -104,6 +104,21 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
       }
     }
 
+    for (auto& cpu : cpus) {
+      cpu.get().cycle++;
+      if (cpu.get().cycle >= cpu.get().next_measure_ipc_cycle) {
+        uint64_t ins_in_epoch = cpu.get().num_retired - cpu.get().last_num_ins;
+        for (auto& cache : caches) {
+          if (cache.get().NAME.find("L2C") != std::string::npos) {
+            cache.get().broadcast_ipc((ins_in_epoch >= cpu.get().last_ins_in_epoch));
+          }
+        }
+        cpu.get().last_num_ins = cpu.get().num_retired;
+        cpu.get().last_ins_in_epoch = ins_in_epoch;
+        cpu.get().next_measure_ipc_cycle = cpu.get().cycle + 1000; // knob::measure_ipc_epoch
+      }
+    }
+
     dram.cycle++;
     if (dram.cycle >= dram.next_bw_measure_cycle) {
       uint64_t this_epoch_enqueue_count = dram.rq_enqueue_count - dram.last_enqueue_count;
