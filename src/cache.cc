@@ -584,6 +584,11 @@ void CACHE::issue_translation()
   std::for_each(std::begin(translation_stash), std::end(translation_stash), issue);
 }
 
+void CACHE::broadcast_bw(uint64_t bw_level)
+{
+  impl_prefetcher_broadcast_bw(bw_level);
+}
+
 std::size_t CACHE::get_mshr_occupancy() const { return std::size(MSHR); }
 
 std::vector<std::size_t> CACHE::get_rq_occupancy() const

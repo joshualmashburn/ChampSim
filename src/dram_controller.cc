@@ -39,6 +39,15 @@ MEMORY_CONTROLLER::MEMORY_CONTROLLER(double freq_scale, int io_freq, double t_rp
       tCAS(cycles(t_cas / 1000, io_freq)), DRAM_DBUS_TURN_AROUND_TIME(cycles(turnaround / 1000, io_freq)),
       DRAM_DBUS_RETURN_TIME(cycles(std::ceil(BLOCK_SIZE) / std::ceil(DRAM_CHANNEL_WIDTH), 1))
 {
+  rq_enqueue_count = 0;
+  last_enqueue_count = 0;
+  epoch_enqueue_count = 0;
+  next_bw_measure_cycle = 1;
+  cycle = 0;
+  bw = 0;
+
+  DRAM_MTPS = io_freq;
+  DRAM_DBUS_MAX_CAS = DRAM_CHANNELS * (MEASURE_DRAM_BW_EPOCH / DRAM_DBUS_RETURN_TIME);
 }
 
 long MEMORY_CONTROLLER::operate()
@@ -308,6 +317,8 @@ bool MEMORY_CONTROLLER::add_rq(const request_type& packet, champsim::channel* ul
     rq_it->value().event_cycle = current_cycle;
     if (packet.response_requested)
       rq_it->value().to_return = {&ul->returned};
+
+    rq_enqueue_count++;
 
     return true;
   }

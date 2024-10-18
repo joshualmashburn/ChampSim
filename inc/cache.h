@@ -125,6 +125,8 @@ public:
 
   void issue_translation();
 
+  void broadcast_bw(uint64_t bw_level);
+
   struct BLOCK {
     bool valid = false;
     bool prefetch = false;
@@ -232,6 +234,8 @@ public:
     virtual void impl_prefetcher_final_stats() = 0;
     virtual void impl_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target) = 0;
 
+    virtual void impl_prefetcher_broadcast_bw(uint64_t bw_level) = 0;
+
     virtual void impl_initialize_replacement() = 0;
     virtual uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr,
                                       uint32_t type) = 0;
@@ -251,6 +255,8 @@ public:
     void impl_prefetcher_cycle_operate();
     void impl_prefetcher_final_stats();
     void impl_prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target);
+
+    void impl_prefetcher_broadcast_bw(uint64_t bw_level);
 
     void impl_initialize_replacement();
     uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr,
@@ -277,6 +283,8 @@ public:
   {
     module_pimpl->impl_prefetcher_branch_operate(ip, branch_type, branch_target);
   }
+
+  void impl_prefetcher_broadcast_bw(uint64_t bw_level) { module_pimpl->impl_prefetcher_broadcast_bw(bw_level); }
 
   void impl_initialize_replacement() { module_pimpl->impl_initialize_replacement(); }
   uint32_t impl_find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t full_addr, uint32_t type)

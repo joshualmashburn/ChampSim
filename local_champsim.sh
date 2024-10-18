@@ -15,6 +15,21 @@ mkdir -p wp-data
 #     done
 # done
 
-./bin/champsim-l2c-spp_ppf_dev --warmup-instructions 1000000 --simulation-instructions 10000000 ../traces/tomcat.gz >cp-data/tomcat.txt
-./bin/champsim-l2c-spp_ppf_dev --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../traces/tomcat.gz >wp-data/tomcat.txt
+trace=../traces/557.xz.gz
+trace_name=$(basename $trace)
+trace_name=${trace_name%.gz}
+
+warmup=1000000
+sim=5000000
+
+echo "Running CP no"
+./bin/champsim-l2c-no --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-no.txt
+echo "Running CP dspatch"
+./bin/champsim-l2c-dspatch --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-dspatch.txt
+
+echo "Running WP no"
+./bin/champsim-l2c-no --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-no.txt
+echo "Running WP dspatch"
+./bin/champsim-l2c-dspatch --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-dspatch.txt
+
 # gdb -q -ex=r --args ./bin/champsim-l1i-epi --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../new-traces/tomcat.gz

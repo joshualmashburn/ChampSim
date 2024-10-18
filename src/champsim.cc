@@ -50,6 +50,9 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
 
   // Perform phase
   int stalled_cycle{0};
+  auto cpus = env.cpu_view();
+  auto caches = env.cache_view();
+  auto dram = env.dram_view();
   std::vector<bool> phase_complete(std::size(env.cpu_view()), false);
   while (!std::accumulate(std::begin(phase_complete), std::end(phase_complete), true, std::logical_and{})) {
     auto next_phase_complete = phase_complete;
@@ -101,6 +104,32 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
       }
     }
 
+    dram.cycle++;
+    if (dram.cycle >= dram.next_bw_measure_cycle) {
+      uint64_t this_epoch_enqueue_count = dram.rq_enqueue_count - dram.last_enqueue_count;
+      dram.epoch_enqueue_count = (dram.epoch_enqueue_count / 2) + this_epoch_enqueue_count;
+      uint32_t quartile = ((float)100 * dram.epoch_enqueue_count) / dram.DRAM_DBUS_MAX_CAS;
+      if (quartile <= 25)
+        dram.bw = 0;
+      else if (quartile <= 50)
+        dram.bw = 1;
+      else if (quartile <= 75)
+        dram.bw = 2;
+      else
+        dram.bw = 3;
+
+      dram.last_enqueue_count = dram.rq_enqueue_count;
+      dram.next_bw_measure_cycle = dram.cycle + MEASURE_DRAM_BW_EPOCH;
+      dram.total_bw_epochs++;
+      dram.bw_level_hist[dram.bw]++;
+
+      for (auto& cache : caches) {
+        if (cache.get().NAME.find("L2C") != std::string::npos) {
+          cache.get().broadcast_bw(dram.bw);
+        }
+      }
+    }
+
     phase_complete = next_phase_complete;
   }
 
@@ -115,15 +144,12 @@ phase_stats do_phase(phase_info phase, environment& env, std::vector<tracereader
   for (std::size_t i = 0; i < std::size(trace_index); ++i)
     stats.trace_names.push_back(trace_names.at(trace_index.at(i)));
 
-  auto cpus = env.cpu_view();
   std::transform(std::begin(cpus), std::end(cpus), std::back_inserter(stats.sim_cpu_stats), [](const O3_CPU& cpu) { return cpu.sim_stats; });
   std::transform(std::begin(cpus), std::end(cpus), std::back_inserter(stats.roi_cpu_stats), [](const O3_CPU& cpu) { return cpu.roi_stats; });
 
-  auto caches = env.cache_view();
   std::transform(std::begin(caches), std::end(caches), std::back_inserter(stats.sim_cache_stats), [](const CACHE& cache) { return cache.sim_stats; });
   std::transform(std::begin(caches), std::end(caches), std::back_inserter(stats.roi_cache_stats), [](const CACHE& cache) { return cache.roi_stats; });
 
-  auto dram = env.dram_view();
   std::transform(std::begin(dram.channels), std::end(dram.channels), std::back_inserter(stats.sim_dram_stats),
                  [](const DRAM_CHANNEL& chan) { return chan.sim_stats; });
   std::transform(std::begin(dram.channels), std::end(dram.channels), std::back_inserter(stats.roi_dram_stats),

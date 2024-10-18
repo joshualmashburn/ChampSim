@@ -61,7 +61,7 @@ def get_btb_data(module_name):
 def get_pref_data(module_name, is_instruction_cache=False):
     prefix = 'ipref' if is_instruction_cache else 'pref'
     return util.chain(
-            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats')),
+            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats', 'prefetcher_broadcast_bw')),
             { 'deprecated_func_map' : {
                     'l1i_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
                     'l1d_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
@@ -80,7 +80,10 @@ def get_pref_data(module_name, is_instruction_cache=False):
                     'l1d_prefetcher_final_stats': '_'.join((prefix, module_name, 'prefetcher_final_stats')),
                     'l2c_prefetcher_final_stats': '_'.join((prefix, module_name, 'prefetcher_final_stats')),
                     'llc_prefetcher_final_stats': '_'.join((prefix, module_name, 'prefetcher_final_stats')),
-                    'l1i_prefetcher_branch_operate': '_'.join((prefix, module_name, 'prefetcher_branch_operate'))
+                    'l1i_prefetcher_branch_operate': '_'.join((prefix, module_name, 'prefetcher_branch_operate')),
+                    'l1d_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw')),
+                    'l2c_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw')),
+                    'llc_prefetcher_broadcast_bw': '_'.join((prefix, module_name, 'prefetcher_broadcast_bw'))
                 }
             }
         )
@@ -202,7 +205,8 @@ def get_cache_module_lines(pref_data, repl_data):
         ('prefetcher_cache_operate', (('uint64_t', 'addr'), ('uint64_t', 'ip'), ('uint8_t', 'cache_hit'), ('bool', 'useful_prefetch'), ('uint8_t', 'type'), ('uint32_t', 'metadata_in')), 'uint32_t', 'std::bit_xor'),
         ('prefetcher_cache_fill', (('uint64_t', 'addr'), ('uint32_t', 'set'), ('uint32_t', 'way'), ('uint8_t', 'prefetch'), ('uint64_t', 'evicted_addr'), ('uint32_t', 'metadata_in')), 'uint32_t', 'std::bit_xor'),
         ('prefetcher_cycle_operate',),
-        ('prefetcher_final_stats',)
+        ('prefetcher_final_stats',),
+        ('prefetcher_broadcast_bw', (('uint64_t', 'bw_level'),))
     ]
 
     pref_branch_variant_data = [

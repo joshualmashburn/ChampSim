@@ -15,3 +15,5 @@ uint32_t CACHE::prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 void CACHE::prefetcher_cycle_operate() {}
 
 void CACHE::prefetcher_final_stats() {}
+
+void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) {}

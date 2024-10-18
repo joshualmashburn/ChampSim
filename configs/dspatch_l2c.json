@@ -1,0 +1,7 @@
+{
+    "name": "l2c-dspatch",
+
+    "L2C": {
+        "prefetcher": "dspatch_l2c"
+    }
+}
