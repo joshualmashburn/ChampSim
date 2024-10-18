@@ -1157,3 +1157,11 @@ void CACHE::prefetcher_final_stats()
   std::cout << " AVERAGE_ISSUED: " << ((1.0*average_issued)/average_num);
   std::cout << std::endl;
 }
+
+uint32_t CACHE::prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in) { return metadata_in; }
+
+void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) {}
+
+void CACHE::prefetcher_broadcast_ipc(uint64_t ipc) {}
+
+void CACHE::prefetcher_broadcast_acc(uint64_t acc_level) {}

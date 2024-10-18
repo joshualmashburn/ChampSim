@@ -563,3 +563,11 @@ uint32_t spp::GLOBAL_REGISTER::check_entry(uint32_t page_offset)
 
   return max_conf_way;
 }
+
+uint32_t CACHE::prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in) { return metadata_in; }
+
+void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) {}
+
+void CACHE::prefetcher_broadcast_ipc(uint64_t ipc) {}
+
+void CACHE::prefetcher_broadcast_acc(uint64_t acc_level) {}

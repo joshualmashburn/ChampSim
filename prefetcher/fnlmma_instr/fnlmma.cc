@@ -412,3 +412,11 @@ CACHE::prefetcher_final_stats ()
 	  ((MMA_FILT_SIZE * 58) / 8) + ((SIZEFILTERFNL * (15 + 2) / 8)));
   cout << "CPU " << cpu << " L1I next line prefetcher final stats" << endl;
 }
+
+uint32_t CACHE::prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in) { return metadata_in; }
+
+void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) {}
+
+void CACHE::prefetcher_broadcast_ipc(uint64_t ipc) {}
+
+void CACHE::prefetcher_broadcast_acc(uint64_t acc_level) {}

@@ -1,10 +1,10 @@
-# for f in configs/*.json; do
-#     if [ "$f" == "configs/champsim_config.json" ]; then
-#         continue
-#     fi
-#     echo "Building ${f}"
-#     ./config.sh configs/champsim_config.json ${f} && make
-# done
+for f in configs/*.json; do
+    if [ "$f" == "configs/champsim_config.json" ]; then
+        continue
+    fi
+    echo "Building ${f}"
+    ./config.sh configs/champsim_config.json ${f} && make
+done
 
 ### L1I Prefetchers:
 # ./config.sh configs/champsim_config.json configs/no.json && make
@@ -52,8 +52,8 @@
 # ./config.sh configs/champsim_config.json configs/ip_stride_llc.json && make
 
 # LLC Replacement Policies:
-./config.sh configs/champsim_config.json configs/lru.json && make
-./config.sh configs/champsim_config.json configs/ship.json && make
-./config.sh configs/champsim_config.json configs/srrip.json && make
-./config.sh configs/champsim_config.json configs/drrip.json && make
-./config.sh configs/champsim_config.json configs/mockingjay.json && make
+# ./config.sh configs/champsim_config.json configs/lru.json && make
+# ./config.sh configs/champsim_config.json configs/ship.json && make
+# ./config.sh configs/champsim_config.json configs/srrip.json && make
+# ./config.sh configs/champsim_config.json configs/drrip.json && make
+# ./config.sh configs/champsim_config.json configs/mockingjay.json && make
