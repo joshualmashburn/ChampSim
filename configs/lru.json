@@ -1,0 +1,7 @@
+{
+    "name": "lru",
+
+    "LLC": {
+        "replacement": "lru"
+    }
+}

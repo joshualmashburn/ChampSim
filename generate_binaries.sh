@@ -41,7 +41,7 @@
 # ./config.sh configs/champsim_config.json configs/ipcp_l2c.json && make # DPC3
 # ./config.sh configs/champsim_config.json configs/mlop_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sandbox_l2c.json && make # Pythia
-./config.sh configs/champsim_config.json configs/scooby_l2c.json && make # Pythia
+# ./config.sh configs/champsim_config.json configs/scooby_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/sms_l2c.json && make # Pythia
 # ./config.sh configs/champsim_config.json configs/spp_ppf_dev_l2c.json && make
 # ./config.sh configs/champsim_config.json configs/streamer_l2c.json && make # Pythia
@@ -52,3 +52,8 @@
 # ./config.sh configs/champsim_config.json configs/ip_stride_llc.json && make
 
 # LLC Replacement Policies:
+./config.sh configs/champsim_config.json configs/lru.json && make
+./config.sh configs/champsim_config.json configs/ship.json && make
+./config.sh configs/champsim_config.json configs/srrip.json && make
+./config.sh configs/champsim_config.json configs/drrip.json && make
+./config.sh configs/champsim_config.json configs/mockingjay.json && make
