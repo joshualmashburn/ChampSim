@@ -52,8 +52,7 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-echo "Starting the new traces"
-for trace in $(ls ../new-traces/*.gz); do
+for trace in $(ls ../traces/*.gz); do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
