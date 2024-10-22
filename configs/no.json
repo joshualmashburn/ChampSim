@@ -1,7 +1,20 @@
 {
-    "name": "l1i-no",
+    "name": "default",
 
     "L1I": {
         "prefetcher": "no_instr"
+    },
+
+    "L1D": {
+        "prefetcher": "no"
+    },
+
+    "L2C": {
+        "prefetcher": "no"
+    },
+
+    "LLC": {
+        "prefetcher": "no",
+        "replacement": "lru"
     }
 }

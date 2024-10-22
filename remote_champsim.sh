@@ -52,7 +52,7 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-for trace in $(ls ../traces/*.gz); do
+for trace in $(ls ../gaps-traces/*.gz); do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
@@ -61,11 +61,11 @@ for trace in $(ls ../traces/*.gz); do
         binary_name=$(basename $binary)
         echo "Running ${binary_name}"
 
-        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 ${trace} > cp-data/${trace_name}-${binary_name}.txt'"
-        job_submition "cp"
+        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 ${trace} > cp-gaps-data/${trace_name}-${binary_name}.txt'"
+        job_submition "cp-gaps"
 
-        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path ${trace} > wp-data/${trace_name}-${binary_name}.txt'"
-        job_submition "wp"
+        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path ${trace} > wp-gaps-data/${trace_name}-${binary_name}.txt'"
+        job_submition "wp-gaps"
     done
 done
 
