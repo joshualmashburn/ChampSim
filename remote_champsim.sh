@@ -1,7 +1,7 @@
 job_submition() {
     # Define the file path
-    data_directory="${1}-data"
-    logs_directory="${1}-logs"
+    data_directory="${suite}/${1}-data"
+    logs_directory="${suite}/${1}-logs"
     file_path="jobs/run.job"
 
     # Backup the original file
@@ -52,7 +52,20 @@ start_watcher() {
     cp "$backup_file" "$file_path"
 }
 
-for trace in $(ls ../gaps-traces/*.gz); do
+if [ "${1}" == "gap" ]; then
+    suite="gap"
+elif [ "${1}" == "spec" ]; then
+    suite="spec"
+else
+    suite="lcf"
+fi
+
+echo "Running ${suite} suite"
+start_watcher
+
+warmup_instructions=10000000
+simulation_instructions=100000000
+for trace in $(ls ../${suite}/*.gz); do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
@@ -61,12 +74,21 @@ for trace in $(ls ../gaps-traces/*.gz); do
         binary_name=$(basename $binary)
         echo "Running ${binary_name}"
 
-        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 ${trace} > cp-gaps-data/${trace_name}-${binary_name}.txt'"
-        job_submition "cp-gaps"
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} ${trace} > ${suite}/cp-data/${trace_name}-${binary_name}.txt'"
+        job_submition "cp"
 
-        champsim_command="'${binary} --warmup-instructions 10000000 --simulation-instructions 100000000 --wrong-path ${trace} > wp-gaps-data/${trace_name}-${binary_name}.txt'"
-        job_submition "wp-gaps"
+        num_jobs=$(squeue -u $USER | wc -l)
+        while [ $num_jobs -ge 500 ]; do
+            sleep 60
+            num_jobs=$(squeue -u $USER | wc -l)
+        done
+
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path ${trace} > ${suite}/wp-data/${trace_name}-${binary_name}.txt'"
+        job_submition "wp"
+
+        while [ $num_jobs -ge 500 ]; do
+            sleep 60
+            num_jobs=$(squeue -u $USER | wc -l)
+        done
     done
 done
-
-start_watcher
