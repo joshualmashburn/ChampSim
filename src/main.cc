@@ -59,9 +59,18 @@ int main(int argc, char** argv)
     }
   };
 
+  auto set_wpa_callback = [&](auto) {
+    for (O3_CPU& cpu : gen_environment.cpu_view()) {
+      cpu.enable_wpa = true;
+      fmt::print("Wrong-Path-Aware\n");
+    }
+  };
+
   app.add_flag("-c,--cloudsuite", knob_cloudsuite, "Read all traces using the cloudsuite format");
   app.add_flag("--hide-heartbeat", set_heartbeat_callback, "Hide the heartbeat output");
   app.add_flag("--wrong-path", set_wrong_path_callback, "Enable Wrong path");
+  //Ros, A., & Jimborean, A. (2023). Wrong-Path-Aware Entangling Instruction Prefetcher. IEEE Transactions on Computers.
+  app.add_flag("--wpa", set_wpa_callback, "Enable Wrong-Path-Aware");
 
   auto warmup_instr_option = app.add_option("-w,--warmup-instructions", warmup_instructions, "The number of instructions in the warmup phase");
   auto deprec_warmup_instr_option =

@@ -31,6 +31,7 @@
 #include <queue>
 #include <stdexcept>
 #include <vector>
+#include <map>
 
 #include "champsim.h"
 #include "champsim_constants.h"
@@ -145,6 +146,7 @@ public:
   bool restart = false;
   bool in_wrong_path = false;
   bool enable_wrong_path = false;
+  bool enable_wpa = false;
 
   uint64_t prev_ip = 0;
   uint64_t prev_fetch_block = 0;
@@ -185,6 +187,16 @@ public:
   // std::array<std::vector<std::reference_wrapper<ooo_model_instr>>, std::numeric_limits<uint8_t>::max() + 1> reg_producers;
   std::array<std::vector<ooo_model_instr*>, std::numeric_limits<uint8_t>::max() + 1> reg_producers;
 
+  struct saved_instr {
+    uint64_t ip = 0;
+    std::vector<uint64_t> source_memory = {};
+    std::vector<uint8_t> source_registers = {};
+    std::vector<uint64_t> destination_memory = {};
+    std::vector<uint8_t> destination_registers = {};
+  };
+
+  std::map<uint64_t, saved_instr> instruction_map;
+
   // Constants
   const std::size_t IFETCH_BUFFER_SIZE, DISPATCH_BUFFER_SIZE, DECODE_BUFFER_SIZE, ROB_SIZE, SQ_SIZE;
   const long int FETCH_WIDTH, DECODE_WIDTH, DISPATCH_WIDTH, SCHEDULER_SIZE, EXEC_WIDTH;
@@ -208,6 +220,7 @@ public:
   void end_phase(unsigned cpu) override final;
 
   void initialize_instruction();
+  void modify_instruction(ooo_model_instr& instr);
   long check_dib();
   long fetch_instruction();
   long promote_to_decode();

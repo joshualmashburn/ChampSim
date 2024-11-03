@@ -203,7 +203,7 @@ void O3_CPU::initialize_instruction()
       }
     }
 
-    auto inst = input_queue.front();
+    auto &inst = input_queue.front();
 
     if (std::size(inst.source_memory)) {
       sim_stats.loads++;
@@ -225,6 +225,8 @@ void O3_CPU::initialize_instruction()
       }
       break;
     }
+
+    modify_instruction(inst);
 
     if (enable_wrong_path) {
       if (inst.branch_mispredicted || inst.before_wrong_path) {
@@ -282,6 +284,24 @@ void O3_CPU::initialize_instruction()
     input_queue.pop_front();
 
     IFETCH_BUFFER.back().event_cycle = current_cycle;
+  }
+}
+
+void O3_CPU::modify_instruction(ooo_model_instr& inst)
+{
+  if (!(enable_wrong_path && enable_wpa && in_wrong_path && inst.is_wrong_path))
+    return;
+
+  inst.source_memory.clear();
+  inst.source_registers.clear();
+  inst.destination_memory.clear();
+  inst.destination_registers.clear();
+
+  if (instruction_map.find(inst.ip) != instruction_map.end()) {
+    inst.source_memory = instruction_map[inst.ip].source_memory;
+    inst.source_registers = instruction_map[inst.ip].source_registers;
+    inst.destination_memory = instruction_map[inst.ip].destination_memory;
+    inst.destination_registers = instruction_map[inst.ip].destination_registers;
   }
 }
 
@@ -1079,6 +1099,17 @@ long O3_CPU::retire_rob()
   while (it != retire_end) {
     if (std::size(it->source_memory)) {
       sim_stats.loads_retired++;
+    }
+
+    auto inst = *it;
+    if (enable_wpa) {
+      if (instruction_map.find(inst.ip) == instruction_map.end()) {
+        instruction_map[inst.ip].ip = inst.ip;
+        instruction_map[inst.ip].destination_registers = inst.destination_registers;
+        instruction_map[inst.ip].source_registers = inst.source_registers;
+        instruction_map[inst.ip].destination_memory = inst.destination_memory;
+        instruction_map[inst.ip].source_memory = inst.source_memory;
+      }
     }
 
     if (it->is_wrong_path) {
