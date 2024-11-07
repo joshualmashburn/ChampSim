@@ -90,5 +90,14 @@ for trace in $(ls ../${suite}/*.gz); do
             sleep 60
             num_jobs=$(squeue -u $USER | wc -l)
         done
+
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path --wpa ${trace} > ${suite}/wpa-data/${trace_name}-${binary_name}.txt'"
+        job_submition "wpa"
+
+        num_jobs=$(squeue -u $USER | wc -l)
+        while [ $num_jobs -ge 500 ]; do
+            sleep 60
+            num_jobs=$(squeue -u $USER | wc -l)
+        done
     done
 done

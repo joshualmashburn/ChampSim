@@ -6,15 +6,9 @@ _configuration.mk
 
 bin/
 
-cp-data/
-cp-logs/
-wp-data/
-wp-logs/
-
-cp-gaps-data/
-cp-gaps-logs/
-wp-gaps-data/
-wp-gaps-logs/
+gap/
+lcf/
+spec/
 
 jobs/*.bak
 
