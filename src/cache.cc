@@ -19,10 +19,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <numeric>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 
 #include "champsim.h"
 #include "champsim_constants.h"
@@ -31,15 +31,20 @@
 #include "util/algorithm.h"
 #include "util/span.h"
 #include <fmt/core.h>
+#include <fmt/ranges.h>
+
+CACHE *L1D;
+CACHE *L2C;
+CACHE *LLC;
 
 CACHE::tag_lookup_type::tag_lookup_type(request_type req, bool local_pref, bool skip)
-    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), cpu(req.cpu),
+    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path), cpu(req.cpu),
       type(req.type), prefetch_from_this(local_pref), skip_fill(skip), is_translated(req.is_translated), instr_depend_on_me(req.instr_depend_on_me)
 {
 }
 
 CACHE::mshr_type::mshr_type(tag_lookup_type req, uint64_t cycle)
-    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), cpu(req.cpu),
+    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path), cpu(req.cpu),
       type(req.type), prefetch_from_this(req.prefetch_from_this), cycle_enqueued(cycle), instr_depend_on_me(req.instr_depend_on_me), to_return(req.to_return)
 {
 }
@@ -59,6 +64,10 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
   retval.to_return = merged_return;
   retval.data = predecessor.data;
 
+  // If the successor is on write path & predecssor is on wrong path then consider the request as good request
+  // If both successor & predecssor are on wrong path then it will cause pollution of cache/tlb
+  retval.wrong_path = predecessor.wrong_path & successor.wrong_path;
+
   if (predecessor.event_cycle < std::numeric_limits<uint64_t>::max()) {
     retval.event_cycle = predecessor.event_cycle;
   }
@@ -75,12 +84,25 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
 }
 
 CACHE::BLOCK::BLOCK(mshr_type mshr)
-    : valid(true), prefetch(mshr.prefetch_from_this), dirty(mshr.type == access_type::WRITE), address(mshr.address), v_address(mshr.v_address), data(mshr.data)
+    : valid(true), prefetch(mshr.prefetch_from_this), dirty(mshr.type == access_type::WRITE), wrong_path(mshr.wrong_path), address(mshr.address), v_address(mshr.v_address), data(mshr.data)
 {
 }
 
 bool CACHE::handle_fill(const mshr_type& fill_mshr)
 {
+  if((NAME.find("L1D") != std::string::npos) && L1D == nullptr){
+      std::cout << "Setting L1D ptr " << this  <<"\n";
+      L1D = this;
+  }
+  if((NAME.find("L2C") != std::string::npos) && L2C == nullptr){
+      std::cout << "Setting L2C ptr " << this  <<"\n";
+      L2C = this;
+  }
+  if((NAME.find("LLC") != std::string::npos) && LLC == nullptr){
+      std::cout << "Setting LLC ptr " << this  <<"\n";
+      LLC = this;  
+  }
+
   cpu = fill_mshr.cpu;
 
   // find victim
@@ -130,8 +152,66 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
       if (way->prefetch)
         ++sim_stats.pf_useless;
 
+      if (way->valid && way->wrong_path && !way->wrong_path_useful)
+        ++sim_stats.wp_useless;
+
       if (fill_mshr.type == access_type::PREFETCH)
         ++sim_stats.pf_fill;
+
+      bool fill_wrong_path = fill_mshr.wrong_path;
+      bool evicted_right_path = (!way->wrong_path || way->wrong_path_useful) && way != set_end && way->valid;
+      bool evicted_wrong_path = (way->wrong_path && !way->wrong_path_useful) && way != set_end && way->valid;
+
+      if (fill_mshr.wrong_path) {
+        ++sim_stats.wp_fill;
+        if (way != set_end && way->valid && !way->wrong_path) {
+          ++sim_stats.wp_evicted;
+        }
+      }
+
+      ++sim_stats.num_fill;
+      std::vector<uint64_t> temp;
+      if (first_entry) {
+        temp.push_back(current_cycle);
+        first_entry = false;
+      } else
+        temp.push_back(current_cycle - last_entry_clk);
+      if (fill_wrong_path) {
+        if (evicted_right_path) {
+          temp.push_back(cache_pollution.back()[1] - 1);
+          --sim_stats.rp_count;
+          temp.push_back(cache_pollution.back()[2] + 1);
+          ++sim_stats.wp_count;
+        } else if (evicted_wrong_path) {
+          temp.push_back(cache_pollution.back()[1]);
+          temp.push_back(cache_pollution.back()[2]);
+        } else {
+          temp.push_back(cache_pollution.back()[1]);
+          temp.push_back(cache_pollution.back()[2] + 1);
+          ++sim_stats.wp_count;
+        }
+      } else {
+        if (evicted_right_path) {
+          temp.push_back(cache_pollution.back()[1]);
+          temp.push_back(cache_pollution.back()[2]);
+        } else if (evicted_wrong_path) {
+          temp.push_back(cache_pollution.back()[1] + 1);
+          ++sim_stats.rp_count;
+          temp.push_back(cache_pollution.back()[2] - 1);
+          --sim_stats.wp_count;
+        } else {
+          temp.push_back(cache_pollution.back()[1] + 1);
+          ++sim_stats.rp_count;
+          temp.push_back(cache_pollution.back()[2]);
+        }
+      }
+      cache_pollution.back() = temp;
+      if (sim_stats.num_fill > next_comp_fill && !warmup) {
+        // std::cout << "NAME :" <<  ((float_t)cache_pollution.back()[2]/(float_t)(cache_pollution.back()[1]+cache_pollution.back()[2]))*100 << "\n";
+        // polluation.push_back(((float_t)cache_pollution.back()[2] / (float_t)(cache_pollution.back()[1] + cache_pollution.back()[2])) * 100);
+        // next_comp_fill = next_comp_fill + 1000;
+      }
+      last_entry_clk = current_cycle;
 
       *way = BLOCK{fill_mshr};
 
@@ -164,7 +244,25 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
   return success;
 }
 
-bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
+void CACHE::avgCachePoll()
+{
+  float_t denominator = NUM_SET * NUM_WAY;
+  float_t val = 0;
+  if (denominator != 0) {
+    val = (static_cast<float_t>(cache_pollution.back()[2]) / denominator) * 100;
+  }
+  polluation.push_back(val);
+  if (NAME.find("L1I") != std::string::npos) {
+    if (L1D != nullptr)
+      L1D->avgCachePoll();
+    if (L2C != nullptr)
+      L2C->avgCachePoll();
+    if (LLC != nullptr)
+      LLC->avgCachePoll();
+  }
+}
+
+bool CACHE::try_hit(const tag_lookup_type& handle_pkt, bool no_stat_upd)
 {
   cpu = handle_pkt.cpu;
 
@@ -183,31 +281,51 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
 
   // update prefetcher on load instructions and prefetches from upper levels
   auto metadata_thru = handle_pkt.pf_metadata;
-  if (should_activate_prefetcher(handle_pkt)) {
+  if (should_activate_prefetcher(handle_pkt) && !no_stat_upd) {
     uint64_t pf_base_addr = (virtual_prefetch ? handle_pkt.v_address : handle_pkt.address) & ~champsim::bitmask(match_offset_bits ? 0 : OFFSET_BITS);
     metadata_thru = impl_prefetcher_cache_operate(pf_base_addr, handle_pkt.ip, hit, useful_prefetch, champsim::to_underlying(handle_pkt.type), metadata_thru);
   }
 
   if (hit) {
-    ++sim_stats.hits[champsim::to_underlying(handle_pkt.type)][handle_pkt.cpu];
+    if (way->wrong_path && !handle_pkt.wrong_path) {
+      if (!way->wrong_path_useful) {
+        ++sim_stats.wp_useful;
+        ++cache_pollution.back()[1];
+        --cache_pollution.back()[2];
+        if ((NAME.find("L1I") != std::string::npos) || (NAME.find("L1D") != std::string::npos)) {
+          // handle_pkt.type = access_type::LOAD;
+          if (L2C != nullptr)
+            L2C->try_hit(handle_pkt, 1);
+          if (LLC != nullptr)
+            LLC->try_hit(handle_pkt, 1);
+        }
+      }
+      way->wrong_path_useful = true;
+    }
 
-    // update replacement policy
-    const auto way_idx = static_cast<std::size_t>(std::distance(set_begin, way)); // cast protected by earlier assertion
-    impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
-                                  champsim::to_underlying(handle_pkt.type), true);
+    if (!no_stat_upd)
+    {
+      ++sim_stats.hits[champsim::to_underlying(handle_pkt.type)][handle_pkt.cpu];
 
-    impl_prefetcher_prefetch_hit(block[get_set_index(handle_pkt.address) * NUM_WAY + way_idx].address<<LOG2_BLOCK_SIZE, handle_pkt.ip, handle_pkt.pf_metadata);
+      // update replacement policy
+      const auto way_idx = static_cast<std::size_t>(std::distance(set_begin, way)); // cast protected by earlier assertion
+      impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
+                                    champsim::to_underlying(handle_pkt.type), true);
 
-    response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
-    for (auto ret : handle_pkt.to_return)
-      ret->push_back(response);
+      impl_prefetcher_prefetch_hit(block[get_set_index(handle_pkt.address) * NUM_WAY + way_idx].address << LOG2_BLOCK_SIZE, handle_pkt.ip,
+                                   handle_pkt.pf_metadata);
 
-    way->dirty |= (handle_pkt.type == access_type::WRITE);
+      response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
+      for (auto ret : handle_pkt.to_return)
+        ret->push_back(response);
 
-    // update prefetch stats and reset prefetch bit
-    if (useful_prefetch) {
-      ++sim_stats.pf_useful;
-      way->prefetch = false;
+      way->dirty |= (handle_pkt.type == access_type::WRITE);
+
+      // update prefetch stats and reset prefetch bit
+      if (useful_prefetch) {
+        ++sim_stats.pf_useful;
+        way->prefetch = false;
+      }
     }
   }
 
@@ -223,7 +341,7 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
   }
 
   mshr_type to_allocate{handle_pkt, current_cycle};
-
+  to_allocate.wrong_path = handle_pkt.wrong_path;
   cpu = handle_pkt.cpu;
 
   // check mshr
@@ -256,6 +374,7 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
     fwd_pkt.asid[1] = handle_pkt.asid[1];
     fwd_pkt.type = (handle_pkt.type == access_type::WRITE) ? access_type::RFO : handle_pkt.type;
     fwd_pkt.pf_metadata = handle_pkt.pf_metadata;
+    fwd_pkt.wrong_path = handle_pkt.wrong_path;
     fwd_pkt.cpu = handle_pkt.cpu;
 
     fwd_pkt.address = handle_pkt.address;
@@ -394,6 +513,12 @@ long CACHE::operate()
 
   // Perform tag checks
   auto do_tag_check = [this](const auto& pkt) {
+    if (pkt.wrong_path) {
+      if (pkt.type == access_type::LOAD)
+        ++sim_stats.wp_load;
+      else if (pkt.type == access_type::WRITE)
+        ++sim_stats.wp_store;
+    }
     if (this->try_hit(pkt))
       return true;
     if (pkt.type == access_type::WRITE && !this->match_offset_bits)
@@ -563,6 +688,7 @@ void CACHE::issue_translation()
       fwd_pkt.asid[1] = q_entry.asid[1];
       fwd_pkt.type = access_type::LOAD;
       fwd_pkt.cpu = q_entry.cpu;
+      fwd_pkt.wrong_path = q_entry.wrong_path;
 
       fwd_pkt.address = q_entry.address;
       fwd_pkt.v_address = q_entry.v_address;
@@ -717,6 +843,33 @@ void CACHE::initialize()
   impl_initialize_replacement();
 }
 
+// Function to dump vector of vectors to CSV file
+void dumpToCSV(const std::vector<std::vector<uint64_t>>& data, const std::string& filename)
+{
+  std::ofstream outfile(filename);
+  if (!outfile.is_open()) {
+    std::cerr << "Error opening file: " << filename << std::endl;
+    return;
+  }
+  size_t segmentSize = data.size() / 100;
+  // Loop through each 1% segment and calculate the average
+  for (size_t i = 0; i < 100; ++i) {
+    size_t startIndex = i * segmentSize;
+    size_t endIndex = (i + 1) * segmentSize;
+    // Sum the values in the current segment
+    uint64_t sum_right = 0;
+    uint64_t sum_wrong = 0;
+    for (size_t j = startIndex; j < endIndex; ++j) {
+      sum_right = sum_right + data[j][1];
+      sum_wrong = sum_wrong + data[j][2];
+    }
+    sum_right = sum_right / segmentSize;
+    sum_wrong = sum_wrong / segmentSize;
+    outfile << i << "," << sum_right << "," << sum_wrong << "\n";
+  }
+  outfile.close();
+}
+
 void CACHE::begin_phase()
 {
   stats_type new_roi_stats, new_sim_stats;
@@ -756,6 +909,17 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.pf_useful = sim_stats.pf_useful;
   roi_stats.pf_useless = sim_stats.pf_useless;
   roi_stats.pf_fill = sim_stats.pf_fill;
+
+  roi_stats.wp_load = sim_stats.wp_load;
+  roi_stats.wp_store = sim_stats.wp_store;
+  roi_stats.wp_fill = sim_stats.wp_fill;
+  roi_stats.wp_useless = sim_stats.wp_useless;
+  roi_stats.wp_useful = sim_stats.wp_useful;
+  roi_stats.wp_evicted = sim_stats.wp_evicted;
+
+  if (polluation.size()) {
+    roi_stats.avg_pollution = (float_t)std::accumulate(polluation.begin(), polluation.end(), 0) / polluation.size();
+  }
 
   for (auto ul : upper_levels) {
     ul->roi_stats.RQ_ACCESS = ul->sim_stats.RQ_ACCESS;

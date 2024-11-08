@@ -9,7 +9,7 @@
 class BLOCK
 {
 public:
-  uint8_t valid, prefetch, dirty, used;
+  uint8_t valid, prefetch, dirty, used, wrong_path, wrong_path_useful;
 
   int delta, depth, signature, confidence;
 
@@ -24,6 +24,8 @@ public:
     prefetch = 0;
     dirty = 0;
     used = 0;
+    wrong_path = 0;
+    wrong_path_useful = 0;
 
     delta = 0;
     depth = 0;

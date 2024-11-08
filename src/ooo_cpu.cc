@@ -474,6 +474,7 @@ bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, s
   fetch_packet.v_address = begin->ip;
   fetch_packet.instr_id = begin->instr_id;
   fetch_packet.ip = begin->ip;
+  fetch_packet.wrong_path = begin->is_wrong_path;
   // fetch_packet.instr_depend_on_me = {begin, end};
   last_fetch_packet = fetch_packet;
 
@@ -856,6 +857,7 @@ bool O3_CPU::do_complete_store(const LSQ_ENTRY& sq_entry)
   data_packet.v_address = sq_entry.virtual_address;
   data_packet.instr_id = sq_entry.instr_id;
   data_packet.ip = sq_entry.ip;
+  data_packet.wrong_path = sq_entry.is_wrong_path;
 
   if constexpr (champsim::debug_print) {
     fmt::print("[SQ] {} instr_id: {} vaddr: {:x}\n", __func__, data_packet.instr_id, data_packet.v_address);
@@ -870,6 +872,7 @@ bool O3_CPU::execute_load(const LSQ_ENTRY& lq_entry)
   data_packet.v_address = lq_entry.virtual_address;
   data_packet.instr_id = lq_entry.instr_id;
   data_packet.ip = lq_entry.ip;
+  data_packet.wrong_path = lq_entry.is_wrong_path;
 
   if constexpr (champsim::debug_print) {
     fmt::print("[LQ] {} instr_id: {} vaddr: {:#x}\n", __func__, data_packet.instr_id, data_packet.v_address);
@@ -1146,6 +1149,11 @@ long O3_CPU::retire_rob()
   }
 
   num_retired += retire_count;
+
+  if (num_retired % 1000 == 0) {
+    l1i->avgCachePoll();
+  }
+
   ROB.erase(retire_begin, retire_end);
 
   if (retire_count == 0) {

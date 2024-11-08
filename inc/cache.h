@@ -48,6 +48,18 @@ struct cache_stats {
   uint64_t pf_useless = 0;
   uint64_t pf_fill = 0;
 
+  // wrong_path stats
+  uint64_t wp_load = 0;
+  uint64_t wp_store = 0;
+  uint64_t wp_fill = 0;
+  uint64_t wp_evicted = 0; // To track cache line from right path evicted by wrong path req.
+  uint64_t wp_useless = 0;
+  uint64_t wp_useful = 0;
+  uint64_t wp_count = 0;
+  uint64_t rp_count = 0;
+  uint64_t num_fill = 0;
+  float avg_pollution = 0;
+
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> hits = {};
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> misses = {};
 
@@ -80,6 +92,7 @@ public:
     uint64_t instr_id;
 
     uint32_t pf_metadata;
+    bool wrong_path = false;
     uint32_t cpu;
 
     access_type type;
@@ -107,6 +120,7 @@ public:
     uint64_t instr_id;
 
     uint32_t pf_metadata;
+    bool wrong_path = false;
     uint32_t cpu;
 
     access_type type;
@@ -124,7 +138,7 @@ public:
     static mshr_type merge(mshr_type predecessor, mshr_type successor);
   };
 
-  bool try_hit(const tag_lookup_type& handle_pkt);
+  bool try_hit(const tag_lookup_type& handle_pkt, bool no_stat_upd = 0);
   bool handle_fill(const mshr_type& fill_mshr);
   bool handle_miss(const tag_lookup_type& handle_pkt);
   bool handle_write(const tag_lookup_type& handle_pkt);
@@ -138,10 +152,19 @@ public:
   void broadcast_acc(uint64_t acc_level);
   void handle_prefetch_feedback();
 
+  uint64_t next_comp_fill = 1000;
+  std::vector<float> polluation;
+  bool first_entry = true;
+  uint64_t last_entry_clk = 0;
+  std::vector<std::vector<uint64_t>> cache_pollution;
+  void avgCachePoll();
+
   struct BLOCK {
     bool valid = false;
     bool prefetch = false;
     bool dirty = false;
+    bool wrong_path = false;
+    bool wrong_path_useful = false;
 
     uint64_t address = 0;
     uint64_t v_address = 0;
@@ -512,6 +535,9 @@ public:
     pf_filled_epoch = 0;
     pref_acc = 0;
     total_acc_epochs = 0;
+
+    std::vector<uint64_t> temp(3,0);
+    cache_pollution.push_back(temp);
   }
 };
 
