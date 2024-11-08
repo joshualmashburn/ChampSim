@@ -71,6 +71,8 @@ struct cpu_stats {
 
   uint64_t wrong_path_skipped = 0;
   uint64_t wrong_path_insts = 0;
+  uint64_t is_prefetch_skipped = 0;
+  uint64_t is_prefetch_insts = 0;
   uint64_t wrong_path_insts_executed = 0;
   uint64_t fetch_idle_cycles = 0;
   uint64_t fetch_failed_events = 0;

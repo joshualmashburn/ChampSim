@@ -127,6 +127,12 @@ void O3_CPU::initialize_instruction()
       }
       sim_stats.wrong_path_insts++;
       sim_stats.wrong_path_skipped++;
+
+      if (inst.is_prefetch) {
+        sim_stats.is_prefetch_insts++;
+        sim_stats.is_prefetch_skipped++;
+      }
+
       if constexpr (champsim::wp_debug_print) {
         fmt::print("exec_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
       }
@@ -159,6 +165,12 @@ void O3_CPU::initialize_instruction()
       }
       sim_stats.wrong_path_insts++;
       sim_stats.wrong_path_skipped++;
+
+      if (inst.is_prefetch) {
+        sim_stats.is_prefetch_insts++;
+        sim_stats.is_prefetch_skipped++;
+      }
+
       if constexpr (champsim::wp_debug_print) {
         fmt::print("decode_flush ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
       }
@@ -189,6 +201,12 @@ void O3_CPU::initialize_instruction()
         }
         sim_stats.wrong_path_insts++;
         sim_stats.wrong_path_skipped++;
+
+        if (inst.is_prefetch) {
+          sim_stats.is_prefetch_insts++;
+          sim_stats.is_prefetch_skipped++;
+        }
+
         if constexpr (champsim::wp_debug_print) {
           fmt::print("ignore ip: {:#x} wp: {}\n", inst.ip, inst.is_wrong_path);
         }
@@ -272,6 +290,10 @@ void O3_CPU::initialize_instruction()
 
     if (inst.is_wrong_path) {
       sim_stats.wrong_path_insts++;
+    }
+
+    if (inst.is_prefetch) {
+      sim_stats.is_prefetch_insts++;
     }
 
     // Update stats of non mispredicting branches here
