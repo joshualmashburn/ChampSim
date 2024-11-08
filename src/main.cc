@@ -23,6 +23,7 @@
 #include "champsim.h"
 #include "champsim_constants.h"
 #include "core_inst.inc"
+#include "options.h"
 #include "phase_info.h"
 #include "stats_printer.h"
 #include "tracereader.h"
@@ -37,6 +38,7 @@ std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases,
 
 int main(int argc, char** argv)
 {
+  champsim::Options options{};
   champsim::configured::generated_environment gen_environment{};
 
   CLI::App app{"A microarchitecture simulator for research and education"};
@@ -69,7 +71,7 @@ int main(int argc, char** argv)
   app.add_flag("-c,--cloudsuite", knob_cloudsuite, "Read all traces using the cloudsuite format");
   app.add_flag("--hide-heartbeat", set_heartbeat_callback, "Hide the heartbeat output");
   app.add_flag("--wrong-path", set_wrong_path_callback, "Enable Wrong path");
-  //Ros, A., & Jimborean, A. (2023). Wrong-Path-Aware Entangling Instruction Prefetcher. IEEE Transactions on Computers.
+  // Ros, A., & Jimborean, A. (2023). Wrong-Path-Aware Entangling Instruction Prefetcher. IEEE Transactions on Computers.
   app.add_flag("--wpa", set_wpa_callback, "Enable Wrong-Path-Aware");
 
   auto warmup_instr_option = app.add_option("-w,--warmup-instructions", warmup_instructions, "The number of instructions in the warmup phase");
@@ -85,7 +87,9 @@ int main(int argc, char** argv)
 
   app.add_option("traces", trace_names, "The paths to the traces")->required()->expected(NUM_CPUS)->check(CLI::ExistingFile);
 
+  options.init(app);
   CLI11_PARSE(app, argc, argv);
+  options.update(gen_environment);
 
   const bool warmup_given = (warmup_instr_option->count() > 0) || (deprec_warmup_instr_option->count() > 0);
   const bool simulation_given = (sim_instr_option->count() > 0) || (deprec_sim_instr_option->count() > 0);

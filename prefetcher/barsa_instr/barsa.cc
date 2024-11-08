@@ -1048,3 +1048,5 @@ void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) {}
 void CACHE::prefetcher_broadcast_ipc(uint64_t ipc) {}
 
 void CACHE::prefetcher_broadcast_acc(uint64_t acc_level) {}
+
+void CACHE::prefetcher_resize_cache(uint32_t set, uint32_t way) {}

@@ -110,3 +110,13 @@ uint32_t CACHE::find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t
 
 // use this function to print out your own stats at the end of simulation
 void CACHE::replacement_final_stats() {}
+
+void CACHE::replacement_resize_cache(uint32_t sets, uint32_t ways)
+{
+  NUM_SET = sets;
+  NUM_WAY = ways;
+
+  ::rrpv[this].clear();
+  ::rand_sets[this].clear();
+  initialize_replacement();
+}

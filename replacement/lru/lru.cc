@@ -33,3 +33,11 @@ void CACHE::update_replacement_state(uint32_t triggering_cpu, uint32_t set, uint
 }
 
 void CACHE::replacement_final_stats() {}
+
+void CACHE::replacement_resize_cache(uint32_t sets, uint32_t ways) {
+  NUM_SET = sets;
+  NUM_WAY = ways;
+
+  ::last_used_cycles[this].clear();
+  initialize_replacement();
+}
