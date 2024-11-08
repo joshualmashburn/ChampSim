@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <vector>
 #include <map>
+#include <set> // For instruction footprint
 
 #include "champsim.h"
 #include "champsim_constants.h"
@@ -101,6 +102,9 @@ struct cpu_stats {
 
   std::array<long long, 8> total_branch_types = {};
   std::array<long long, 8> branch_type_misses = {};
+
+  std::set<uint64_t> instr_foot_print;
+  std::set<uint64_t> data_foot_print;  
 
   uint64_t instrs() const { return end_instrs - begin_instrs; }
   uint64_t cycles() const { return end_cycles - begin_cycles; }
