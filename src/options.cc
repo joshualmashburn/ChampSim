@@ -9,9 +9,9 @@ void Options::set(environment& env)
     cpu.resize_cpu();
   }
 
-  for (CACHE& cache : env.cache_view()) {
-    cache.resize_cache();
-  }
+  // for (CACHE& cache : env.cache_view()) {
+  //   cache.resize_cache();
+  // }
 }
 
 void Options::init(CLI::App& app)
