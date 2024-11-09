@@ -958,13 +958,6 @@ bool CACHE::should_activate_prefetcher(const T& pkt) const
   return ((1 << champsim::to_underlying(pkt.type)) & pref_activate_mask) && !pkt.prefetch_from_this;
 }
 
-void CACHE::resize_cache()
-{
-  block.resize(NUM_SET * NUM_WAY);
-  impl_prefetcher_resize_cache(NUM_SET, NUM_WAY);
-  impl_replacement_resize_cache(NUM_SET, NUM_WAY);
-}
-
 // LCOV_EXCL_START Exclude the following function from LCOV
 void CACHE::print_deadlock()
 {

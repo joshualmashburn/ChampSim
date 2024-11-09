@@ -1050,8 +1050,3 @@ void CACHE::prefetcher_broadcast_bw(uint64_t bw_level) { prefetcher->update_bw(b
 void CACHE::prefetcher_broadcast_ipc(uint64_t ipc) { prefetcher->update_ipc(ipc); }
 
 void CACHE::prefetcher_broadcast_acc(uint64_t acc_level) { prefetcher->update_acc(acc_level); }
-
-void CACHE::prefetcher_resize_cache(uint32_t sets, uint32_t ways) {
-  delete prefetcher;
-  prefetcher_initialize();
-}

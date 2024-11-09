@@ -137,14 +137,3 @@ void CACHE::update_replacement_state(uint32_t triggering_cpu, uint32_t set, uint
 
 // use this function to print out your own stats at the end of simulation
 void CACHE::replacement_final_stats() {}
-
-void CACHE::replacement_resize_cache(uint32_t sets, uint32_t ways)
-{
-  NUM_SET = sets;
-  NUM_WAY = ways;
-
-  ::sampler[this].clear();
-  ::rand_sets[this].clear();
-  ::rrpv_values[this].clear();
-  initialize_replacement();
-}

@@ -202,7 +202,7 @@ public:
 
   uint32_t cpu = 0;
   const std::string NAME;
-  uint32_t NUM_SET, NUM_WAY, MSHR_SIZE;
+  const uint32_t NUM_SET, NUM_WAY, MSHR_SIZE;
   const std::size_t PQ_SIZE;
   const uint64_t HIT_LATENCY, FILL_LATENCY;
   const unsigned OFFSET_BITS;
@@ -257,8 +257,6 @@ public:
   [[deprecated("Use CACHE::prefetch_line(pf_addr, fill_this_level, prefetch_metadata) instead.")]] int
   prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, bool fill_this_level, uint32_t prefetch_metadata);
 
-  void resize_cache();
-
   void print_deadlock() override;
 
 #include "cache_module_decl.inc"
@@ -284,9 +282,6 @@ public:
     virtual void impl_update_replacement_state(uint32_t triggering_cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr,
                                                uint32_t type, uint8_t hit) = 0;
     virtual void impl_replacement_final_stats() = 0;
-
-    virtual void impl_prefetcher_resize_cache(uint32_t sets, uint32_t ways) = 0;
-    virtual void impl_replacement_resize_cache(uint32_t sets, uint32_t ways) = 0;
   };
 
   template <unsigned long long P_FLAG, unsigned long long R_FLAG>
@@ -312,9 +307,6 @@ public:
     void impl_update_replacement_state(uint32_t triggering_cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr,
                                        uint32_t type, uint8_t hit);
     void impl_replacement_final_stats();
-
-    void impl_prefetcher_resize_cache(uint32_t sets, uint32_t ways);
-    void impl_replacement_resize_cache(uint32_t sets, uint32_t ways);
   };
 
   std::unique_ptr<module_concept> module_pimpl;
@@ -354,9 +346,6 @@ public:
     module_pimpl->impl_update_replacement_state(triggering_cpu, set, way, full_addr, ip, victim_addr, type, hit);
   }
   void impl_replacement_final_stats() { module_pimpl->impl_replacement_final_stats(); }
-
-  void impl_prefetcher_resize_cache(uint32_t sets, uint32_t ways) { module_pimpl->impl_prefetcher_resize_cache(sets, ways); }
-  void impl_replacement_resize_cache(uint32_t sets, uint32_t ways) { module_pimpl->impl_replacement_resize_cache(sets, ways); }
 
   class builder_conversion_tag
   {

@@ -61,7 +61,7 @@ def get_btb_data(module_name):
 def get_pref_data(module_name, is_instruction_cache=False):
     prefix = 'ipref' if is_instruction_cache else 'pref'
     return util.chain(
-            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats', 'prefetcher_prefetch_hit', 'prefetcher_broadcast_bw', 'prefetcher_broadcast_ipc', 'prefetcher_broadcast_acc', 'prefetcher_resize_cache')),
+            data_getter(prefix, module_name, ('prefetcher_initialize', 'prefetcher_cache_operate', 'prefetcher_branch_operate', 'prefetcher_cache_fill', 'prefetcher_cycle_operate', 'prefetcher_final_stats', 'prefetcher_prefetch_hit', 'prefetcher_broadcast_bw', 'prefetcher_broadcast_ipc', 'prefetcher_broadcast_acc')),
             { 'deprecated_func_map' : {
                     'l1i_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
                     'l1d_prefetcher_initialize': '_'.join((prefix, module_name, 'prefetcher_initialize')),
@@ -92,17 +92,13 @@ def get_pref_data(module_name, is_instruction_cache=False):
                     'llc_prefetcher_broadcast_ipc': '_'.join((prefix, module_name, 'prefetcher_broadcast_ipc')),
                     'l1d_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc')),
                     'l2c_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc')),
-                    'llc_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc')),
-                    'l1i_prefetcher_resize_cache': '_'.join((prefix, module_name, 'prefetcher_resize_cache')),
-                    'l1d_prefetcher_resize_cache': '_'.join((prefix, module_name, 'prefetcher_resize_cache')),
-                    'l2c_prefetcher_resize_cache': '_'.join((prefix, module_name, 'prefetcher_resize_cache')),
-                    'llc_prefetcher_resize_cache': '_'.join((prefix, module_name, 'prefetcher_resize_cache'))
+                    'llc_prefetcher_broadcast_acc': '_'.join((prefix, module_name, 'prefetcher_broadcast_acc'))
                 }
             }
         )
 
 def get_repl_data(module_name):
-    return data_getter('repl', module_name, ('initialize_replacement', 'find_victim', 'update_replacement_state', 'replacement_final_stats', 'replacement_resize_cache'))
+    return data_getter('repl', module_name, ('initialize_replacement', 'find_victim', 'update_replacement_state', 'replacement_final_stats'))
 
 # Generate C++ code giving the mangled module specialization functions
 def mangled_declarations(rtype, names, args, attrs=[]):
@@ -223,7 +219,6 @@ def get_cache_module_lines(pref_data, repl_data):
         ('prefetcher_broadcast_bw', (('uint64_t', 'bw_level'),)),
         ('prefetcher_broadcast_ipc', (('uint64_t', 'ipc'),)),
         ('prefetcher_broadcast_acc', (('uint64_t', 'acc_level'),)),
-        ('prefetcher_resize_cache', (('uint32_t', 'sets'), ('uint32_t', 'ways')))
     ]
 
     pref_branch_variant_data = [
@@ -237,8 +232,7 @@ def get_cache_module_lines(pref_data, repl_data):
         ('initialize_replacement',),
         ('find_victim', (('uint32_t','triggering_cpu'), ('uint64_t','instr_id'), ('uint32_t','set'), ('const BLOCK*','current_set'), ('uint64_t','ip'), ('uint64_t','full_addr'), ('uint32_t','type')), 'uint32_t', 'champsim::detail::take_last'),
         ('update_replacement_state', (('uint32_t','triggering_cpu'), ('uint32_t','set'), ('uint32_t','way'), ('uint64_t','full_addr'), ('uint64_t','ip'), ('uint64_t','victim_addr'), ('uint32_t','type'), ('uint8_t','hit'))),
-        ('replacement_final_stats',),
-        ('replacement_resize_cache', (('uint32_t', 'sets'), ('uint32_t', 'ways')))
+        ('replacement_final_stats',)
     ]
 
     classname = 'CACHE::module_model<' + pref_varname + ', ' + repl_varname + '>'
