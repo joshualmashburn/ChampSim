@@ -56,8 +56,11 @@ if [ "${1}" == "gap" ]; then
     suite="gap"
 elif [ "${1}" == "spec" ]; then
     suite="spec"
-else
+elif [ "${1}" == "lcf" ]; then
     suite="lcf"
+else
+    echo "Error: Invalid suite '${1}'."
+    exit -1
 fi
 
 echo "Running ${suite} suite"
