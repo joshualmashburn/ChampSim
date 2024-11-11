@@ -23,6 +23,7 @@
 #include "champsim.h"
 #include "champsim_constants.h"
 #include "core_inst.inc"
+#include "options.h"
 #include "phase_info.h"
 #include "stats_printer.h"
 #include "tracereader.h"
@@ -37,6 +38,7 @@ std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases,
 
 int main(int argc, char** argv)
 {
+  champsim::Options options{};
   champsim::configured::generated_environment gen_environment{};
 
   CLI::App app{"A microarchitecture simulator for research and education"};
@@ -85,7 +87,9 @@ int main(int argc, char** argv)
 
   app.add_option("traces", trace_names, "The paths to the traces")->required()->expected(NUM_CPUS)->check(CLI::ExistingFile);
 
+  options.init(app);
   CLI11_PARSE(app, argc, argv);
+  options.update(gen_environment);
 
   const bool warmup_given = (warmup_instr_option->count() > 0) || (deprec_warmup_instr_option->count() > 0);
   const bool simulation_given = (sim_instr_option->count() > 0) || (deprec_sim_instr_option->count() > 0);
