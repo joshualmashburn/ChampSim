@@ -1243,6 +1243,7 @@ void O3_CPU::print_deadlock()
 void O3_CPU::resize_cpu()
 {
   IN_QUEUE_SIZE = 10 * FETCH_WIDTH;
+  LQ.clear();
   LQ.resize(LQ_SIZE);
 }
 
