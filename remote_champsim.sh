@@ -1,6 +1,6 @@
 job_submition() {
     # Define the file path
-    data_directory="${suite}/${1}-data"
+    data_directory="results/${suite}/${1}-data"
     file_path="jobs/run.job"
 
     # Backup the original file
@@ -75,7 +75,7 @@ for trace in $(ls ../${suite}/*.gz); do
         binary_name=$(basename $binary)
         echo "Running ${binary_name}"
 
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} ${trace} > ${suite}/cp-data/${trace_name}-${binary_name}.txt'"
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} ${trace} > results/${suite}/cp-data/${trace_name}-${binary_name}.txt'"
         job_submition "cp"
 
         num_jobs=$(squeue -u $USER | wc -l)
@@ -84,7 +84,7 @@ for trace in $(ls ../${suite}/*.gz); do
             num_jobs=$(squeue -u $USER | wc -l)
         done
 
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path ${trace} > ${suite}/wp-data/${trace_name}-${binary_name}.txt'"
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path ${trace} > results/${suite}/wp-data/${trace_name}-${binary_name}.txt'"
         job_submition "wp"
 
         while [ $num_jobs -ge 500 ]; do
@@ -92,7 +92,7 @@ for trace in $(ls ../${suite}/*.gz); do
             num_jobs=$(squeue -u $USER | wc -l)
         done
 
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path --wpa ${trace} > ${suite}/wpa-data/${trace_name}-${binary_name}.txt'"
+        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} --wrong-path --wpa ${trace} > results/${suite}/wpa-data/${trace_name}-${binary_name}.txt'"
         job_submition "wpa"
 
         num_jobs=$(squeue -u $USER | wc -l)

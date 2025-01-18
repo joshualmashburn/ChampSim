@@ -5,11 +5,7 @@ _configuration.mk
 *.pyc
 
 bin/
-
-gap/
-lcf/
-spec/
-
+results/
 jobs/*.bak
 
 **/*.o
