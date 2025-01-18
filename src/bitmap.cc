@@ -1,6 +1,7 @@
 #include "bitmap.h"
 #include <assert.h>
 #include <sstream>
+#include <cstdint>
 
 std::string BitmapHelper::to_string(Bitmap bmp, uint32_t size)
 {
