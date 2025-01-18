@@ -1,7 +1,6 @@
 job_submition() {
     # Define the file path
     data_directory="${suite}/${1}-data"
-    logs_directory="${suite}/${1}-logs"
     file_path="jobs/run.job"
 
     # Backup the original file
@@ -20,12 +19,11 @@ job_submition() {
     sed -i "s|## champsim_command|champsim_command=$champsim_command|" "$file_path"
 
     # Submit the job
-    job_name="${trace_name}"
+    job_name="${1}-${trace_name}-${binary_name}"
 
     mkdir -p "${data_directory}"
-    mkdir -p "${logs_directory}"
 
-    sbatch -Q -J ${job_name} --output=${logs_directory}/%x.out --error=${logs_directory}/%x.err $file_path
+    sbatch -Q -J ${job_name} --output=/dev/null --error=/dev/null $file_path
 
     # Revert the changes by restoring the backup
     cp "$backup_file" "$file_path"
