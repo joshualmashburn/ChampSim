@@ -97,7 +97,10 @@ struct cpu_stats {
   uint64_t wrong_path_loads = 0;
   uint64_t wrong_path_loads_executed = 0;
   uint64_t non_branch_squashes = 0;
-  uint64_t fetch_mispred_block_cycles = 0;
+  uint64_t fetch_mispred_block_cycles = 0; 
+
+  uint64_t lack_of_WP_inst_count = 0;
+  uint64_t lack_of_WP_inst_cycles = 0; 
 
   uint64_t lq_full_events = 0;
   uint64_t sq_full_events = 0;
@@ -135,6 +138,10 @@ class O3_CPU : public champsim::operable
 {
 public:
   uint32_t cpu = 0;
+  
+  // for when we dont have wrong path instr available
+  uint64_t WP_insts_not_available_cycle = 0;
+  bool WP_insts_not_available = false;
 
   // Monitoring IPC
   uint64_t cycle = 0;
