@@ -168,6 +168,7 @@ public:
   uint64_t retire_instr_id = 0;
   uint64_t exec_instr_id = 0;
   uint64_t flush_after = 0;
+  uint64_t last_wp_cycle = 0;
 
   CacheBus::request_type last_fetch_packet;
 
