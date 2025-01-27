@@ -5,6 +5,7 @@ _configuration.mk
 *.pyc
 
 bin/
+libbf/
 results/
 jobs/*.bak
 
