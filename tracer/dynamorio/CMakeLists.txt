@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.7)
+project(champsimtracer)
 add_library(champsimtracer SHARED champsim_tracer_dr.cpp)
 find_package(DynamoRIO)
 if (NOT DynamoRIO_FOUND)

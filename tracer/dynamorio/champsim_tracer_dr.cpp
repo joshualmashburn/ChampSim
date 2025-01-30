@@ -44,7 +44,7 @@ static droption_t<uint64_t> traceInstructions(DROPTION_SCOPE_CLIENT, "t", 100000
  */
 int32_t Usage()
 {
-    dr_fprintf(stderr, "This tool creates a register and memory access trace\n\
+    dr_fprintf(STDERR, "This tool creates a register and memory access trace\n\
                         Specify the output trace file with -o\n\
                         Specify the number of instructions to skip before tracing with -s\n\
                         Specify the number of instructions to trace with -t\n");
@@ -55,13 +55,6 @@ int32_t Usage()
 /* ===================================================================== */
 // Analysis routines
 /* ===================================================================== */
-
-static void Fini() {
-    outfile.close();
-    drmgr_unregister_bb_insertion_event(event_app_instruction);
-    drmgr_exit();
-}
-
 
 static void
 ConditionalBranch(app_pc inst_addr, app_pc targ_addr, int taken)
@@ -92,7 +85,7 @@ static dr_emit_flags_t event_app_instruction(
             curr_instr.branch_taken = 1;
         }
         else if (instr_is_cbr(instr)) {
-            dr_insert_cbr_instrumentation(drcontext, bb, instr, ConditionalBranch);
+            dr_insert_cbr_instrumentation(drcontext, bb, instr, (void *)ConditionalBranch);
         }
 
         uint32_t usedRegCount = 0;
@@ -130,7 +123,7 @@ static dr_emit_flags_t event_app_instruction(
         }
 
         //write current instruction
-        dr_insert_clean_call(drcontext, bb, instr, WriteCurrentInstruction, false /*save FP state*/, 0);
+        dr_insert_clean_call(drcontext, bb, instr, (void *)WriteCurrentInstruction, false /*save FP state*/, 0);
         // Note: save_fpstate bool is ignored on non-x86 ISAs (including x86-64).
         //       The state to which it refers is the x87 and MMX state,
         //       neither of which are used in x86_64.
@@ -145,6 +138,12 @@ static dr_emit_flags_t event_app_instruction(
 }
 
 
+static void Fini() {
+    outfile.close();
+    drmgr_unregister_bb_insertion_event(event_app_instruction);
+    drmgr_exit();
+}
+
 
 DR_EXPORT void dr_client_main(client_id_t id, int argc, const char * argv[]) {
     using ::dynamorio::droption::droption_parser_t;
@@ -156,7 +155,7 @@ DR_EXPORT void dr_client_main(client_id_t id, int argc, const char * argv[]) {
     }
 
     if (!drmgr_init()){
-        dr_fprintf(stderr, "Failed to initialize drmgr. Exiting.\n");
+        dr_fprintf(STDERR, "Failed to initialize drmgr. Exiting.\n");
         dr_abort_with_code(1);
     }
 
@@ -173,7 +172,7 @@ DR_EXPORT void dr_client_main(client_id_t id, int argc, const char * argv[]) {
     //if (!drmgr_register_bb_instrumentation_event(event_bb_analysis, event_app_instruction, NULL))
     //    DR_ASSERT(false);
     if (!drmgr_register_bb_instrumentation_event(NULL, event_app_instruction, NULL)){
-        dr_fprintf(stderr, "Failed to register instrumentation function. Exiting.\n");
+        dr_fprintf(STDERR, "Failed to register instrumentation function. Exiting.\n");
         dr_abort_with_code(1);
     }
 }
