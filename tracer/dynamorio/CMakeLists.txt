@@ -1,0 +1,8 @@
+add_library(champsimtracer SHARED champsim_tracer_dr.cpp)
+find_package(DynamoRIO)
+if (NOT DynamoRIO_FOUND)
+  message(FATAL_ERROR "DynamoRIO package required to build")
+endif(NOT DynamoRIO_FOUND)
+configure_DynamoRIO_client(champsimtracer)
+use_DynamoRIO_extension(champsimtracer drmgr)
+use_DynamoRIO_extension(champsimtracer droption)
