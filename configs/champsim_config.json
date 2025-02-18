@@ -61,7 +61,7 @@
         "wq_size": 64,
         "pq_size": 8,
         "mshr_size": 64,
-        "latency": 1,
+        "latency": 2,
         "max_tag_check": 2,
         "max_fill": 2,
         "prefetch_as_load": false,
