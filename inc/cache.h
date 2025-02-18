@@ -63,6 +63,15 @@ struct cache_stats {
   uint64_t num_fill = 0;
   float avg_pollution = 0;
 
+  // cache stats
+  uint64_t istr_hit = 0;
+  uint64_t istr_miss = 0;
+  uint64_t instr_req = 0;
+
+  uint64_t wp_istr_hit = 0;
+  uint64_t wp_istr_miss = 0;
+  uint64_t wp_instr_req = 0;
+
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> hits = {};
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> misses = {};
 
@@ -96,6 +105,7 @@ public:
 
     uint32_t pf_metadata;
     bool wrong_path = false;
+    bool is_instr = false;
     uint32_t cpu;
 
     access_type type;
@@ -124,6 +134,7 @@ public:
 
     uint32_t pf_metadata;
     bool wrong_path = false;
+    bool is_instr = false;
     uint32_t cpu;
 
     access_type type;
@@ -167,6 +178,7 @@ public:
     bool prefetch = false;
     bool dirty = false;
     bool wrong_path = false;
+    bool is_instr = false;
     bool wrong_path_useful = false;
 
     uint64_t address = 0;

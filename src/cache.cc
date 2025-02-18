@@ -38,13 +38,15 @@ CACHE *L2C;
 CACHE *LLC;
 
 CACHE::tag_lookup_type::tag_lookup_type(request_type req, bool local_pref, bool skip)
-    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path), cpu(req.cpu),
+    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path),
+      is_instr(req.is_instr), cpu(req.cpu), 
       type(req.type), prefetch_from_this(local_pref), skip_fill(skip), is_translated(req.is_translated), instr_depend_on_me(req.instr_depend_on_me)
 {
 }
 
 CACHE::mshr_type::mshr_type(tag_lookup_type req, uint64_t cycle)
-    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path), cpu(req.cpu),
+    : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), wrong_path(req.wrong_path),
+      is_instr(req.is_instr),cpu(req.cpu), 
       type(req.type), prefetch_from_this(req.prefetch_from_this), cycle_enqueued(cycle), instr_depend_on_me(req.instr_depend_on_me), to_return(req.to_return)
 {
 }
@@ -67,6 +69,7 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
   // If the successor is on write path & predecssor is on wrong path then consider the request as good request
   // If both successor & predecssor are on wrong path then it will cause pollution of cache/tlb
   retval.wrong_path = predecessor.wrong_path & successor.wrong_path;
+  retval.is_instr = predecessor.is_instr || successor.is_instr;
 
   if (predecessor.event_cycle < std::numeric_limits<uint64_t>::max()) {
     retval.event_cycle = predecessor.event_cycle;
@@ -84,7 +87,9 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
 }
 
 CACHE::BLOCK::BLOCK(mshr_type mshr)
-    : valid(true), prefetch(mshr.prefetch_from_this), dirty(mshr.type == access_type::WRITE), wrong_path(mshr.wrong_path), address(mshr.address), v_address(mshr.v_address), data(mshr.data)
+    : valid(true), prefetch(mshr.prefetch_from_this), dirty(mshr.type == access_type::WRITE), wrong_path(mshr.wrong_path),
+      is_instr(mshr.is_instr),  
+      address(mshr.address), v_address(mshr.v_address), data(mshr.data)
 {
 }
 
@@ -309,6 +314,13 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt, bool no_stat_upd)
     {
       ++sim_stats.hits[champsim::to_underlying(handle_pkt.type)][handle_pkt.cpu];
 
+      if(handle_pkt.is_instr){
+        ++sim_stats.istr_hit;
+        if(handle_pkt.wrong_path){
+          ++sim_stats.wp_istr_hit;
+        } 
+      }
+
       // update replacement policy
       const auto way_idx = static_cast<std::size_t>(std::distance(set_begin, way)); // cast protected by earlier assertion
       impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, way->address, handle_pkt.ip, 0,
@@ -344,6 +356,7 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
 
   mshr_type to_allocate{handle_pkt, current_cycle};
   to_allocate.wrong_path = handle_pkt.wrong_path;
+  to_allocate.is_instr = handle_pkt.is_instr;
   cpu = handle_pkt.cpu;
 
   // check mshr
@@ -377,6 +390,7 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
     fwd_pkt.type = (handle_pkt.type == access_type::WRITE) ? access_type::RFO : handle_pkt.type;
     fwd_pkt.pf_metadata = handle_pkt.pf_metadata;
     fwd_pkt.wrong_path = handle_pkt.wrong_path;
+    fwd_pkt.is_instr = handle_pkt.is_instr;
     fwd_pkt.cpu = handle_pkt.cpu;
 
     fwd_pkt.address = handle_pkt.address;
@@ -521,6 +535,14 @@ long CACHE::operate()
       else if (pkt.type == access_type::WRITE)
         ++sim_stats.wp_store;
     }
+
+    if(pkt.is_instr){
+      ++sim_stats.instr_req;
+      if(pkt.wrong_path){
+        ++sim_stats.wp_instr_req;
+      }
+    }
+
     if (this->try_hit(pkt))
       return true;
     else {
@@ -528,6 +550,13 @@ long CACHE::operate()
         ++sim_stats.wp_miss;
       else
         ++sim_stats.cp_miss;
+        
+      if(pkt.is_instr){
+        ++sim_stats.istr_miss;
+        if(pkt.wrong_path){
+          ++sim_stats.wp_istr_miss;
+        }
+      }
     }
     if (pkt.type == access_type::WRITE && !this->match_offset_bits)
       return this->handle_write(pkt); // Treat writes (that is, writebacks) like fills
@@ -697,6 +726,7 @@ void CACHE::issue_translation()
       fwd_pkt.type = access_type::LOAD;
       fwd_pkt.cpu = q_entry.cpu;
       fwd_pkt.wrong_path = q_entry.wrong_path;
+      fwd_pkt.is_instr  = q_entry.is_instr;
 
       fwd_pkt.address = q_entry.address;
       fwd_pkt.v_address = q_entry.v_address;
@@ -928,6 +958,14 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.wp_useless = sim_stats.wp_useless;
   roi_stats.wp_useful = sim_stats.wp_useful;
   roi_stats.wp_evicted = sim_stats.wp_evicted;
+
+  roi_stats.instr_req = sim_stats.instr_req;
+  roi_stats.istr_hit = sim_stats.istr_hit;
+  roi_stats.istr_miss = sim_stats.istr_miss;
+
+  roi_stats.wp_instr_req = sim_stats.wp_instr_req;
+  roi_stats.wp_istr_hit = sim_stats.wp_istr_hit;
+  roi_stats.wp_istr_miss = sim_stats.wp_istr_miss;
 
   if (polluation.size()) {
     roi_stats.avg_pollution = (float_t)std::accumulate(polluation.begin(), polluation.end(), 0) / polluation.size();

@@ -527,6 +527,7 @@ bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, s
   fetch_packet.instr_id = begin->instr_id;
   fetch_packet.ip = begin->ip;
   fetch_packet.wrong_path = begin->is_wrong_path;
+  fetch_packet.is_instr = true;
   // fetch_packet.instr_depend_on_me = {begin, end};
   last_fetch_packet = fetch_packet;
 
