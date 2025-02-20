@@ -203,13 +203,15 @@ public:
 
   struct saved_instr {
     uint64_t ip = 0;
+    uint64_t instr_id = 0;
     std::vector<uint64_t> source_memory = {};
     std::vector<uint8_t> source_registers = {};
     std::vector<uint64_t> destination_memory = {};
     std::vector<uint8_t> destination_registers = {};
   };
 
-  std::map<uint64_t, saved_instr> instruction_map;
+  std::map<uint64_t, uint64_t> imap_counter;
+  std::map<uint64_t, std::vector<saved_instr>> instruction_map;
 
   // Constants
   std::size_t IFETCH_BUFFER_SIZE, DECODE_BUFFER_SIZE, DISPATCH_BUFFER_SIZE, ROB_SIZE, LQ_SIZE, SQ_SIZE;

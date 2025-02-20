@@ -333,10 +333,16 @@ void O3_CPU::modify_instruction(ooo_model_instr& inst)
   inst.destination_registers.clear();
 
   if (instruction_map.find(inst.ip) != instruction_map.end()) {
-    inst.source_memory = instruction_map[inst.ip].source_memory;
-    inst.source_registers = instruction_map[inst.ip].source_registers;
-    inst.destination_memory = instruction_map[inst.ip].destination_memory;
-    inst.destination_registers = instruction_map[inst.ip].destination_registers;
+    imap_counter[inst.ip]++;
+    assert(imap_counter[inst.ip] < instruction_map[inst.ip].size());
+
+    inst.source_memory = instruction_map[inst.ip][imap_counter[inst.ip]].source_memory;
+    inst.source_registers = instruction_map[inst.ip][imap_counter[inst.ip]].source_registers;
+    inst.destination_memory = instruction_map[inst.ip][imap_counter[inst.ip]].destination_memory;
+    inst.destination_registers = instruction_map[inst.ip][imap_counter[inst.ip]].destination_registers;
+
+    if ((imap_counter[inst.ip] + 1) == instruction_map[inst.ip].size())
+      imap_counter[inst.ip] = -1;
   }
 }
 
@@ -1164,12 +1170,25 @@ long O3_CPU::retire_rob()
 
     auto inst = *it;
     if (enable_wpa) {
+      saved_instr saved_inst;
+      saved_inst.ip = inst.ip;
+      saved_inst.instr_id = inst.instr_id;
+      saved_inst.destination_registers = inst.destination_registers;
+      saved_inst.source_registers = inst.source_registers;
+      saved_inst.destination_memory = inst.destination_memory;
+      saved_inst.source_memory = inst.source_memory;
+
       if (instruction_map.find(inst.ip) == instruction_map.end()) {
-        instruction_map[inst.ip].ip = inst.ip;
-        instruction_map[inst.ip].destination_registers = inst.destination_registers;
-        instruction_map[inst.ip].source_registers = inst.source_registers;
-        instruction_map[inst.ip].destination_memory = inst.destination_memory;
-        instruction_map[inst.ip].source_memory = inst.source_memory;
+        imap_counter[inst.ip] = -1;
+        instruction_map[inst.ip].emplace_back(saved_inst);
+      } else {
+        if (instruction_map[inst.ip].back().instr_id == (inst.instr_id - 1)) {
+          instruction_map[inst.ip].emplace_back(saved_inst);
+        } else {
+          imap_counter[inst.ip] = -1;
+          instruction_map[inst.ip].clear();
+          instruction_map[inst.ip].emplace_back(saved_inst);
+        }
       }
     }
 
