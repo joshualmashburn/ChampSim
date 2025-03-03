@@ -49,31 +49,58 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   std::transform(std::begin(stats.branch_type_misses), std::end(stats.branch_type_misses), std::back_inserter(mpkis),
                  [instrs = stats.instrs()](auto x) { return 1000.0 * std::ceil(x) / std::ceil(instrs); });
 
+  fmt::print(stream, "\n");
   fmt::print(stream, "Branch type MPKI\n");
   for (auto [str, idx] : types)
     fmt::print(stream, "{}: {:.3}\n", str, mpkis[idx]);
   fmt::print(stream, "\n");
 
+  fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
+
+  fmt::print(stream, "Instruction type breakdown\n");
+  fmt::print(stream, "direct_jumps: {} ({:.3g}%)\n", stats.direct_jumps, ((double)stats.direct_jumps / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "indirect_branches: {} ({:.3g}%)\n", stats.indirect_branches,
+             ((double)stats.indirect_branches / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "conditional_branches: {} ({:.3g}%)\n", stats.conditional_branches,
+             ((double)stats.conditional_branches / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "direct_calls: {} ({:.3g}%)\n", stats.direct_calls, ((double)stats.direct_calls / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "indirect_calls: {} ({:.3g}%)\n", stats.indirect_calls, ((double)stats.indirect_calls / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "returns: {} ({:.3g}%)\n", stats.returns, ((double)stats.returns / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "other_branches: {} ({:.3g}%)\n", stats.other_branches, ((double)stats.other_branches / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "loads: {} ({:.3g}%)\n", stats.loads, ((double)stats.loads / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "stores: {} ({:.3g}%)\n", stats.stores, ((double)stats.stores / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "arithmetic: {} ({:.3g}%)\n", stats.arithmetic, ((double)stats.arithmetic / (double)stats.total_instructions) * 100.0);
+  fmt::print(stream, "total_instructions: {}\n\n", stats.total_instructions);
+
+  fmt::print(stream, "Idle Cycles\n");
+  fmt::print(stream, "Fetch     {} ({:.3g}%)\n", stats.fetch_idle_cycles, (stats.fetch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Decode    {} ({:.3g}%)\n", stats.decode_idle_cycles, (stats.decode_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Dispatch  {} ({:.3g}%)\n", stats.dispatch_idle_cycles, (stats.dispatch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Schedule  {} ({:.3g}%)\n", stats.schedule_idle_cycles, (stats.schedule_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Execute   {} ({:.3g}%)\n", stats.execute_idle_cycles, (stats.execute_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Retire    {} ({:.3g}%)\n\n", stats.retire_idle_cycles, (stats.retire_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+
+  fmt::print(stream, "Starve Cycles\n");
+  fmt::print(stream, "Fetch     {} ({:.3g}%)\n", stats.fetch_starve_cycles, (stats.fetch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Decode    {} ({:.3g}%)\n", stats.decode_starve_cycles, (stats.decode_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Dispatch  {} ({:.3g}%)\n", stats.dispatch_starve_cycles, (stats.dispatch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Schedule  {} ({:.3g}%)\n", stats.schedule_starve_cycles, (stats.schedule_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Execute   {} ({:.3g}%)\n", stats.execute_starve_cycles, (stats.execute_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Retir     {} ({:.3g}%)\n\n", stats.retire_starve_cycles, (stats.retire_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+
   fmt::print(stream, "Wrong Path Stats\n");
   fmt::print(stream, "Loads: Count {} Issued {}\n", stats.wrong_path_loads, stats.wrong_path_loads_executed);
   fmt::print(stream, "\n");
 
-  fmt::print(stream, "IDLE Cycles\n");
-  fmt::print(stream, "Fetch Idle Cycles {}\n", stats.fetch_idle_cycles);
   fmt::print(stream, "Fetch Blocked Cycles {}\n", stats.fetch_blocked_cycles);
   fmt::print(stream, "IFetch Failed Events {}\n", stats.fetch_failed_events);
   fmt::print(stream, "Fetch Buffer Not Empty {}\n", stats.fetch_buffer_not_empty);
-  fmt::print(stream, "Decode Idle Cycles {}\n", stats.decode_idle_cycles);
-  fmt::print(stream, "Dispatch Idle Cycles {}\n", stats.dispatch_idle_cycles);
-  fmt::print(stream, "Execute Idle Cycles {}\n", stats.execute_idle_cycles);
   fmt::print(stream, "Execute None Cycles {}\n", stats.execute_none_cycles);
   fmt::print(stream, "Execute Head Not Ready Cycles {}\n", stats.execute_head_not_ready);
   fmt::print(stream, "Execute Head Not Completed Cycles {}\n", stats.execute_head_not_completed);
   fmt::print(stream, "Execute Pending Cycles {}\n", stats.execute_pending_cycles);
   fmt::print(stream, "Execute Load Blocked Cycles {}\n", stats.execute_load_blocked_cycles);
-  fmt::print(stream, "Scheduler Idle Cycles {}\n", stats.sched_idle_cycles);
   fmt::print(stream, "Scheduler None Cycles {}\n", stats.sched_none_cycles);
-  fmt::print(stream, "ROB Idle Cycles {}\n", stats.rob_idle_cycles);
   fmt::print(stream, "LQ Full Events {}\n", stats.lq_full_events);
   fmt::print(stream, "SQ Full Events {}\n", stats.sq_full_events);
   fmt::print(stream, "Non Branch Squashes {}\n", stats.non_branch_squashes);
@@ -81,11 +108,9 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "\n");
 
   fmt::print(stream, "Inst Stats\n");
-  fmt::print(stream, "Loads: {} \n", stats.loads);
   fmt::print(stream, "Loads Success: {} \n", stats.loads_success);
   fmt::print(stream, "Loads Executed: {} \n", stats.loads_executed);
   fmt::print(stream, "Loads Retired: {} \n", stats.loads_retired);
-  fmt::print(stream, "Stores: {} \n", stats.stores);
   fmt::print(stream, "\n");
 }
 

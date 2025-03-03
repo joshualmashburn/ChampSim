@@ -69,17 +69,43 @@ struct cpu_stats {
   uint64_t end_instrs = 0, end_cycles = 0;
   uint64_t total_rob_occupancy_at_branch_mispredict = 0;
 
+  uint64_t direct_jumps = 0;
+  uint64_t indirect_branches = 0;
+  uint64_t conditional_branches = 0;
+  uint64_t direct_calls = 0;
+  uint64_t indirect_calls = 0;
+  uint64_t returns = 0;
+  uint64_t other_branches = 0;
+
+  uint64_t loads = 0;
+  uint64_t stores = 0;
+  uint64_t arithmetic = 0;
+  uint64_t total_instructions = 0;
+
+  uint64_t fetch_idle_cycles = 0;
+  uint64_t decode_idle_cycles = 0;
+  uint64_t dispatch_idle_cycles = 0;
+  uint64_t schedule_idle_cycles = 0;
+  uint64_t execute_idle_cycles = 0;
+  uint64_t retire_idle_cycles = 0;
+
+  uint64_t fetch_starve_cycles = 0;
+  uint64_t decode_starve_cycles = 0;  
+  uint64_t dispatch_starve_cycles = 0;
+  uint64_t schedule_starve_cycles = 0;
+  uint64_t execute_starve_cycles = 0;
+  uint64_t retire_starve_cycles = 0;
+
+  uint64_t resteer_events = 0;
+
   uint64_t wrong_path_skipped = 0;
   uint64_t wrong_path_insts = 0;
   uint64_t is_prefetch_skipped = 0;
   uint64_t is_prefetch_insts = 0;
   uint64_t wrong_path_insts_executed = 0;
-  uint64_t fetch_idle_cycles = 0;
   uint64_t fetch_failed_events = 0;
   uint64_t fetch_buffer_not_empty = 0;
   uint64_t fetch_blocked_cycles = 0;
-  uint64_t decode_idle_cycles = 0;
-  uint64_t execute_idle_cycles = 0;
   uint64_t execute_none_cycles = 0;
   uint64_t execute_head_not_ready = 0;
   uint64_t execute_head_not_completed = 0;
@@ -87,13 +113,9 @@ struct cpu_stats {
   uint64_t execute_load_blocked_cycles = 0;
   uint64_t sched_idle_cycles = 0;
   uint64_t sched_none_cycles = 0;
-  uint64_t dispatch_idle_cycles = 0;
-  uint64_t rob_idle_cycles = 0;
-  uint64_t loads = 0;
   uint64_t loads_executed = 0;
   uint64_t loads_retired = 0;
   uint64_t loads_success = 0;
-  uint64_t stores = 0;
   uint64_t wrong_path_loads = 0;
   uint64_t wrong_path_loads_executed = 0;
   uint64_t non_branch_squashes = 0;
@@ -160,6 +182,8 @@ public:
   bool in_wrong_path = false;
   bool enable_wrong_path = false;
   bool enable_wpa = false;
+
+  uint64_t pip = 0; // Previous instruction pointer, used for counting the retired instructions
 
   uint64_t prev_ip = 0;
   uint64_t prev_fetch_block = 0;

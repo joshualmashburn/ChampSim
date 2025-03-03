@@ -1,23 +1,22 @@
-mkdir -p cp-data
-mkdir -p wp-data
+#!/bin/bash
 
-./config.sh configs/champsim_config.json configs/no.json && make
+rm -rf .csconfig && rm -rf bin && mkdir -p temp/cp-data && mkdir -p temp/wp-data && mkdir -p temp/wpa-data
+./config.sh configs/champsim_config.json configs/no.json
+make -j32
 
-trace=../traces/557.xz.gz
+trace="../Traces/TAGE_SC_L/LCF/cassandra.gz"
 trace_name=$(basename $trace)
 trace_name=${trace_name%.gz}
+echo "Running $trace_name"
 
-warmup=1000000
-sim=10000000
+w=1000000
+s=10000000
 
-echo "Running CP default"
-./bin/champsim-default --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-default.txt
-# echo "Running CP scooby"
-# ./bin/champsim-l2c-scooby --warmup-instructions $warmup --simulation-instructions $sim ${trace} >cp-data/${trace_name}-scooby.txt
+echo "Running Correct Path default"
+./bin/champsim-default --warmup-instructions $w --simulation-instructions $s ${trace} >temp/cp-data/${trace_name}-default.txt
 
-echo "Running WP default"
-./bin/champsim-default --warmup-instructions $warmup --simulation-instructions $sim --wrong-path ${trace} >wp-data/${trace_name}-default.txt
-echo "Running WPA"
-./bin/champsim-default --warmup-instructions $warmup --simulation-instructions $sim --wrong-path --wpa ${trace} >wp-data/${trace_name}-wpa.txt
+echo "Running Wrong Path default"
+./bin/champsim-default --warmup-instructions $w --simulation-instructions $s --wrong-path ${trace} >temp/wp-data/${trace_name}-default.txt
 
-# gdb -q -ex=r --args ./bin/champsim-l1i-epi --warmup-instructions 1000000 --simulation-instructions 10000000 --wrong-path ../new-traces/tomcat.gz
+echo "Running Wrong Path Aware default"
+./bin/champsim-default --warmup-instructions $w --simulation-instructions $s --wrong-path --wpa ${trace} >temp/wpa-data/${trace_name}-default.txt

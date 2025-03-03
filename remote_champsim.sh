@@ -86,7 +86,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate suite
-if [ "${suite}" != "gap" ] && [ "${suite}" != "spec" ] && [ "${suite}" != "cp-spec" ] && [ "${suite}" != "lcf" ]; then
+if [ "${suite}" != "GAPS" ] && [ "${suite}" != "SPEC" ] && [ "${suite}" != "LCF" ] && [ "${suite}" != "cp-spec" ]; then
     echo "Error: Invalid suite '${suite}'."
     usage
 fi
@@ -100,11 +100,11 @@ fi
 # Start watcher
 start_watcher
 
-warmup_instructions=10000000
-simulation_instructions=100000000
+w=10000000
+s=100000000
 
 # Start processing traces
-for trace in $(ls ../${suite}/*.gz); do
+for trace in $(ls ../Traces/${suite}/*.gz); do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
@@ -121,7 +121,7 @@ for trace in $(ls ../${suite}/*.gz); do
         done
 
         # Construct the ChampSim command
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} \
+        champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
         ${options[@]} ${trace} > results/${suite}/cp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "cp"
 
@@ -133,7 +133,7 @@ for trace in $(ls ../${suite}/*.gz); do
         done
 
         # Repeat for wp simulation
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} \
+        champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
         ${options[@]} --wrong-path ${trace} > results/${suite}/wp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "wp"
 
@@ -143,7 +143,7 @@ for trace in $(ls ../${suite}/*.gz); do
         done
 
         # Repeat for wpa simulation
-        champsim_command="'${binary} --warmup-instructions ${warmup_instructions} --simulation-instructions ${simulation_instructions} \
+        champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
         ${options[@]} --wrong-path --wpa ${trace} > results/${suite}/wpa-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "wpa"
 
