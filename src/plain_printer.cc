@@ -55,8 +55,21 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
     fmt::print(stream, "{}: {:.3}\n", str, mpkis[idx]);
   fmt::print(stream, "\n");
 
-  fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
+  fmt::print(stream, "Champsim Branch Predictor\n");
+  fmt::print(stream, "Total Branches Seen {}\n", stats.champ_branch_seen);
+  fmt::print(stream, "Correct Predictions {}\n", stats.champ_correct_predictions);
+  fmt::print(stream, "Correct Direction Predictions {}\n", stats.champ_correct_direction);
+  fmt::print(stream, "Branch Prediction Accuracy {:.4g}%\n", (100.0 * stats.champ_correct_predictions) / stats.champ_branch_seen);
+  fmt::print(stream, "Branch MPKI {:.4g}\n", (1000.0 * (stats.champ_branch_seen - stats.champ_correct_predictions)) / std::ceil(stats.instrs()));
+  fmt::print(stream, "\n");
+  fmt::print(stream, "Trace Match Predictions {}\n", stats.trace_matching_predictions);
+  fmt::print(stream, "Trace Match Direction Predictions {}\n", stats.trace_matching_direction);
+  fmt::print(stream, "Trace Prediction Accuracy {:.4g}%\n", (100.0 * stats.trace_matching_predictions) / stats.champ_branch_seen);
+  fmt::print(stream, "Trace MPKI {:.4g}\n", (1000.0 * (stats.champ_branch_seen - stats.trace_matching_predictions)) / std::ceil(stats.instrs()));
+  fmt::print(stream, "\n");
+  fmt::print(stream, "BTB Hit Correct Target {}\n", stats.champ_btb_hit_correct_target);
 
+  fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
   fmt::print(stream, "Instruction type breakdown\n");
   fmt::print(stream, "direct_jumps: {} ({:.3g}%)\n", stats.direct_jumps, ((double)stats.direct_jumps / (double)stats.total_instructions) * 100.0);
   fmt::print(stream, "indirect_branches: {} ({:.3g}%)\n", stats.indirect_branches,

@@ -51,7 +51,9 @@ struct ooo_model_instr {
   bool branch_taken = 0;
   bool branch_prediction = 0;
   bool branch_mispredicted = 0; // A branch can be mispredicted even if the direction prediction is correct when the predicted target is not correct
-
+  
+  bool champ_branch_prediction = 0;
+  
   bool before_wrong_path = false;
   bool squashed = false;
 

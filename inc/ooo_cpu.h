@@ -69,6 +69,8 @@ struct cpu_stats {
   uint64_t end_instrs = 0, end_cycles = 0;
   uint64_t total_rob_occupancy_at_branch_mispredict = 0;
 
+  uint64_t champ_total_rob_occupancy_at_branch_mispredict = 0;
+
   uint64_t direct_jumps = 0;
   uint64_t indirect_branches = 0;
   uint64_t conditional_branches = 0;
@@ -76,6 +78,15 @@ struct cpu_stats {
   uint64_t indirect_calls = 0;
   uint64_t returns = 0;
   uint64_t other_branches = 0;
+
+  uint64_t champ_correct_predictions = 0; // direction & target 
+  uint64_t champ_correct_direction = 0; // direction only
+  uint64_t trace_matching_predictions = 0;
+  uint64_t trace_matching_direction = 0;
+
+  uint64_t champ_btb_hit = 0;
+  uint64_t champ_btb_hit_correct_target = 0;
+  uint64_t champ_branch_seen = 0;
 
   uint64_t loads = 0;
   uint64_t stores = 0;
@@ -129,6 +140,9 @@ struct cpu_stats {
 
   std::array<long long, 8> total_branch_types = {};
   std::array<long long, 8> branch_type_misses = {};
+  
+  std::array<long long, 8> champ_total_branch_types = {};
+  std::array<long long, 8> champ_branch_type_misses = {};
 
   std::set<uint64_t> instr_foot_print;
   std::set<uint64_t> data_foot_print;  
