@@ -440,13 +440,17 @@ bool O3_CPU::do_predict_branch(ooo_model_instr& arch_instr)
 
     }
      
-    if (!in_wrong_path && (arch_instr.branch_taken ^ arch_instr.branch_mispredicted)) {
+    if (!in_wrong_path && !arch_instr.branch_mispredicted) {
       assert(arch_instr.is_wrong_path == 0 && 
              "CP Branch instruction cannot be in the wrong path");
       // BTB should only be updated for correct path instructions since they will only be committed
-      impl_update_btb(arch_instr.ip, arch_instr.branch_target, arch_instr.branch_taken, arch_instr.branch);
+      impl_update_btb(arch_instr.ip, arch_instr.branch_target, (arch_instr.branch_taken ^ arch_instr.branch_mispredicted), arch_instr.branch);
     }
-    impl_last_branch_result(arch_instr.ip, arch_instr.branch_target, arch_instr.branch_taken, arch_instr.branch);
+    if(!in_wrong_path){
+      assert(arch_instr.is_wrong_path == 0 && 
+        "CP Branch instruction cannot be in the wrong path");
+      impl_last_branch_result(arch_instr.ip, arch_instr.branch_target, (arch_instr.branch_taken ^ arch_instr.branch_mispredicted), arch_instr.branch);
+    }
   }
 
   return stop_fetch;
