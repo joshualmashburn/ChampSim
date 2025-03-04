@@ -391,9 +391,7 @@ bool O3_CPU::do_predict_branch(ooo_model_instr& arch_instr)
     }
 
     // call code prefetcher every time the branch predictor is used
-    // TODO : check if need this prefetch mechanism or not
-    // TOOD : this function is not implemented here so check :(
-    // l1i->impl_prefetcher_branch_operate(arch_instr.ip, arch_instr.branch, predicted_branch_target);
+    l1i->impl_prefetcher_branch_operate(arch_instr.ip, arch_instr.branch, predicted_branch_target);
 
     if (predicted_branch_target != arch_instr.branch_target
         || (((arch_instr.branch == BRANCH_CONDITIONAL) || (arch_instr.branch == BRANCH_OTHER))
@@ -1348,8 +1346,7 @@ long O3_CPU::retire_rob()
       default:
         assert(false && "Unknown branch type");
       }
-    }
-    if (std::size(rob_it->source_memory)) {
+    } else if (std::size(rob_it->source_memory)) {
       sim_stats.loads++;
     } else if (std::size(rob_it->destination_memory)) {
       sim_stats.stores++;
@@ -1361,7 +1358,7 @@ long O3_CPU::retire_rob()
 
   ROB.erase(retire_begin, retire_end);
 
-  if (retire_count == 0) {
+  if (retire_count == 0 || std::empty(ROB)) {
     sim_stats.retire_idle_cycles++;
   }
 

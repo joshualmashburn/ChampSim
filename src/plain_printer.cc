@@ -99,7 +99,7 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "Dispatch  {} ({:.3g}%)\n", stats.dispatch_starve_cycles, (stats.dispatch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
   fmt::print(stream, "Schedule  {} ({:.3g}%)\n", stats.schedule_starve_cycles, (stats.schedule_starve_cycles / std::ceil(stats.cycles())) * 100.0);
   fmt::print(stream, "Execute   {} ({:.3g}%)\n", stats.execute_starve_cycles, (stats.execute_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Retir     {} ({:.3g}%)\n\n", stats.retire_starve_cycles, (stats.retire_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Retire    {} ({:.3g}%)\n\n", stats.retire_starve_cycles, (stats.retire_starve_cycles / std::ceil(stats.cycles())) * 100.0);
 
   fmt::print(stream, "Wrong Path Stats\n");
   fmt::print(stream, "Loads: Count {} Issued {}\n", stats.wrong_path_loads, stats.wrong_path_loads_executed);
