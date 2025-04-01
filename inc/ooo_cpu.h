@@ -68,8 +68,7 @@ struct cpu_stats {
   uint64_t begin_instrs = 0, begin_cycles = 0;
   uint64_t end_instrs = 0, end_cycles = 0;
   uint64_t total_rob_occupancy_at_branch_mispredict = 0;
-
-  uint64_t champ_total_rob_occupancy_at_branch_mispredict = 0;
+  uint64_t wp_cycles = 0;
 
   uint64_t direct_jumps = 0;
   uint64_t indirect_branches = 0;
@@ -78,15 +77,6 @@ struct cpu_stats {
   uint64_t indirect_calls = 0;
   uint64_t returns = 0;
   uint64_t other_branches = 0;
-
-  uint64_t champ_correct_predictions = 0; // direction & target 
-  uint64_t champ_correct_direction = 0; // direction only
-  uint64_t trace_matching_predictions = 0;
-  uint64_t trace_matching_direction = 0;
-
-  uint64_t champ_btb_hit = 0;
-  uint64_t champ_btb_hit_correct_target = 0;
-  uint64_t champ_branch_seen = 0;
 
   uint64_t loads = 0;
   uint64_t stores = 0;
@@ -106,6 +96,13 @@ struct cpu_stats {
   uint64_t schedule_starve_cycles = 0;
   uint64_t execute_starve_cycles = 0;
   uint64_t retire_starve_cycles = 0;
+
+  uint64_t total_fetch_instructions = 0;
+  uint64_t total_decode_instructions = 0;
+  uint64_t total_dispatch_instructions = 0;
+  uint64_t total_schedule_instructions = 0;
+  uint64_t total_execute_instructions = 0;
+  uint64_t total_retire_instructions = 0;
 
   uint64_t resteer_events = 0;
 
@@ -140,9 +137,6 @@ struct cpu_stats {
 
   std::array<long long, 8> total_branch_types = {};
   std::array<long long, 8> branch_type_misses = {};
-  
-  std::array<long long, 8> champ_total_branch_types = {};
-  std::array<long long, 8> champ_branch_type_misses = {};
 
   std::set<uint64_t> instr_foot_print;
   std::set<uint64_t> data_foot_print;  
@@ -174,10 +168,6 @@ class O3_CPU : public champsim::operable
 {
 public:
   uint32_t cpu = 0;
-  
-  // for when we dont have wrong path instr available
-  uint64_t WP_insts_not_available_cycle = 0;
-  bool WP_insts_not_available = false;
 
   // Monitoring IPC
   uint64_t cycle = 0;
@@ -194,6 +184,7 @@ public:
 
   bool restart = false;
   bool in_wrong_path = false;
+  bool in_repair_mode = false;
   bool enable_wrong_path = false;
   bool enable_wpa = false;
 

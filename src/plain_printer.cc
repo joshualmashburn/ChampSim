@@ -35,13 +35,13 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   auto total_mispredictions = std::ceil(
       std::accumulate(std::begin(types), std::end(types), 0ll, [btm = stats.branch_type_misses](auto acc, auto next) { return acc + btm[next.second]; }));
 
-  fmt::print(stream,
-             "\n{} cumulative IPC: {:.4g} instructions: {} cycles: {} wrong_path_insts: {} wrong_path_insts_skipped: {} wrong_path_insts_executed: {} "
-             "instr_foot_print: {} data_foot_print: {}\n",
-             stats.name, std::ceil(stats.instrs()) / std::ceil(stats.cycles()), stats.instrs(), stats.cycles(), stats.wrong_path_insts,
-             stats.wrong_path_skipped, stats.wrong_path_insts_executed, stats.instr_foot_print.size(), stats.data_foot_print.size());
-  fmt::print(stream, "{} is_prefetch_insts: {} is_prefetch_skipped: {}\n", stats.name, stats.is_prefetch_insts, stats.is_prefetch_skipped);
-  fmt::print(stream, "{} Branch Prediction Accuracy: {:.4g}% MPKI: {:.4g} Average ROB Occupancy at Mispredict: {:.4g}\n", stats.name,
+  fmt::print(stream, "\n{} cumulative IPC: {:.4g} instructions: {} cycles: {} wp_cycles: {}", stats.name, std::ceil(stats.instrs()) / std::ceil(stats.cycles()),
+             stats.instrs(), stats.cycles(), stats.wp_cycles);
+  fmt::print(stream, "\n{} wrong_path_insts: {} wrong_path_insts_skipped: {} wrong_path_insts_executed: {}", stats.name, stats.wrong_path_insts,
+             stats.wrong_path_skipped, stats.wrong_path_insts_executed);
+  fmt::print(stream, "\n{} instr_foot_print: {} data_foot_print: {}", stats.name, stats.instr_foot_print.size(), stats.data_foot_print.size());
+  fmt::print(stream, "\n{} is_prefetch_insts: {} is_prefetch_skipped: {}", stats.name, stats.is_prefetch_insts, stats.is_prefetch_skipped);
+  fmt::print(stream, "\n{} Branch Prediction Accuracy: {:.4g}% MPKI: {:.4g} Average ROB Occupancy at Mispredict: {:.4g}\n", stats.name,
              (100.0 * std::ceil(total_branch - total_mispredictions)) / total_branch, (1000.0 * total_mispredictions) / std::ceil(stats.instrs()),
              std::ceil(stats.total_rob_occupancy_at_branch_mispredict) / total_mispredictions);
 
@@ -55,21 +55,6 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
     fmt::print(stream, "{}: {:.3}\n", str, mpkis[idx]);
   fmt::print(stream, "\n");
 
-  fmt::print(stream, "Champsim Branch Predictor\n");
-  fmt::print(stream, "Total Branches Seen {}\n", stats.champ_branch_seen);
-  fmt::print(stream, "Correct Predictions {}\n", stats.champ_correct_predictions);
-  fmt::print(stream, "Correct Direction Predictions {}\n", stats.champ_correct_direction);
-  fmt::print(stream, "Branch Prediction Accuracy {:.4g}%\n", (100.0 * stats.champ_correct_predictions) / stats.champ_branch_seen);
-  fmt::print(stream, "Branch MPKI {:.4g}\n", (1000.0 * (stats.champ_branch_seen - stats.champ_correct_predictions)) / std::ceil(stats.instrs()));
-  fmt::print(stream, "\n");
-  fmt::print(stream, "Trace Match Predictions {}\n", stats.trace_matching_predictions);
-  fmt::print(stream, "Trace Match Direction Predictions {}\n", stats.trace_matching_direction);
-  fmt::print(stream, "Trace Prediction Accuracy {:.4g}%\n", (100.0 * stats.trace_matching_predictions) / stats.champ_branch_seen);
-  fmt::print(stream, "Trace MPKI {:.4g}\n", (1000.0 * (stats.champ_branch_seen - stats.trace_matching_predictions)) / std::ceil(stats.instrs()));
-  fmt::print(stream, "\n");
-  fmt::print(stream, "BTB Hit Correct Target {}\n", stats.champ_btb_hit_correct_target);
-
-  fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
   fmt::print(stream, "Instruction type breakdown\n");
   fmt::print(stream, "direct_jumps: {} ({:.3g}%)\n", stats.direct_jumps, ((double)stats.direct_jumps / (double)stats.total_instructions) * 100.0);
   fmt::print(stream, "indirect_branches: {} ({:.3g}%)\n", stats.indirect_branches,
@@ -85,21 +70,30 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "arithmetic: {} ({:.3g}%)\n", stats.arithmetic, ((double)stats.arithmetic / (double)stats.total_instructions) * 100.0);
   fmt::print(stream, "total_instructions: {}\n\n", stats.total_instructions);
 
-  fmt::print(stream, "Idle Cycles\n");
-  fmt::print(stream, "Fetch     {} ({:.3g}%)\n", stats.fetch_idle_cycles, (stats.fetch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Decode    {} ({:.3g}%)\n", stats.decode_idle_cycles, (stats.decode_idle_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Dispatch  {} ({:.3g}%)\n", stats.dispatch_idle_cycles, (stats.dispatch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Schedule  {} ({:.3g}%)\n", stats.schedule_idle_cycles, (stats.schedule_idle_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Execute   {} ({:.3g}%)\n", stats.execute_idle_cycles, (stats.execute_idle_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Retire    {} ({:.3g}%)\n\n", stats.retire_idle_cycles, (stats.retire_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Fetch Idle Cycles {} ({:.3g}%)\n", stats.fetch_idle_cycles, (stats.fetch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Decode Idle Cycles {} ({:.3g}%)\n", stats.decode_idle_cycles, (stats.decode_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Dispatch Idle Cycles {} ({:.3g}%)\n", stats.dispatch_idle_cycles, (stats.dispatch_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Schedule Idle Cycles {} ({:.3g}%)\n", stats.schedule_idle_cycles, (stats.schedule_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Execute Idle Cycles {} ({:.3g}%)\n", stats.execute_idle_cycles, (stats.execute_idle_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Retire Idle Cycles {} ({:.3g}%)\n\n", stats.retire_idle_cycles, (stats.retire_idle_cycles / std::ceil(stats.cycles())) * 100.0);
 
-  fmt::print(stream, "Starve Cycles\n");
-  fmt::print(stream, "Fetch     {} ({:.3g}%)\n", stats.fetch_starve_cycles, (stats.fetch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Decode    {} ({:.3g}%)\n", stats.decode_starve_cycles, (stats.decode_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Dispatch  {} ({:.3g}%)\n", stats.dispatch_starve_cycles, (stats.dispatch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Schedule  {} ({:.3g}%)\n", stats.schedule_starve_cycles, (stats.schedule_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Execute   {} ({:.3g}%)\n", stats.execute_starve_cycles, (stats.execute_starve_cycles / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "Retire    {} ({:.3g}%)\n\n", stats.retire_starve_cycles, (stats.retire_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Fetch Starve Cycles {} ({:.3g}%)\n", stats.fetch_starve_cycles, (stats.fetch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Decode Starve Cycles {} ({:.3g}%)\n", stats.decode_starve_cycles, (stats.decode_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Dispatch Starve Cycles {} ({:.3g}%)\n", stats.dispatch_starve_cycles, (stats.dispatch_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Schedule Starve Cycles {} ({:.3g}%)\n", stats.schedule_starve_cycles, (stats.schedule_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Execute Starve Cycles {} ({:.3g}%)\n", stats.execute_starve_cycles, (stats.execute_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "Retire Starve Cycles {} ({:.3g}%)\n\n", stats.retire_starve_cycles, (stats.retire_starve_cycles / std::ceil(stats.cycles())) * 100.0);
+
+  fmt::print(stream, "Total Fetch Instructions {}\n", stats.total_fetch_instructions);
+  fmt::print(stream, "Total Decode Instructions {}\n", stats.total_decode_instructions);
+  fmt::print(stream, "Total Dispatch Instructions {}\n", stats.total_dispatch_instructions);
+  fmt::print(stream, "Total Schedule Instructions {}\n", stats.total_schedule_instructions);
+  fmt::print(stream, "Total Execute Instructions {}\n", stats.total_execute_instructions);
+  fmt::print(stream, "Total Retire Instructions {}\n\n", stats.total_retire_instructions);
+
+  fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
+  fmt::print(stream, "Resteer Penalty {:.3g}%\n", (((double)stats.resteer_events * 12) / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "WP Not Available Count {} Cycles {} ({:.3g}%)\n\n", stats.lack_of_WP_inst_count, stats.lack_of_WP_inst_cycles, ((double)stats.lack_of_WP_inst_cycles / std::ceil(stats.cycles())) * 100.0);
 
   fmt::print(stream, "Wrong Path Stats\n");
   fmt::print(stream, "Loads: Count {} Issued {}\n", stats.wrong_path_loads, stats.wrong_path_loads_executed);
@@ -117,7 +111,6 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "LQ Full Events {}\n", stats.lq_full_events);
   fmt::print(stream, "SQ Full Events {}\n", stats.sq_full_events);
   fmt::print(stream, "Non Branch Squashes {}\n", stats.non_branch_squashes);
-  fmt::print(stream, "WP Not Available Count {} Cycles {}\n", stats.lack_of_WP_inst_count, stats.lack_of_WP_inst_cycles);
   fmt::print(stream, "\n");
 
   fmt::print(stream, "Inst Stats\n");
