@@ -92,6 +92,7 @@ class channel
     uint32_t pf_metadata = 0;
     // std::vector<std::reference_wrapper<ooo_model_instr>> instr_depend_on_me{};
     std::vector<uint64_t> instr_depend_on_me{};
+    std::vector<uint64_t> instr_marked_fetched{};
 
     response(uint64_t addr, uint64_t v_addr, uint64_t data_, uint32_t pf_meta, std::vector<uint64_t> deps)
         : address(addr), v_address(v_addr), data(data_), pf_metadata(pf_meta), instr_depend_on_me(deps)

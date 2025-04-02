@@ -51,8 +51,7 @@ long O3_CPU::operate()
   progress += check_dib();
   initialize_instruction();
 
-  if (in_wrong_path)
-  {
+  if (in_wrong_path) {
     sim_stats.wp_cycles++;
   }
 
@@ -239,7 +238,7 @@ void O3_CPU::initialize_instruction()
       }
     }
 
-    auto &inst = input_queue.front();
+    auto& inst = input_queue.front();
 
     // auto stop_fetch = do_init_instruction(input_queue.front());
     auto stop_fetch = false;
@@ -661,7 +660,8 @@ long O3_CPU::dispatch_instruction()
 
   // dispatch DISPATCH_WIDTH instructions into the ROB
   while (available_dispatch_bandwidth > 0 && !std::empty(DISPATCH_BUFFER) && DISPATCH_BUFFER.front().event_cycle < current_cycle && std::size(ROB) != ROB_SIZE
-         && ((std::size_t)std::count_if(std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return !lq_entry.has_value(); })
+         && ((std::size_t)std::count_if(
+                 std::begin(LQ), std::end(LQ), [](const auto& lq_entry) { return !lq_entry.has_value(); })
              >= std::size(DISPATCH_BUFFER.front().source_memory))
          && ((std::size(DISPATCH_BUFFER.front().destination_memory) + std::size(SQ)) <= SQ_SIZE)) {
     ROB.push_back(std::move(DISPATCH_BUFFER.front()));
@@ -1155,12 +1155,16 @@ long O3_CPU::handle_memory_return()
       }
 
       if (fetched != std::end(IFETCH_BUFFER) && (fetched->ip >> LOG2_BLOCK_SIZE) == (l1i_entry.v_address >> LOG2_BLOCK_SIZE) && fetched->fetch_issued) {
-        fetched->fetch_completed = true;
-        // --l1i_bw;
-        ++progress;
+        // Check if fetched->instr_id is part of l1i_entry.instr_depend_on_me
+        auto it = std::find(std::begin(l1i_entry.instr_depend_on_me), std::end(l1i_entry.instr_depend_on_me), fetched->instr_id);
+        if (it != std::end(l1i_entry.instr_depend_on_me)) {
+          l1i_entry.instr_marked_fetched.push_back(fetched->instr_id);
+          fetched->fetch_completed = true;
+          ++progress;
 
-        if constexpr (champsim::debug_print) {
-          fmt::print("[IFETCH] {} instr_id: {} fetch completed\n", __func__, fetched->instr_id);
+          if constexpr (champsim::debug_print) {
+            fmt::print("[IFETCH] {} instr_id: {} fetch completed\n", __func__, fetched->instr_id);
+          }
         }
       }
       // l1i_entry.instr_depend_on_me.erase(std::begin(l1i_entry.instr_depend_on_me));
@@ -1172,7 +1176,14 @@ long O3_CPU::handle_memory_return()
     //   ++progress;
     // }
 
-    L1I_bus.lower_level->returned.pop_front();
+    if (std::size(l1i_entry.instr_depend_on_me) == std::size(l1i_entry.instr_marked_fetched)) {
+      L1I_bus.lower_level->returned.pop_front();
+      if constexpr (champsim::debug_print)
+        fmt::print("vaddr: {:#x} fetch completed\n", l1i_entry.v_address);
+    } else {
+      // This will only happen when we flush the IFETCH_BUFFER but the request for L1I was already send out
+      L1I_bus.lower_level->returned.pop_front();
+    }
     ++progress;
 
     if (!IFETCH_BUFFER.empty() && IFETCH_BUFFER.back().fetch_completed) {
