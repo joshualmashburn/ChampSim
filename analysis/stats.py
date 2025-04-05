@@ -118,9 +118,9 @@ def define_cpu_patterns():
     """Define regex patterns for capturing cpu statistics."""
     return {
         "IPC": r"cumulative IPC: ([\d.]+)",
-        "instructions: ": r"instructions: (\d+)",
-        "total_cycles: ": r"cycles: (\d+)",
-        "wp_cycles: ": r"wp_cycles: (\d+)",
+        "instructions": r"instructions: (\d+)",
+        "total_cycles": r"cycles: (\d+)",
+        "wp_cycles": r"wp_cycles: (\d+)",
         "wrong_path_insts": r"wrong_path_insts: (\d+)",
         "wrong_path_insts_skipped": r"wrong_path_insts_skipped: (\d+)",
         "wrong_path_insts_executed": r"wrong_path_insts_executed: (\d+)",
