@@ -118,6 +118,9 @@ def define_cpu_patterns():
     """Define regex patterns for capturing cpu statistics."""
     return {
         "IPC": r"cumulative IPC: ([\d.]+)",
+        "instructions: ": r"instructions: (\d+)",
+        "total_cycles: ": r"cycles: (\d+)",
+        "wp_cycles: ": r"wp_cycles: (\d+)",
         "wrong_path_insts": r"wrong_path_insts: (\d+)",
         "wrong_path_insts_skipped": r"wrong_path_insts_skipped: (\d+)",
         "wrong_path_insts_executed": r"wrong_path_insts_executed: (\d+)",
@@ -155,8 +158,15 @@ def define_cpu_patterns():
         "Execute Starve Cycles": r"^Execute Starve Cycles\s+(\d+)",
         "Retire Starve Cycles": r"^Retire Starve Cycles\s+(\d+)",
 
-        "Resteer Events": r"Resteer Events: (\d+)",
-        "Resteer Penalty": r"Resteer Penalty: (\d+)",
+        "Total Fetch Instructions": r"Total Fetch Instructions\s+(\d+)",
+        "Total Decode Instructions": r"Total Decode Instructions\s+(\d+)",
+        "Total Dispatch Instructions": r"Total Dispatch Instructions\s+(\d+)",
+        "Total Schedule Instructions": r"Total Schedule Instructions\s+(\d+)",
+        "Total Execute Instructions": r"Total Execute Instructions\s+(\d+)",
+        "Total Retire Instructions": r"Total Retire Instructions\s+(\d+)",
+
+        "Resteer Events": r"Resteer Events (\d+)",
+        "Resteer Penalty": r"Resteer Penalty ([\d.]+)",
 
         "WP_Not_Available_Count": r"WP Not Available Count (\d+) Cycles (\d+) \(([\d.]+)%\)",
         "WP_Not_Available_Cycles": r"WP Not Available Count \d+ Cycles (\d+) \(([\d.]+)%\)",
@@ -198,7 +208,9 @@ def define_cache_patterns():
         "LLC_WRITE": r"LLC WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "LLC_TRANSLATION": r"LLC TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "LLC_PREFETCH": r"LLC PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "LLC_WRONG_PATH": r"LLC WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "LLC_WRONG_PATH": r"LLC WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "LLC_POLLUTION": r"LLC POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "LLC_INSTR_REQ": r"LLC INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "LLC_AVERAGE_MISS_LATENCY": r"LLC AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # DTLB metrics
         "DTLB_TOTAL": r"cpu0_DTLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -208,7 +220,9 @@ def define_cache_patterns():
         "DTLB_WRITE": r"cpu0_DTLB WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "DTLB_TRANSLATION": r"cpu0_DTLB TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "DTLB_PREFETCH": r"cpu0_DTLB PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "DTLB_WRONG_PATH": r"cpu0_DTLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "DTLB_WRONG_PATH": r"cpu0_DTLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "DTLB_POLLUTION": r"cpu0_DTLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "DTLB_INSTR_REQ": r"cpu0_DTLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "DTLB_AVERAGE_MISS_LATENCY": r"cpu0_DTLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # ITLB metrics
         "ITLB_TOTAL": r"cpu0_ITLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -218,7 +232,9 @@ def define_cache_patterns():
         "ITLB_WRITE": r"cpu0_ITLB WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "ITLB_TRANSLATION": r"cpu0_ITLB TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "ITLB_PREFETCH": r"cpu0_ITLB PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "ITLB_WRONG_PATH": r"cpu0_ITLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "ITLB_WRONG_PATH": r"cpu0_ITLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "ITLB_POLLUTION": r"cpu0_ITLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "ITLB_INSTR_REQ": r"cpu0_ITLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "ITLB_AVERAGE_MISS_LATENCY": r"cpu0_ITLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # L1D metrics
         "L1D_TOTAL": r"cpu0_L1D TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -228,7 +244,9 @@ def define_cache_patterns():
         "L1D_WRITE": r"cpu0_L1D WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1D_TRANSLATION": r"cpu0_L1D TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1D_PREFETCH": r"cpu0_L1D PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "L1D_WRONG_PATH": r"cpu0_L1D WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L1D_WRONG_PATH": r"cpu0_L1D WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "L1D_POLLUTION": r"cpu0_L1D POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L1D_INSTR_REQ": r"cpu0_L1D INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1D_AVERAGE_MISS_LATENCY": r"cpu0_L1D AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # L1I metrics
         "L1I_TOTAL": r"cpu0_L1I TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -238,7 +256,9 @@ def define_cache_patterns():
         "L1I_WRITE": r"cpu0_L1I WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1I_TRANSLATION": r"cpu0_L1I TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1I_PREFETCH": r"cpu0_L1I PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "L1I_WRONG_PATH": r"cpu0_L1I WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L1I_WRONG_PATH": r"cpu0_L1I WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "L1I_POLLUTION": r"cpu0_L1I POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L1I_INSTR_REQ": r"cpu0_L1I INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1I_AVERAGE_MISS_LATENCY": r"cpu0_L1I AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # L2C metrics
         "L2C_TOTAL": r"cpu0_L2C TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -248,7 +268,9 @@ def define_cache_patterns():
         "L2C_WRITE": r"cpu0_L2C WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L2C_TRANSLATION": r"cpu0_L2C TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L2C_PREFETCH": r"cpu0_L2C PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "L2C_WRONG_PATH": r"cpu0_L2C WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L2C_WRONG_PATH": r"cpu0_L2C WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "L2C_POLLUTION": r"cpu0_L2C POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "L2C_INSTR_REQ": r"cpu0_L2C INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L2C_AVERAGE_MISS_LATENCY": r"cpu0_L2C AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
         # STLB metrics
         "STLB_TOTAL": r"cpu0_STLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -258,7 +280,9 @@ def define_cache_patterns():
         "STLB_WRITE": r"cpu0_STLB WRITE\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "STLB_TRANSLATION": r"cpu0_STLB TRANSLATION\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "STLB_PREFETCH": r"cpu0_STLB PREFETCH REQUESTED:\s+(\d+)\s+ISSUED:\s+(\d+)\s+USEFUL:\s+(\d+)\s+USELESS:\s+(\d+)",
-        "STLB_WRONG_PATH": r"cpu0_STLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s+POLLUTUION:\s+(\d+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "STLB_WRONG_PATH": r"cpu0_STLB WRONG-PATH ACCESS:\s+(\d+)\s+LOAD:\s+(\d+)\s+USEFULL:\s+(\d+)\s+FILL:\s+(\d+)\s+USELESS:\s+(\d+)\s",
+        "STLB_POLLUTION": r"cpu0_STLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
+        "STLB_INSTR_REQ": r"cpu0_STLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "STLB_AVERAGE_MISS_LATENCY": r"cpu0_STLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
     }
 
@@ -309,6 +333,15 @@ def parse_cache_patterns(line, cache_patterns, data):
                     "USEFULL",
                     "FILL",
                     "USELESS",
+                ]
+                cache_type = key.split("_")[0]  # Extract the cache type, e.g., "LLC"
+                for i, field in enumerate(wrong_path_fields):
+                    data[f"{cache_type}_WRONG_PATH_{field}"] = values[i]
+
+            elif key.endswith("POLLUTION"):
+                # Handle POLLUTION metrics
+                values = list(map(float, match.groups()))
+                pollution_fields = [
                     "POLLUTION",
                     "WP_FILL",
                     "WP_MISS",
@@ -316,8 +349,23 @@ def parse_cache_patterns(line, cache_patterns, data):
                     "CP_MISS",
                 ]
                 cache_type = key.split("_")[0]  # Extract the cache type, e.g., "LLC"
-                for i, field in enumerate(wrong_path_fields):
-                    data[f"{cache_type}_WRONG_PATH_{field}"] = values[i]
+                for i, field in enumerate(pollution_fields):
+                    data[f"{cache_type}_POLLUTION_{field}"] = values[i]
+
+            elif key.endswith("INSTR_REQ"):
+                # Handle INSTR REQ metrics
+                values = list(map(int, match.groups()))
+                instr_req_fields = [
+                    "INSTR_REQ",
+                    "HIT",
+                    "MISS",
+                    "WP_REQ",
+                    "WP_HIT",
+                    "WP_MISS",
+                ]
+                cache_type = key.split("_")[0]  # Extract the cache type, e.g., "LLC"
+                for i, field in enumerate(instr_req_fields):
+                    data[f"{cache_type}_INSTR_REQ_{field}"] = values[i]
 
             else:
                 # Handle general ACCESS/HIT/MISS patterns for TOTAL, LOAD, RFO, WRITE, TRANSLATION
