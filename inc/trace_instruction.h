@@ -39,6 +39,7 @@ struct input_instr {
   // branch info
   unsigned char is_branch;
   unsigned char branch_taken;
+  unsigned long long branch_target;
 
   unsigned char destination_registers[NUM_INSTR_DESTINATIONS]; // output registers
   unsigned char source_registers[NUM_INSTR_SOURCES];           // input registers
@@ -57,6 +58,7 @@ struct cloudsuite_instr {
   // branch info
   unsigned char is_branch;
   unsigned char branch_taken;
+  unsigned long long branch_target;
 
   unsigned char destination_registers[NUM_INSTR_DESTINATIONS_SPARC]; // output registers
   unsigned char source_registers[NUM_INSTR_SOURCES];                 // input registers

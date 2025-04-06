@@ -1277,6 +1277,18 @@ long O3_CPU::retire_rob()
 
     if (prev_ip != it->ip) {
       if (!it->is_wrong_path && !it->is_prefetch) {
+
+        if (last_taken_target != 0) {
+          fmt::print("[ROB] last_taken_target: {:#x} ip: {:#x} instr_id: {} branch_taken: {}\n", last_taken_target, it->ip, it->instr_id, it->branch_taken);
+          std:: cout << std::flush;
+          assert(it->ip == last_taken_target && "Last taken target should be the same as current instruction");
+          last_taken_target = 0;
+        }
+
+        if (it->is_branch && it->branch_taken) {
+          last_taken_target = it->trace_target;
+        }
+
         retire_count++;
         prev_ip = it->ip;
       }

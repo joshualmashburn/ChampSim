@@ -191,6 +191,7 @@ public:
   uint64_t pip = 0; // Previous instruction pointer, used for counting the retired instructions
 
   uint64_t prev_ip = 0;
+  uint64_t last_taken_target = 0;
   uint64_t prev_fetch_block = 0;
   uint64_t last_branch = 0;
   uint64_t fetch_instr_id = 0;
