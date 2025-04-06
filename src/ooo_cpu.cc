@@ -610,6 +610,7 @@ long O3_CPU::decode_instruction()
 
   if (flushed) {
     window_end = find_if(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), [id = flushed](auto& x) { return id == x.instr_id; });
+    window_end = std::next(window_end);
   }
 
   std::move(window_begin, window_end, std::back_inserter(DISPATCH_BUFFER));
@@ -622,9 +623,20 @@ long O3_CPU::decode_instruction()
                  "after instr_id: {} DECODE_BUFFER size {} "
                  "IFETCH_BUFFER size {}\n",
                  flushed, DECODE_BUFFER.size(), IFETCH_BUFFER.size());
-      for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER),
-               [](auto inst) { fmt::print("ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path); });
+      for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](auto inst) {
+        fmt::print("Fetch Decode Clear ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path);
+        std::cout << std::flush;
+        assert(inst.is_wrong_path == true);
+      });
+      for_each(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), [](auto inst) {
+        fmt::print("Decode Decode Clear ip: {:#x} instr_id: {} wp: {}\n", inst.ip, inst.instr_id, inst.is_wrong_path);
+        std::cout << std::flush;
+        assert(inst.is_wrong_path == true);
+      });
     }
+    std::for_each(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), [](auto& x) { assert(x.is_wrong_path && "This should be wrong path entry"); });
+    std::for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](auto& x) { assert(x.is_wrong_path && "This should be wrong path entry"); });
+
     DECODE_BUFFER.clear();
     IFETCH_BUFFER.clear();
   }
@@ -1109,6 +1121,10 @@ void O3_CPU::do_complete_execution(ooo_model_instr& instr)
     //     fmt::print("IFETCH_BUFFER flush end\n");
     // }
     // flush ROB, DISPATH_BUFFER, DECODE_BUFFER, IFETCH_BUFFER
+    std::for_each(std::begin(DISPATCH_BUFFER), std::end(DISPATCH_BUFFER), [](auto& x) { assert(x.is_wrong_path && "This should be wrong path entry"); });
+    std::for_each(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), [](auto& x) { assert(x.is_wrong_path && "This should be wrong path entry"); });
+    std::for_each(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](auto& x) { assert(x.is_wrong_path && "This should be wrong path entry"); });
+
     DISPATCH_BUFFER.clear();
     DECODE_BUFFER.clear();
     IFETCH_BUFFER.clear();
@@ -1279,8 +1295,8 @@ long O3_CPU::retire_rob()
       if (!it->is_wrong_path && !it->is_prefetch) {
 
         if (last_taken_target != 0) {
-          fmt::print("[ROB] last_taken_target: {:#x} ip: {:#x} instr_id: {} branch_taken: {}\n", last_taken_target, it->ip, it->instr_id, it->branch_taken);
-          std:: cout << std::flush;
+          // fmt::print("[ROB] last_taken_target: {:#x} ip: {:#x} instr_id: {} branch_taken: {}\n", last_taken_target, it->ip, it->instr_id, it->branch_taken);
+          std::cout << std::flush;
           assert(it->ip == last_taken_target && "Last taken target should be the same as current instruction");
           last_taken_target = 0;
         }
