@@ -8,7 +8,7 @@
 ./config.sh configs/champsim_config.json configs/bip.json && make -j $(nproc --all)
 ./config.sh configs/champsim_config.json configs/djolt.json && make -j $(nproc --all)
 ./config.sh configs/champsim_config.json configs/epi.json && make -j $(nproc --all)
-./config.sh configs/champsim_config.json configs/fnlmma.json && make -j $(nproc --all)
+# ./config.sh configs/champsim_config.json configs/fnlmma.json && make -j $(nproc --all)
 ./config.sh configs/champsim_config.json configs/fnlmma_new.json && make -j $(nproc --all)
 ./config.sh configs/champsim_config.json configs/mana.json && make -j $(nproc --all)
 ./config.sh configs/champsim_config.json configs/pips.json && make -j $(nproc --all)

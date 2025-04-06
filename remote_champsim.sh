@@ -86,7 +86,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate suite
-if [ "${suite}" != "GAPS" ] && [ "${suite}" != "SPEC" ] && [ "${suite}" != "LCF" ] && [ "${suite}" != "cp-spec" ]; then
+if [ "${suite}" != "GAPS" ] && [ "${suite}" != "SPEC" ] && [ "${suite}" != "LCF" ]; then
     echo "Error: Invalid suite '${suite}'."
     usage
 fi
@@ -104,7 +104,7 @@ w=10000000
 s=100000000
 
 # Start processing traces
-for trace in $(ls ../Traces/${suite}/*.gz); do
+for trace in $(ls ../new_trace_format/${suite}/*.gz); do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
