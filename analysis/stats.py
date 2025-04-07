@@ -212,6 +212,8 @@ def define_cache_patterns():
         "LLC_POLLUTION": r"LLC POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "LLC_INSTR_REQ": r"LLC INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "LLC_AVERAGE_MISS_LATENCY": r"LLC AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_WP_MISS_LATENCY": r"LLC WP MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_CP_MISS_LATENCY": r"LLC CP MISS LATENCY:\s+([\d.]+) cycles",
         # DTLB metrics
         "DTLB_TOTAL": r"cpu0_DTLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "DTLB_LOAD": r"cpu0_DTLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -224,6 +226,8 @@ def define_cache_patterns():
         "DTLB_POLLUTION": r"cpu0_DTLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "DTLB_INSTR_REQ": r"cpu0_DTLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "DTLB_AVERAGE_MISS_LATENCY": r"cpu0_DTLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_WP_MISS_LATENCY": r"cpu0_DTLB WP MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_CP_MISS_LATENCY": r"cpu0_DTLB CP MISS LATENCY:\s+([\d.]+) cycles",
         # ITLB metrics
         "ITLB_TOTAL": r"cpu0_ITLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "ITLB_LOAD": r"cpu0_ITLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -236,6 +240,8 @@ def define_cache_patterns():
         "ITLB_POLLUTION": r"cpu0_ITLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "ITLB_INSTR_REQ": r"cpu0_ITLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "ITLB_AVERAGE_MISS_LATENCY": r"cpu0_ITLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_WP_MISS_LATENCY": r"cpu0_ITLB WP MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_CP_MISS_LATENCY": r"cpu0_ITLB CP MISS LATENCY:\s+([\d.]+) cycles",
         # L1D metrics
         "L1D_TOTAL": r"cpu0_L1D TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1D_LOAD": r"cpu0_L1D LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -248,6 +254,8 @@ def define_cache_patterns():
         "L1D_POLLUTION": r"cpu0_L1D POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L1D_INSTR_REQ": r"cpu0_L1D INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1D_AVERAGE_MISS_LATENCY": r"cpu0_L1D AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_WP_MISS_LATENCY": r"cpu0_L1D WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_CP_MISS_LATENCY": r"cpu0_L1D CP MISS LATENCY:\s+([\d.]+) cycles",
         # L1I metrics
         "L1I_TOTAL": r"cpu0_L1I TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1I_LOAD": r"cpu0_L1I LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -260,6 +268,8 @@ def define_cache_patterns():
         "L1I_POLLUTION": r"cpu0_L1I POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L1I_INSTR_REQ": r"cpu0_L1I INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1I_AVERAGE_MISS_LATENCY": r"cpu0_L1I AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_WP_MISS_LATENCY": r"cpu0_L1I WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_CP_MISS_LATENCY": r"cpu0_L1I CP MISS LATENCY:\s+([\d.]+) cycles",
         # L2C metrics
         "L2C_TOTAL": r"cpu0_L2C TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L2C_LOAD": r"cpu0_L2C LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -272,6 +282,8 @@ def define_cache_patterns():
         "L2C_POLLUTION": r"cpu0_L2C POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L2C_INSTR_REQ": r"cpu0_L2C INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L2C_AVERAGE_MISS_LATENCY": r"cpu0_L2C AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_WP_MISS_LATENCY": r"cpu0_L2C WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_CP_MISS_LATENCY": r"cpu0_L2C CP MISS LATENCY:\s+([\d.]+) cycles",
         # STLB metrics
         "STLB_TOTAL": r"cpu0_STLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "STLB_LOAD": r"cpu0_STLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -284,6 +296,8 @@ def define_cache_patterns():
         "STLB_POLLUTION": r"cpu0_STLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "STLB_INSTR_REQ": r"cpu0_STLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "STLB_AVERAGE_MISS_LATENCY": r"cpu0_STLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_WP_MISS_LATENCY": r"cpu0_STLB WP MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_CP_MISS_LATENCY": r"cpu0_STLB CP MISS LATENCY:\s+([\d.]+) cycles",
     }
 
 
