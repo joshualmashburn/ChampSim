@@ -242,7 +242,11 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
   if (success) {
     // COLLECT STATS
     sim_stats.total_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
-
+    if (fill_mshr.wrong_path) {
+      sim_stats.total_wp_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+    } else {
+      sim_stats.total_cp_miss_latency += current_cycle - (fill_mshr.cycle_enqueued + 1);
+    }
     response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data, metadata_thru, fill_mshr.instr_depend_on_me};
     for (auto ret : fill_mshr.to_return)
       ret->push_back(response);
@@ -933,6 +937,8 @@ void CACHE::end_phase(unsigned finished_cpu)
         std::accumulate(std::begin(sim_stats.misses.at(champsim::to_underlying(type))), std::end(sim_stats.misses.at(champsim::to_underlying(type))), total_miss);
   }
   sim_stats.avg_miss_latency = std::ceil(sim_stats.total_miss_latency) / std::ceil(total_miss);
+  sim_stats.avg_wp_miss_latency = std::ceil(sim_stats.total_wp_miss_latency) / std::ceil(sim_stats.wp_miss);
+  sim_stats.avg_cp_miss_latency = std::ceil(sim_stats.total_cp_miss_latency) / std::ceil(sim_stats.cp_miss);
 
   roi_stats.total_miss_latency = sim_stats.total_miss_latency;
   roi_stats.avg_miss_latency = std::ceil(roi_stats.total_miss_latency) / std::ceil(total_miss);
@@ -966,6 +972,12 @@ void CACHE::end_phase(unsigned finished_cpu)
   roi_stats.wp_instr_req = sim_stats.wp_instr_req;
   roi_stats.wp_istr_hit = sim_stats.wp_istr_hit;
   roi_stats.wp_istr_miss = sim_stats.wp_istr_miss;
+
+  roi_stats.total_wp_miss_latency = sim_stats.total_wp_miss_latency;
+  roi_stats.avg_wp_miss_latency = std::ceil(roi_stats.total_wp_miss_latency) / std::ceil(roi_stats.wp_miss);
+
+  roi_stats.total_cp_miss_latency = sim_stats.total_cp_miss_latency;
+  roi_stats.avg_cp_miss_latency = std::ceil(roi_stats.total_cp_miss_latency) / std::ceil(roi_stats.cp_miss);
 
   if (polluation.size()) {
     roi_stats.avg_pollution = (float_t)std::accumulate(polluation.begin(), polluation.end(), 0) / polluation.size();

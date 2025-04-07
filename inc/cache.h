@@ -77,6 +77,10 @@ struct cache_stats {
 
   double avg_miss_latency = 0;
   uint64_t total_miss_latency = 0;
+  double avg_wp_miss_latency = 0;
+  uint64_t total_wp_miss_latency = 0;
+  double avg_cp_miss_latency = 0;
+  uint64_t total_cp_miss_latency = 0;
 };
 
 class CACHE : public champsim::operable

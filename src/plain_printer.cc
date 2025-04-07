@@ -148,7 +148,9 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
                stats.wp_miss, stats.cp_fill, stats.cp_miss);
     fmt::print(stream, "{} INSTR REQ: {}  HIT: {}  MISS: {} WP_REQ: {} WP_HIT: {} WP_MISS: {} \n", stats.name, stats.instr_req, stats.istr_hit, stats.istr_miss,
                stats.wp_instr_req, stats.wp_istr_hit, stats.wp_istr_miss);
-    fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n\n", stats.name, stats.avg_miss_latency);
+    fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_miss_latency);
+    fmt::print(stream, "{} AVERAGE WP MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_wp_miss_latency);
+    fmt::print(stream, "{} AVERAGE CP MISS LATENCY: {:.4g} cycles\n\n", stats.name, stats.avg_cp_miss_latency);
   }
 }
 
