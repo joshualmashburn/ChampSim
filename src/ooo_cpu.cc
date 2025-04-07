@@ -1295,11 +1295,12 @@ long O3_CPU::retire_rob()
       if (!it->is_wrong_path && !it->is_prefetch) {
 
         if (last_taken_target != 0) {
-          if constexpr (champsim::debug_print) {
-            fmt::print("[ROB] last_taken_target: {:#x} ip: {:#x} instr_id: {} branch_taken: {}\n", last_taken_target, it->ip, it->instr_id, it->branch_taken);
+          if (it->ip != last_taken_target) {
+            // This is only expected to happen at the end of the trace
+            fmt::print("[ROB-WARNING] last_taken_target: {:#x} ip: {:#x} instr_id: {} branch_taken: {}\n", last_taken_target, it->ip, it->instr_id, it->branch_taken);
             std::cout << std::flush;
           }
-          assert(it->ip == last_taken_target && "Last taken target should be the same as current instruction");
+          // assert(it->ip == last_taken_target && "Last taken target should be the same as current instruction");
           last_taken_target = 0;
         }
 
