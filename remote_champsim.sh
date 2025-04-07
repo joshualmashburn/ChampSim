@@ -8,7 +8,7 @@ usage() {
 
 job_submition() {
     # Define the file path
-    data_directory="results/${suite}/${1}-data"
+    data_directory="results/${suite_name}/${1}-data"
     file_path="jobs/run.job"
 
     # Backup the original file
@@ -86,15 +86,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate suite
-if [ "${suite}" != "GAPS" ] && [ "${suite}" != "SPEC" ] && [ "${suite}" != "LCF" ]; then
+if [ "${suite}" != "GAPS" ] && [ "${suite}" != "SPEC" ] && [ "${suite}" != "LCF" ] && [ "${suite}" != "ALL" ]; then
     echo "Error: Invalid suite '${suite}'."
     usage
 fi
 
 if [ -z "${options[*]}" ]; then
-    echo "Running ${suite} suite with default options."
+    echo "Running ${suite} suite(s) with default options."
 else
-    echo "Running ${suite} suite with options: ${options[*]}"
+    echo "Running ${suite} suite(s) with options: ${options[*]}"
 fi
 
 # Start watcher
@@ -102,12 +102,26 @@ start_watcher
 
 w=10000000
 s=100000000
+max_jobs=490
+
+if [ "${suite}" == "ALL" ]; then
+    trace_files=$(ls ../new_trace_format/*/*.gz)
+else
+    trace_files=$(ls ../new_trace_format/${suite}/*.gz)
+fi
 
 # Start processing traces
-for trace in $(ls ../new_trace_format/${suite}/*.gz); do
+for trace in ${trace_files}; do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
+
+    # If ALL, extract suite name from the path; else use the provided suite
+    if [ "${suite}" == "ALL" ]; then
+        suite_name=$(basename "$(dirname "${trace}")")
+    else
+        suite_name="${suite}"
+    fi
 
     for binary in $(ls bin/*); do
         binary_name=$(basename $binary)
@@ -122,32 +136,32 @@ for trace in $(ls ../new_trace_format/${suite}/*.gz); do
 
         # Construct the ChampSim command
         champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
-        ${options[@]} ${trace} > results/${suite}/cp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
+        ${options[@]} ${trace} > results/${suite_name}/cp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "cp"
 
         # Wait if the job queue is too long
         num_jobs=$(squeue -u $USER | wc -l)
-        while [ $num_jobs -ge 500 ]; do
+        while [ $num_jobs -ge $max_jobs ]; do
             sleep 60
             num_jobs=$(squeue -u $USER | wc -l)
         done
 
         # Repeat for wp simulation
         champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
-        ${options[@]} --wrong-path ${trace} > results/${suite}/wp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
+        ${options[@]} --wrong-path ${trace} > results/${suite_name}/wp-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "wp"
 
-        while [ $num_jobs -ge 500 ]; do
+        while [ $num_jobs -ge $max_jobs ]; do
             sleep 60
             num_jobs=$(squeue -u $USER | wc -l)
         done
 
         # Repeat for wpa simulation
         champsim_command="'${binary} --warmup-instructions ${w} --simulation-instructions ${s} \
-        ${options[@]} --wrong-path --wpa ${trace} > results/${suite}/wpa-data/${trace_name}-${binary_name}${config_suffix}.txt'"
+        ${options[@]} --wrong-path --wpa ${trace} > results/${suite_name}/wpa-data/${trace_name}-${binary_name}${config_suffix}.txt'"
         job_submition "wpa"
 
-        while [ $num_jobs -ge 500 ]; do
+        while [ $num_jobs -ge $max_jobs ]; do
             sleep 60
             num_jobs=$(squeue -u $USER | wc -l)
         done
