@@ -111,6 +111,11 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "LQ Full Events {}\n", stats.lq_full_events);
   fmt::print(stream, "SQ Full Events {}\n", stats.sq_full_events);
   fmt::print(stream, "Non Branch Squashes {}\n", stats.non_branch_squashes);
+  fmt::print(stream, "ROB Full Cycles {}\n", stats.rob_full_cycles);
+  fmt::print(stream, "ROB Empty Cycles {}\n", stats.rob_empty_cycles);
+  fmt::print(stream, "ROB Full Events {}\n", stats.rob_full_events);
+  fmt::print(stream, "ROB Empty Events {}\n", stats.rob_empty_events);
+
   fmt::print(stream, "\n");
 
   fmt::print(stream, "Inst Stats\n");
@@ -150,7 +155,13 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
                stats.wp_instr_req, stats.wp_istr_hit, stats.wp_istr_miss);
     fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_miss_latency);
     fmt::print(stream, "{} AVERAGE WP MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_wp_miss_latency);
-    fmt::print(stream, "{} AVERAGE CP MISS LATENCY: {:.4g} cycles\n\n", stats.name, stats.avg_cp_miss_latency);
+    fmt::print(stream, "{} AVERAGE CP MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_cp_miss_latency);
+    fmt::print(stream, "{} AVERAGE INSTR MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_instr_miss_latency);
+    fmt::print(stream, "{} AVERAGE WP INSTR MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_wp_instr_miss_latency);
+    fmt::print(stream, "{} AVERAGE CP INSTR MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_cp_instr_miss_latency);
+    fmt::print(stream, "{} AVERAGE DATA MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_data_miss_latency);
+    fmt::print(stream, "{} AVERAGE WP DATA MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_wp_data_miss_latency);
+    fmt::print(stream, "{} AVERAGE CP DATA MISS LATENCY: {:.4g} cycles\n\n", stats.name, stats.avg_cp_data_miss_latency);
   }
 }
 

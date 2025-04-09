@@ -72,6 +72,12 @@ struct cache_stats {
   uint64_t wp_istr_miss = 0;
   uint64_t wp_instr_req = 0;
 
+  uint64_t data_req = 0;
+  uint64_t data_miss = 0;
+  uint64_t data_hit = 0; 
+  uint64_t wp_data_req = 0;
+  uint64_t wp_data_miss = 0;
+
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> hits = {};
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> misses = {};
 
@@ -81,6 +87,20 @@ struct cache_stats {
   uint64_t total_wp_miss_latency = 0;
   double avg_cp_miss_latency = 0;
   uint64_t total_cp_miss_latency = 0;
+
+  double avg_instr_miss_latency = 0;
+  uint64_t total_instr_miss_latency = 0;
+  double avg_wp_instr_miss_latency = 0;
+  uint64_t total_wp_instr_miss_latency = 0;
+  double avg_cp_instr_miss_latency = 0;
+  uint64_t total_cp_instr_miss_latency = 0;  
+
+  double avg_data_miss_latency = 0;
+  uint64_t total_data_miss_latency = 0;
+  double avg_wp_data_miss_latency = 0;
+  uint64_t total_wp_data_miss_latency = 0;
+  double avg_cp_data_miss_latency = 0;
+  uint64_t total_cp_data_miss_latency = 0;  
 };
 
 class CACHE : public champsim::operable

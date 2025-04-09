@@ -89,6 +89,13 @@ struct cpu_stats {
   uint64_t schedule_idle_cycles = 0;
   uint64_t execute_idle_cycles = 0;
   uint64_t retire_idle_cycles = 0;
+  uint64_t rob_full_cycles = 0;
+  uint64_t rob_empty_cycles = 0;
+  uint64_t rob_full_events = 0;
+  uint64_t rob_empty_events = 0;
+
+  uint64_t rob_emptry_last_cycle = false;
+  uint64_t rob_full_last_cycle = false;
 
   uint64_t fetch_starve_cycles = 0;
   uint64_t decode_starve_cycles = 0;  

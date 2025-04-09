@@ -669,6 +669,29 @@ long O3_CPU::dispatch_instruction()
   if (std::size(SQ) == SQ_SIZE) {
     sim_stats.sq_full_events++;
   }
+  
+
+  if(std::size(ROB) == ROB_SIZE) {
+    sim_stats.rob_full_cycles++;
+    if(!sim_stats.rob_full_last_cycle)
+      sim_stats.rob_full_last_cycle = current_cycle;
+  } else {
+    sim_stats.rob_full_last_cycle = 0;
+  }
+
+  if(sim_stats.rob_full_last_cycle == current_cycle)
+    sim_stats.rob_full_events++;
+
+  if(!std::size(ROB)){
+    sim_stats.rob_empty_cycles++;
+    if(!sim_stats.rob_emptry_last_cycle)
+      sim_stats.rob_emptry_last_cycle = current_cycle;
+  } else {
+    sim_stats.rob_emptry_last_cycle = 0;
+  }
+
+  if(sim_stats.rob_emptry_last_cycle == current_cycle)
+    sim_stats.rob_empty_events++;
 
   // dispatch DISPATCH_WIDTH instructions into the ROB
   while (available_dispatch_bandwidth > 0 && !std::empty(DISPATCH_BUFFER) && DISPATCH_BUFFER.front().event_cycle < current_cycle && std::size(ROB) != ROB_SIZE
