@@ -4,7 +4,107 @@ import math
 import pandas as pd
 
 import warnings
+
 warnings.simplefilter("ignore", FutureWarning)
+
+weights = {
+    "505.mcf_r_00": 0.073125,
+    "505.mcf_r_01": 0.167787,
+    "505.mcf_r_02": 0.053478,
+    "505.mcf_r_03": 0.034881,
+    "505.mcf_r_04": 0.095293,
+    "505.mcf_r_05": 0.553688,
+    "505.mcf_r_06": 0.021748,
+    "525.x264_r_00": 0.051166,
+    "525.x264_r_01": 0.107270,
+    "525.x264_r_02": 0.205452,
+    "525.x264_r_03": 0.220269,
+    "525.x264_r_04": 0.268866,
+    "525.x264_r_05": 0.040893,
+    "525.x264_r_06": 0.106085,
+    "531.deepsjeng_r_00": 0.095342,
+    "531.deepsjeng_r_01": 0.144630,
+    "531.deepsjeng_r_02": 0.088145,
+    "531.deepsjeng_r_03": 0.133521,
+    "531.deepsjeng_r_04": 0.082408,
+    "531.deepsjeng_r_05": 0.067856,
+    "531.deepsjeng_r_06": 0.194701,
+    "531.deepsjeng_r_07": 0.000626,
+    "531.deepsjeng_r_08": 0.192771,
+    "541.leela_r_00": 0.000391,
+    "541.leela_r_01": 0.157962,
+    "541.leela_r_02": 0.124884,
+    "541.leela_r_03": 0.022524,
+    "541.leela_r_04": 0.192065,
+    "541.leela_r_05": 0.251185,
+    "541.leela_r_06": 0.024527,
+    "541.leela_r_07": 0.226462,
+    "548.exchange2_r_00": 0.084607,
+    "548.exchange2_r_01": 0.165750,
+    "548.exchange2_r_02": 0.021238,
+    "548.exchange2_r_03": 0.040095,
+    "548.exchange2_r_04": 0.119466,
+    "548.exchange2_r_05": 0.307961,
+    "548.exchange2_r_06": 0.260883,
+    "557.xz_r_00": 0.116841,
+    "557.xz_r_01": 0.046737,
+    "557.xz_r_02": 0.351867,
+    "557.xz_r_03": 0.004298,
+    "557.xz_r_04": 0.480258,
+}
+
+
+def merge_simpoints(df):
+    def get_weight(name):
+        simpoint = "_".join(name.split("_")[:3]).split("-")[0]
+        weight = weights.get(simpoint, 0)
+        # print(f"Processing: {name} -> Simpoint: {simpoint} -> Weight: {weight}")  # Debug print
+        return weight
+
+    def get_algorithm(name):
+        try:
+            # Assumes format like: 531.deepsjeng_r_03-champsim-l2c-scooby
+            parts = name.split("-")
+            algorithm = "-".join(parts[2:])  # Grab everything after 'champsim'
+        except IndexError:
+            algorithm = "unknown"
+        # print(f"[Algorithm] Processing: {name} -> Algorithm: {algorithm}")
+        return algorithm
+
+    def get_benchmark(name):
+        base = name.split("_")[0]
+        # print(f"[Benchmark] Processing: {name} -> Benchmark: {base}")
+        return base
+
+    temp_df = df.copy()
+    temp_df["Weight"] = temp_df.index.map(get_weight)
+    temp_df["Algorithm"] = temp_df.index.map(get_algorithm)
+    temp_df["BaseBenchmark"] = temp_df.index.map(get_benchmark)
+
+    # Get all numeric metric columns
+    metric_cols = temp_df.select_dtypes(include="number").columns.difference(["Weight"])
+
+    # Weight the metrics
+    for col in metric_cols:
+        temp_df[col] = temp_df[col] * temp_df["Weight"]
+
+    # Group and sum
+    temp_df = (
+        temp_df.groupby(["BaseBenchmark", "Algorithm"])[metric_cols].sum().reset_index()
+    )
+
+    # Create new Benchmark column
+    temp_df["Benchmark"] = (
+        temp_df["BaseBenchmark"] + "-champsim-" + temp_df["Algorithm"]
+    )
+
+    # Set as index and clean up
+    temp_df = temp_df.set_index("Benchmark").drop(
+        columns=["BaseBenchmark", "Algorithm"]
+    )
+
+    return temp_df
+
 
 def group_by(df, string):
     """
@@ -61,6 +161,15 @@ def parse_champsim_output(path):
         for filename in os.listdir(path):
             filepath = os.path.join(path, filename)
             if os.path.isfile(filepath):
+
+                # Skip files for SPEC CPU 2017 benchmarks
+                if (
+                    filename.startswith("500.perlbench")
+                    or filename.startswith("520.omnetpp")
+                    or filename.startswith("523.xalancbmk")
+                ):
+                    continue
+
                 # Parse each file and add the benchmark name to each row
                 df = parse_single_file(filepath)
                 benchmark_name = os.path.splitext(filename)[0]  # Extract benchmark name
@@ -131,7 +240,6 @@ def define_cpu_patterns():
         "Branch_Prediction_Accuracy": r"Branch Prediction Accuracy: ([\d.]+)%",
         "MPKI": r"MPKI: ([\d.]+)",
         "Average_ROB_Occupancy_at_Mispredict": r"Average ROB Occupancy at Mispredict: ([\d.]+)",
-
         "direct_jumps": r"direct_jumps: (\d+)",
         "indirect_branches": r"indirect_branches: (\d+)",
         "conditional_branches": r"conditional_branches: (\d+)",
@@ -143,34 +251,28 @@ def define_cpu_patterns():
         "stores": r"stores: (\d+)",
         "arithmetic": r"arithmetic: (\d+)",
         "total_instructions": r"total_instructions: (\d+)",
-
         "Fetch Idle Cycles": r"^Fetch Idle Cycles\s+(\d+)",
         "Decode Idle Cycles": r"^Decode Idle Cycles\s+(\d+)",
         "Dispatch Idle Cycles": r"^Dispatch Idle Cycles\s+(\d+)",
         "Schedule Idle Cycles": r"^Schedule Idle Cycles\s+(\d+)",
         "Execute Idle Cycles": r"^Execute Idle Cycles\s+(\d+)",
         "Retire Idle Cycles": r"^Retire Idle Cycles\s+(\d+)",
-
         "Fetch Starve Cycles": r"^Fetch Starve Cycles\s+(\d+)",
         "Decode Starve Cycles": r"^Decode Starve Cycles\s+(\d+)",
         "Dispatch Starve Cycles": r"^Dispatch Starve Cycles\s+(\d+)",
         "Schedule Starve Cycles": r"^Schedule Starve Cycles\s+(\d+)",
         "Execute Starve Cycles": r"^Execute Starve Cycles\s+(\d+)",
         "Retire Starve Cycles": r"^Retire Starve Cycles\s+(\d+)",
-
         "Total Fetch Instructions": r"Total Fetch Instructions\s+(\d+)",
         "Total Decode Instructions": r"Total Decode Instructions\s+(\d+)",
         "Total Dispatch Instructions": r"Total Dispatch Instructions\s+(\d+)",
         "Total Schedule Instructions": r"Total Schedule Instructions\s+(\d+)",
         "Total Execute Instructions": r"Total Execute Instructions\s+(\d+)",
         "Total Retire Instructions": r"Total Retire Instructions\s+(\d+)",
-
         "Resteer Events": r"Resteer Events (\d+)",
         "Resteer Penalty": r"Resteer Penalty ([\d.]+)",
-
         "WP_Not_Available_Count": r"WP Not Available Count (\d+) Cycles (\d+) \(([\d.]+)%\)",
         "WP_Not_Available_Cycles": r"WP Not Available Count \d+ Cycles (\d+) \(([\d.]+)%\)",
-
         "Loads_Count": r"Loads: Count (\d+)",
         "Loads_Issued": r"Loads: Count \d+ Issued (\d+)",
         "Fetch_Blocked_Cycles": r"Fetch Blocked Cycles (\d+)",
@@ -185,6 +287,10 @@ def define_cpu_patterns():
         "LQ_Full_Events": r"LQ Full Events (\d+)",
         "SQ_Full_Events": r"SQ Full Events (\d+)",
         "Non_Branch_Squashes": r"Non Branch Squashes (\d+)",
+        "ROB_Full_Cycles": r"ROB Full Cycles (\d+)",
+        "ROB_Empty_Cycles": r"ROB Empty Cycles (\d+)",
+        "ROB_Full_Events": r"ROB Full Events (\d+)",
+        "ROB_Empty_Events": r"ROB Empty Events (\d+)",
         "Loads_Success": r"Loads Success: (\d+)",
         "Loads_Executed": r"Loads Executed: (\d+)",
         "Loads_Retired": r"Loads Retired: (\d+)",
@@ -212,8 +318,14 @@ def define_cache_patterns():
         "LLC_POLLUTION": r"LLC POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "LLC_INSTR_REQ": r"LLC INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "LLC_AVERAGE_MISS_LATENCY": r"LLC AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "LLC_WP_MISS_LATENCY": r"LLC WP MISS LATENCY:\s+([\d.]+) cycles",
-        "LLC_CP_MISS_LATENCY": r"LLC CP MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_WP_MISS_LATENCY": r"LLC AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_CP_MISS_LATENCY": r"LLC AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_INSTR_MISS_LATENCY": r"LLC AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_WP_INSTR_MISS_LATENCY": r"LLC AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_CP_INSTR_MISS_LATENCY": r"LLC AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_DATA_MISS_LATENCY": r"LLC AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_WP_DATA_MISS_LATENCY": r"LLC AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "LLC_AVERAGE_CP_DATA_MISS_LATENCY": r"LLC AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # DTLB metrics
         "DTLB_TOTAL": r"cpu0_DTLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "DTLB_LOAD": r"cpu0_DTLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -226,8 +338,14 @@ def define_cache_patterns():
         "DTLB_POLLUTION": r"cpu0_DTLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "DTLB_INSTR_REQ": r"cpu0_DTLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "DTLB_AVERAGE_MISS_LATENCY": r"cpu0_DTLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "DTLB_WP_MISS_LATENCY": r"cpu0_DTLB WP MISS LATENCY:\s+([\d.]+) cycles",
-        "DTLB_CP_MISS_LATENCY": r"cpu0_DTLB CP MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_WP_MISS_LATENCY": r"cpu0_DTLB AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_CP_MISS_LATENCY": r"cpu0_DTLB AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_DTLB AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_DTLB AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_DTLB AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_DATA_MISS_LATENCY": r"cpu0_DTLB AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_DTLB AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "DTLB_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_DTLB AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # ITLB metrics
         "ITLB_TOTAL": r"cpu0_ITLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "ITLB_LOAD": r"cpu0_ITLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -240,8 +358,14 @@ def define_cache_patterns():
         "ITLB_POLLUTION": r"cpu0_ITLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "ITLB_INSTR_REQ": r"cpu0_ITLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "ITLB_AVERAGE_MISS_LATENCY": r"cpu0_ITLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "ITLB_WP_MISS_LATENCY": r"cpu0_ITLB WP MISS LATENCY:\s+([\d.]+) cycles",
-        "ITLB_CP_MISS_LATENCY": r"cpu0_ITLB CP MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_WP_MISS_LATENCY": r"cpu0_ITLB AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_CP_MISS_LATENCY": r"cpu0_ITLB AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_ITLB AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_ITLB AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_ITLB AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_DATA_MISS_LATENCY": r"cpu0_ITLB AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_ITLB AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "ITLB_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_ITLB AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # L1D metrics
         "L1D_TOTAL": r"cpu0_L1D TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1D_LOAD": r"cpu0_L1D LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -254,8 +378,14 @@ def define_cache_patterns():
         "L1D_POLLUTION": r"cpu0_L1D POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L1D_INSTR_REQ": r"cpu0_L1D INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1D_AVERAGE_MISS_LATENCY": r"cpu0_L1D AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "L1D_WP_MISS_LATENCY": r"cpu0_L1D WP MISS LATENCY:\s+([\d.]+) cycles",
-        "L1D_CP_MISS_LATENCY": r"cpu0_L1D CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_WP_MISS_LATENCY": r"cpu0_L1D AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_CP_MISS_LATENCY": r"cpu0_L1D AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_L1D AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_L1D AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_L1D AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_DATA_MISS_LATENCY": r"cpu0_L1D AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_L1D AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L1D_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_L1D AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # L1I metrics
         "L1I_TOTAL": r"cpu0_L1I TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L1I_LOAD": r"cpu0_L1I LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -268,8 +398,14 @@ def define_cache_patterns():
         "L1I_POLLUTION": r"cpu0_L1I POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L1I_INSTR_REQ": r"cpu0_L1I INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L1I_AVERAGE_MISS_LATENCY": r"cpu0_L1I AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "L1I_WP_MISS_LATENCY": r"cpu0_L1I WP MISS LATENCY:\s+([\d.]+) cycles",
-        "L1I_CP_MISS_LATENCY": r"cpu0_L1I CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_WP_MISS_LATENCY": r"cpu0_L1I AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_CP_MISS_LATENCY": r"cpu0_L1I AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_L1I AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_L1I AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_L1I AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_DATA_MISS_LATENCY": r"cpu0_L1I AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_L1I AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L1I_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_L1I AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # L2C metrics
         "L2C_TOTAL": r"cpu0_L2C TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "L2C_LOAD": r"cpu0_L2C LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -282,8 +418,14 @@ def define_cache_patterns():
         "L2C_POLLUTION": r"cpu0_L2C POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "L2C_INSTR_REQ": r"cpu0_L2C INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "L2C_AVERAGE_MISS_LATENCY": r"cpu0_L2C AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "L2C_WP_MISS_LATENCY": r"cpu0_L2C WP MISS LATENCY:\s+([\d.]+) cycles",
-        "L2C_CP_MISS_LATENCY": r"cpu0_L2C CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_WP_MISS_LATENCY": r"cpu0_L2C AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_CP_MISS_LATENCY": r"cpu0_L2C AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_L2C AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_L2C AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_L2C AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_DATA_MISS_LATENCY": r"cpu0_L2C AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_L2C AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "L2C_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_L2C AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
         # STLB metrics
         "STLB_TOTAL": r"cpu0_STLB TOTAL\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
         "STLB_LOAD": r"cpu0_STLB LOAD\s+ACCESS:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)",
@@ -296,8 +438,14 @@ def define_cache_patterns():
         "STLB_POLLUTION": r"cpu0_STLB POLLUTION:\s+([\d.]+)\s+WP_FILL:\s+(\d+)\s+WP_MISS:\s+(\d+)\s+CP_FILL:\s+(\d+)\s+CP_MISS:\s+(\d+)",
         "STLB_INSTR_REQ": r"cpu0_STLB INSTR REQ:\s+(\d+)\s+HIT:\s+(\d+)\s+MISS:\s+(\d+)\s+WP_REQ:\s+(\d+)\s+WP_HIT:\s+(\d+)\s+WP_MISS:\s+(\d+)",
         "STLB_AVERAGE_MISS_LATENCY": r"cpu0_STLB AVERAGE MISS LATENCY:\s+([\d.]+) cycles",
-        "STLB_WP_MISS_LATENCY": r"cpu0_STLB WP MISS LATENCY:\s+([\d.]+) cycles",
-        "STLB_CP_MISS_LATENCY": r"cpu0_STLB CP MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_WP_MISS_LATENCY": r"cpu0_STLB AVERAGE WP MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_CP_MISS_LATENCY": r"cpu0_STLB AVERAGE CP MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_INSTR_MISS_LATENCY": r"cpu0_STLB AVERAGE INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_WP_INSTR_MISS_LATENCY": r"cpu0_STLB AVERAGE WP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_CP_INSTR_MISS_LATENCY": r"cpu0_STLB AVERAGE CP INSTR MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_DATA_MISS_LATENCY": r"cpu0_STLB AVERAGE DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_WP_DATA_MISS_LATENCY": r"cpu0_STLB AVERAGE WP DATA MISS LATENCY:\s+([\d.]+) cycles",
+        "STLB_AVERAGE_CP_DATA_MISS_LATENCY": r"cpu0_STLB AVERAGE CP DATA MISS LATENCY:\s+([\d.]+) cycles",
     }
 
 
@@ -317,7 +465,17 @@ def parse_cache_patterns(line, cache_patterns, data):
     for key, pattern in cache_patterns.items():
         match = re.search(pattern, line)
         if match:
-            if key.endswith("AVERAGE_MISS_LATENCY"):
+            if (
+                key.endswith("AVERAGE_MISS_LATENCY")
+                or key.endswith("AVERAGE_WP_MISS_LATENCY")
+                or key.endswith("AVERAGE_CP_MISS_LATENCY")
+                or key.endswith("AVERAGE_INSTR_MISS_LATENCY")
+                or key.endswith("AVERAGE_WP_INSTR_MISS_LATENCY")
+                or key.endswith("AVERAGE_CP_INSTR_MISS_LATENCY")
+                or key.endswith("AVERAGE_DATA_MISS_LATENCY")
+                or key.endswith("AVERAGE_WP_DATA_MISS_LATENCY")
+                or key.endswith("AVERAGE_CP_DATA_MISS_LATENCY")
+            ):
                 # Handle average miss latency metrics
                 data[key] = float(match.group(1))
 
