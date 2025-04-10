@@ -1,4 +1,5 @@
 #!/bin/bash
+exec > >(tee jobs.log) 2>&1
 
 usage() {
     echo "Usage: $0 suite --option1 value1 --option2 value2 ..."
@@ -33,7 +34,18 @@ job_submition() {
 
     if [ ! -s "${data_directory}/${trace_name}-${binary_name}.txt" ]; then
         echo "Submitting ${job_name}"
-        sbatch -Q -J ${job_name} --output=/dev/null --error=/dev/null $file_path
+        output=$(sbatch -Q -J "${job_name}" --output=/dev/null --error=/dev/null "$file_path" 2>&1)
+        exit_code=$?
+
+        if [[ $exit_code -ne 0 || "$output" == *"your account's balance is not sufficient"* ]]; then
+            echo "Error: Failed to submit job for ${job_name}."
+            echo "$output"
+        fi
+    else
+        output_file="${data_directory}/${trace_name}-${binary_name}.txt"
+        if ! grep -q "ChampSim completed all CPUs" "${output_file}"; then
+            echo "Check this file (missing completion message): ${output_file}"
+        fi
     fi
 
     # Revert the changes by restoring the backup
@@ -115,6 +127,10 @@ for trace in ${trace_files}; do
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Processing ${trace_name}"
+
+    if [[ "$trace_name" == *"500.perlbench"* || "$trace_name" == *"520.omnetpp"* || "$trace_name" == *"523.xalancbmk"* ]]; then
+        continue
+    fi
 
     # If ALL, extract suite name from the path; else use the provided suite
     if [ "${suite}" == "ALL" ]; then
