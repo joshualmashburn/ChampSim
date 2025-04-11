@@ -789,12 +789,64 @@ long O3_CPU::execute_instruction()
     sim_stats.execute_starve_cycles++;
   }
 
+  if(std::empty(ROB)){
+    sim_stats.last_cycle_last_rob_ip = 0;
+  }
+
+  bool wp_executed = false;
+  bool cp_executed = false;
+
   for (auto rob_it = std::begin(ROB); rob_it != std::end(ROB) && exec_bw > 0; ++rob_it) {
     if (rob_it->scheduled && rob_it->executed == 0 && rob_it->num_reg_dependent == 0 && rob_it->event_cycle <= current_cycle) {
       do_execution(*rob_it);
       --exec_bw;
+      if(rob_it->is_wrong_path) {
+        wp_executed = true;
+      } else {
+        cp_executed = true;
+      }
       sim_stats.total_execute_instructions++;
     }
+  }
+  
+  if(exec_bw == EXEC_WIDTH){
+    assert( !wp_executed && !cp_executed && "This should not happen");
+  }
+
+  bool fetch_stalled_no_wp = (fetch_resume_cycle == std::numeric_limits<uint64_t>::max());
+
+  if(wp_executed && cp_executed){
+    sim_stats.exe_stats_new.cp_wp_executed++;
+  } else if (wp_executed){
+    sim_stats.exe_stats_new.only_wp_executed++;
+  } else if (cp_executed){
+    sim_stats.exe_stats_new.only_cp_executed++;
+  } else if (std::empty(ROB) && !in_repair_mode && !fetch_stalled_no_wp){
+    sim_stats.exe_stats_new.rob_empty++;
+  } else if (std::empty(ROB) && in_repair_mode && !fetch_stalled_no_wp){
+    sim_stats.exe_stats_new.rob_empty_repair++;
+  } else if (std::empty(ROB) && fetch_stalled_no_wp){
+    sim_stats.exe_stats_new.rob_empty_fetch_stalled_no_wp++;
+  } else if (!std::empty(ROB) && !(ROB.size()==ROB_SIZE)){
+    assert(!wp_executed && !cp_executed && "This should not happen");
+    if (sim_stats.last_cycle_last_rob_ip == ROB.back().ip) {
+      sim_stats.exe_stats_new.rob_not_ready_not_full_no_new_added++;
+    } else {
+      sim_stats.exe_stats_new.rob_not_ready_not_full_new_added++;
+    }
+  } else if (ROB.size()==ROB_SIZE){
+    assert(!wp_executed && !cp_executed && "This should not happen");
+    if (sim_stats.last_cycle_last_rob_ip == ROB.back().ip) {
+      sim_stats.exe_stats_new.rob_not_ready_full_no_new_added++;
+    } else {
+      sim_stats.exe_stats_new.rob_not_ready_full_new_added++;
+    }
+  } else {
+    sim_stats.exe_stats_new.other_idk++;    
+  }
+
+  if(!std::empty(ROB)){
+    sim_stats.last_cycle_last_rob_ip = ROB.back().ip;
   }
 
   if (((EXEC_WIDTH - exec_bw) == 0 || std::empty(ROB)) && !in_repair_mode) {

@@ -91,9 +91,28 @@ void champsim::plain_printer::print(O3_CPU::stats_type stats)
   fmt::print(stream, "Total Execute Instructions {}\n", stats.total_execute_instructions);
   fmt::print(stream, "Total Retire Instructions {}\n\n", stats.total_retire_instructions);
 
+  fmt::print(stream, "New Execution Stats\n");
+  fmt::print(stream, "Execute Only WP Cycles {}\n", stats.exe_stats_new.only_wp_executed);
+  fmt::print(stream, "Execute Only CP Cycles {}\n", stats.exe_stats_new.only_cp_executed);
+  fmt::print(stream, "Execute CP WP Cycles {}\n", stats.exe_stats_new.cp_wp_executed);
+  fmt::print(stream, "Execute nothing ROB Empty Cycles {}\n", stats.exe_stats_new.rob_empty);
+  fmt::print(stream, "Execute nothing ROB Empty Repair Cycles {}\n", stats.exe_stats_new.rob_empty_repair);
+  fmt::print(stream, "Execute nothing ROB Empty Fetch Stalled No WP Cycles {}\n", stats.exe_stats_new.rob_empty_fetch_stalled_no_wp);
+  fmt::print(stream, "Execute nothing ROB Not Ready Not Full New Added Cycles {} \n", stats.exe_stats_new.rob_not_ready_not_full_new_added);
+  fmt::print(stream, "Execute nothing ROB Not Ready Not Full No New Added Cycles {} \n", stats.exe_stats_new.rob_not_ready_not_full_no_new_added);
+  fmt::print(stream, "Execute nothing ROB Not Ready Full New Added Cycles {}\n", stats.exe_stats_new.rob_not_ready_full_new_added);
+  fmt::print(stream, "Execute nothing ROB Not Ready Full No New Added Cycles {}\n", stats.exe_stats_new.rob_not_ready_full_no_new_added);
+  fmt::print(stream, "Execute nothing Other IDK Cycles {}\n", stats.exe_stats_new.other_idk);
+  fmt::print(stream, "Execute Total Cycles Cycles {}\n\n",
+             stats.exe_stats_new.only_wp_executed + stats.exe_stats_new.only_cp_executed + stats.exe_stats_new.cp_wp_executed + stats.exe_stats_new.rob_empty
+                 + stats.exe_stats_new.rob_empty_repair + stats.exe_stats_new.rob_empty_fetch_stalled_no_wp + stats.exe_stats_new.rob_not_ready_not_full_new_added
+                 + stats.exe_stats_new.rob_not_ready_not_full_no_new_added + stats.exe_stats_new.rob_not_ready_full_new_added
+                 + stats.exe_stats_new.rob_not_ready_full_no_new_added + stats.exe_stats_new.other_idk);
+
   fmt::print(stream, "Resteer Events {}\n", stats.resteer_events);
   fmt::print(stream, "Resteer Penalty {:.3g}%\n", (((double)stats.resteer_events * 12) / std::ceil(stats.cycles())) * 100.0);
-  fmt::print(stream, "WP Not Available Count {} Cycles {} ({:.3g}%)\n\n", stats.lack_of_WP_inst_count, stats.lack_of_WP_inst_cycles, ((double)stats.lack_of_WP_inst_cycles / std::ceil(stats.cycles())) * 100.0);
+  fmt::print(stream, "WP Not Available Count {} Cycles {} ({:.3g}%)\n\n", stats.lack_of_WP_inst_count, stats.lack_of_WP_inst_cycles,
+             ((double)stats.lack_of_WP_inst_cycles / std::ceil(stats.cycles())) * 100.0);
 
   fmt::print(stream, "Wrong Path Stats\n");
   fmt::print(stream, "Loads: Count {} Issued {}\n", stats.wrong_path_loads, stats.wrong_path_loads_executed);
@@ -153,6 +172,8 @@ void champsim::plain_printer::print(CACHE::stats_type stats)
                stats.wp_miss, stats.cp_fill, stats.cp_miss);
     fmt::print(stream, "{} INSTR REQ: {}  HIT: {}  MISS: {} WP_REQ: {} WP_HIT: {} WP_MISS: {} \n", stats.name, stats.instr_req, stats.istr_hit, stats.istr_miss,
                stats.wp_instr_req, stats.wp_istr_hit, stats.wp_istr_miss);
+    fmt::print(stream, "{} DATA REQ: {}  HIT: {}  MISS: {} WP_REQ: {} WP_HIT: {} WP_MISS: {} \n", stats.name, stats.data_req, stats.data_hit, stats.data_miss,
+               stats.wp_data_req, stats.wp_data_hit, stats.wp_data_miss);
     fmt::print(stream, "{} AVERAGE MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_miss_latency);
     fmt::print(stream, "{} AVERAGE WP MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_wp_miss_latency);
     fmt::print(stream, "{} AVERAGE CP MISS LATENCY: {:.4g} cycles\n", stats.name, stats.avg_cp_miss_latency);

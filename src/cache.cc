@@ -340,6 +340,11 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt, bool no_stat_upd)
         if(handle_pkt.wrong_path){
           ++sim_stats.wp_istr_hit;
         } 
+      } else{
+        ++sim_stats.data_hit;
+        if(handle_pkt.wrong_path){
+          ++sim_stats.wp_data_hit;
+        }
       }
 
       // update replacement policy
@@ -1009,9 +1014,11 @@ void CACHE::end_phase(unsigned finished_cpu)
 
   roi_stats.data_req = sim_stats.data_req;
   roi_stats.data_miss = sim_stats.data_miss;
+  roi_stats.data_hit = sim_stats.data_hit;
 
   roi_stats.wp_data_req = sim_stats.wp_data_req;
   roi_stats.wp_data_miss = sim_stats.wp_data_miss;
+  roi_stats.wp_data_hit = sim_stats.wp_data_hit;
 
   roi_stats.total_wp_miss_latency = sim_stats.total_wp_miss_latency;
   roi_stats.avg_wp_miss_latency = std::ceil(roi_stats.total_wp_miss_latency) / std::ceil(roi_stats.wp_miss);

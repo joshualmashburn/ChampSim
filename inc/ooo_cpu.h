@@ -63,6 +63,20 @@ public:
   bool issue_write(request_type packet);
 };
 
+struct exe_stats{
+  uint64_t only_wp_executed = 0;
+  uint64_t only_cp_executed = 0;
+  uint64_t cp_wp_executed = 0;
+  uint64_t rob_empty = 0;
+  uint64_t rob_empty_repair = 0;
+  uint64_t rob_empty_fetch_stalled_no_wp = 0;
+  uint64_t rob_not_ready_not_full_no_new_added = 0;
+  uint64_t rob_not_ready_not_full_new_added = 0;
+  uint64_t rob_not_ready_full_no_new_added = 0;
+  uint64_t rob_not_ready_full_new_added = 0;
+  uint64_t other_idk = 0;
+};
+
 struct cpu_stats {
   std::string name;
   uint64_t begin_instrs = 0, begin_cycles = 0;
@@ -146,7 +160,10 @@ struct cpu_stats {
   std::array<long long, 8> branch_type_misses = {};
 
   std::set<uint64_t> instr_foot_print;
-  std::set<uint64_t> data_foot_print;  
+  std::set<uint64_t> data_foot_print; 
+  
+  exe_stats exe_stats_new;
+  uint64_t last_cycle_last_rob_ip = 0;
 
   uint64_t instrs() const { return end_instrs - begin_instrs; }
   uint64_t cycles() const { return end_cycles - begin_cycles; }

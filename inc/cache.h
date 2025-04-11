@@ -77,6 +77,7 @@ struct cache_stats {
   uint64_t data_hit = 0; 
   uint64_t wp_data_req = 0;
   uint64_t wp_data_miss = 0;
+  uint64_t wp_data_hit = 0;
 
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> hits = {};
   std::array<std::array<uint64_t, NUM_CPUS>, champsim::to_underlying(access_type::NUM_TYPES)> misses = {};
