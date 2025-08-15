@@ -55,7 +55,9 @@ if __name__ == '__main__':
     search_group.add_argument('--replacement-dir', action='append', default=[], metavar='DIR',
             help='A directory to search for replacement policies')
 
-    parser.add_argument('--compile-all-modules', action='store_true',
+    parser.add_argument('--no-compile-all-modules', action='store_false', dest='compile_all_modules',
+            help='Do not compile all modules in the search path')
+    parser.add_argument('--compile-all-modules', action='store_true', dest='compile_all_modules',
             help='Compile all modules in the search path')
 
     parser.add_argument('-v', action='store_true', dest='verbose')
@@ -96,6 +98,5 @@ if __name__ == '__main__':
     with config.filewrite.FileWriter(bindir_name=bindir_name, objdir_name=objdir_name, makedir_name=args.makedir, verbose=args.verbose) as wr:
         for c in parsed_configs:
             wr.write_files(c)
-        wr.write_files(parsed_test, bindir_name=os.path.join(test_root, 'bin'), srcdir_names=[os.path.join(test_root, 'cpp', 'src')], objdir_name=objdir_name)
 
 # vim: set filetype=python:

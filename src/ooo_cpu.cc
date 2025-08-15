@@ -37,7 +37,6 @@ constexpr long long STAT_PRINTING_PERIOD = 10000000;
 long O3_CPU::operate()
 {
   long progress{0};
-
   progress += retire_rob();                    // retire
   progress += complete_inflight_instruction(); // finalize execution
   progress += execute_instruction();           // execute instructions
@@ -162,7 +161,7 @@ bool O3_CPU::do_predict_branch(ooo_model_instr& arch_instr)
 
   if (arch_instr.is_branch) {
     if constexpr (champsim::debug_print) {
-      fmt::print("[BRANCH] instr_id: {} ip: {:#x} taken: {}\n", arch_instr.instr_id, arch_instr.ip, arch_instr.branch_taken);
+      fmt::print("[BRANCH] instr_id: {} ip: {} taken: {}\n", arch_instr.instr_id, arch_instr.ip, arch_instr.branch_taken);
     }
 
     // call code prefetcher every time the branch predictor is used
@@ -228,7 +227,7 @@ void O3_CPU::do_check_dib(ooo_model_instr& instr)
   instr.dib_checked = true;
 
   if constexpr (champsim::debug_print) {
-    fmt::print("[DIB] {} instr_id: {} ip: {:#x} hit: {} cycle: {}\n", __func__, instr.instr_id, instr.ip, dib_result.has_value(),
+    fmt::print("[DIB] {} instr_id: {} ip: {} hit: {} cycle: {}\n", __func__, instr.instr_id, instr.ip, dib_result.has_value(),
                current_time.time_since_epoch() / clock_period);
   }
 }
@@ -248,7 +247,7 @@ long O3_CPU::fetch_instruction()
   };
 
   auto l1i_req_begin = std::find_if(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), fetch_ready);
-  for (champsim::bandwidth to_read{L1I_BANDWIDTH}; to_read.has_remaining() && l1i_req_begin != std::end(IFETCH_BUFFER); to_read.consume()) {
+  for (champsim::bandwidth l1i_bw{L1I_BANDWIDTH}; l1i_bw.has_remaining() && l1i_req_begin != std::end(IFETCH_BUFFER); l1i_bw.consume()) {
     auto l1i_req_end = std::adjacent_find(l1i_req_begin, std::end(IFETCH_BUFFER), no_match_ip);
     if (l1i_req_end != std::end(IFETCH_BUFFER)) {
       l1i_req_end = std::next(l1i_req_end); // adjacent_find returns the first of the non-equal elements
@@ -277,7 +276,7 @@ bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, s
   std::transform(begin, end, std::back_inserter(fetch_packet.instr_depend_on_me), [](const auto& instr) { return instr.instr_id; });
 
   if constexpr (champsim::debug_print) {
-    fmt::print("[IFETCH] {} instr_id: {} ip: {:#x} dependents: {} event_cycle: {}\n", __func__, begin->instr_id, begin->ip,
+    fmt::print("[IFETCH] {} instr_id: {} ip: {} dependents: {} event_cycle: {}\n", __func__, begin->instr_id, begin->ip,
                std::size(fetch_packet.instr_depend_on_me), begin->ready_time.time_since_epoch() / clock_period);
   }
 
@@ -286,31 +285,85 @@ bool O3_CPU::do_fetch_instruction(std::deque<ooo_model_instr>::iterator begin, s
 
 long O3_CPU::promote_to_decode()
 {
+  auto is_decoded = [](const ooo_model_instr& x) {
+    return x.decoded;
+  };
+
+  auto fetch_complete_and_ready = [time = current_time](const auto& x) {
+    return x.fetch_completed && x.ready_time <= time;
+  };
+
   champsim::bandwidth available_fetch_bandwidth{
-      std::min(FETCH_WIDTH, champsim::bandwidth::maximum_type{static_cast<long>(DECODE_BUFFER_SIZE - std::size(DECODE_BUFFER))})};
-  auto [window_begin, window_end] = champsim::get_span_p(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), available_fetch_bandwidth,
-                                                         [time = current_time](const auto& x) { return x.fetch_completed && x.ready_time <= time; });
+      std::min(FETCH_WIDTH, std::min(champsim::bandwidth::maximum_type{static_cast<long>(DIB_HIT_BUFFER_SIZE - std::size(DIB_HIT_BUFFER))},
+                                     champsim::bandwidth::maximum_type{static_cast<long>(DECODE_BUFFER_SIZE - std::size(DECODE_BUFFER))}))};
+
+  auto fetched_check_end = std::find_if(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), [](const ooo_model_instr& x) { return !x.fetch_completed; });
+  // find the first not fetch completed
+  auto [window_begin, window_end] = champsim::get_span_p(std::begin(IFETCH_BUFFER), fetched_check_end, available_fetch_bandwidth, fetch_complete_and_ready);
+  auto decoded_window_end = std::stable_partition(window_begin, window_end, is_decoded); // reorder instructions
+  auto mark_for_decode = [time = current_time, lat = DECODE_LATENCY, warmup = warmup](auto& x) {
+    return x.ready_time = time + (warmup ? champsim::chrono::clock::duration{} : lat);
+  };
+  // to DIB_HIT_BUFFER
+  auto mark_for_dib = [time = current_time, lat = DIB_HIT_LATENCY, warmup = warmup](auto& x) {
+    return x.ready_time = time + lat;
+  };
+
+  std::for_each(window_begin, decoded_window_end, mark_for_dib); // assume DECODE_LATENCY = DIB_HIT_LATENCY
+  std::move(window_begin, decoded_window_end, std::back_inserter(DIB_HIT_BUFFER));
+  // to DECODE_BUFFER
+
+  std::for_each(decoded_window_end, window_end, mark_for_decode);
+  std::move(decoded_window_end, window_end, std::back_inserter(DECODE_BUFFER));
+
   long progress{std::distance(window_begin, window_end)};
-
-  std::for_each(window_begin, window_end, [time = current_time, lat = DECODE_LATENCY, warmup = warmup](auto& x) {
-    return x.ready_time = time + ((warmup || x.decoded) ? champsim::chrono::clock::duration{} : lat);
-  });
-  std::move(window_begin, window_end, std::back_inserter(DECODE_BUFFER));
   IFETCH_BUFFER.erase(window_begin, window_end);
-
   return progress;
 }
-
 long O3_CPU::decode_instruction()
 {
-  champsim::bandwidth available_decode_bandwidth{
-      std::min(DECODE_WIDTH, champsim::bandwidth::maximum_type{static_cast<long>(DISPATCH_BUFFER_SIZE - std::size(DISPATCH_BUFFER))})};
-  auto [window_begin, window_end] = champsim::get_span_p(std::begin(DECODE_BUFFER), std::end(DECODE_BUFFER), available_decode_bandwidth,
-                                                         [time = current_time](const auto& x) { return x.ready_time <= time; });
-  long progress{std::distance(window_begin, window_end)};
+  auto is_ready = [time = current_time](const auto& x) {
+    return x.ready_time <= time;
+  };
 
-  // Send decoded instructions to dispatch
-  std::for_each(window_begin, window_end, [&, this](auto& db_entry) {
+  auto dib_hit_buffer_begin = std::begin(DIB_HIT_BUFFER);
+  auto dib_hit_buffer_end = dib_hit_buffer_begin;
+  auto decode_buffer_begin = std::begin(DECODE_BUFFER);
+  auto decode_buffer_end = decode_buffer_begin;
+
+  champsim::bandwidth available_decode_bandwidth{DECODE_WIDTH};
+
+  // bw move instructions to dispatch_buffer
+  champsim::bandwidth available_dib_inorder_bandwidth{
+      std::min(DIB_INORDER_WIDTH, champsim::bandwidth::maximum_type{static_cast<long>(DISPATCH_BUFFER_SIZE - std::size(DISPATCH_BUFFER))})};
+
+  // conditions choose how many instructions sent to dispatch_buffer
+  while (dib_hit_buffer_end != std::end(DIB_HIT_BUFFER) && decode_buffer_end != std::end(DECODE_BUFFER) && available_dib_inorder_bandwidth.has_remaining()
+         && available_decode_bandwidth.has_remaining() && is_ready(std::min(*dib_hit_buffer_end, *decode_buffer_end, ooo_model_instr::program_order))) {
+    if (ooo_model_instr::program_order(*dib_hit_buffer_end, *decode_buffer_end)) {
+      dib_hit_buffer_end++;
+      available_dib_inorder_bandwidth.consume();
+    } else {
+      decode_buffer_end++;
+      available_dib_inorder_bandwidth.consume();
+      available_decode_bandwidth.consume();
+    }
+  }
+  while (dib_hit_buffer_end != std::end(DIB_HIT_BUFFER) && available_dib_inorder_bandwidth.has_remaining() && is_ready(*dib_hit_buffer_end)
+         && (decode_buffer_end == std::end(DECODE_BUFFER) || ooo_model_instr::program_order(*dib_hit_buffer_end, *decode_buffer_end))) {
+    dib_hit_buffer_end++;
+    available_dib_inorder_bandwidth.consume();
+  }
+  while (decode_buffer_end != std::end(DECODE_BUFFER) && available_dib_inorder_bandwidth.has_remaining() && available_decode_bandwidth.has_remaining()
+         && is_ready(*decode_buffer_end)
+         && (dib_hit_buffer_end == std::end(DIB_HIT_BUFFER) || ooo_model_instr::program_order(*decode_buffer_end, *dib_hit_buffer_end))) {
+    decode_buffer_end++;
+    available_dib_inorder_bandwidth.consume();
+    available_decode_bandwidth.consume();
+  }
+
+  // decode instructions have not decoded, merge instructions with dib_hit_buffer then send to dispatch_buffer
+  auto do_decode = [&, this](auto& db_entry) {
     this->do_dib_update(db_entry);
 
     // Resume fetch
@@ -324,17 +377,27 @@ long O3_CPU::decode_instruction()
         this->fetch_resume_time = this->current_time + BRANCH_MISPREDICT_PENALTY;
       }
     }
-
     // Add to dispatch
     db_entry.ready_time = this->current_time + (this->warmup ? champsim::chrono::clock::duration{} : this->DISPATCH_LATENCY);
 
     if constexpr (champsim::debug_print) {
-      fmt::print("[DECODE] do_decode instr_id: {} cycle: {}\n", db_entry.instr_id, this->current_time.time_since_epoch() / this->clock_period);
+      fmt::print("[DECODE] do_decode instr_id: {} time: {}\n", db_entry.instr_id, this->current_time.time_since_epoch() / this->clock_period);
     }
-  });
+  };
 
-  std::move(window_begin, window_end, std::back_inserter(DISPATCH_BUFFER));
-  DECODE_BUFFER.erase(window_begin, window_end);
+  auto do_dib_hit = [&, this](auto& dib_entry) {
+    dib_entry.ready_time = this->current_time + (this->warmup ? champsim::chrono::clock::duration{} : this->DISPATCH_LATENCY);
+  };
+
+  std::for_each(decode_buffer_begin, decode_buffer_end, do_decode);
+  std::for_each(dib_hit_buffer_begin, dib_hit_buffer_end, do_dib_hit);
+
+  long progress{std::distance(dib_hit_buffer_begin, dib_hit_buffer_end) + std::distance(decode_buffer_begin, decode_buffer_end)};
+
+  std::merge(dib_hit_buffer_begin, dib_hit_buffer_end, decode_buffer_begin, decode_buffer_end, std::back_inserter(DISPATCH_BUFFER),
+             ooo_model_instr::program_order);
+  DECODE_BUFFER.erase(decode_buffer_begin, decode_buffer_end);
+  DIB_HIT_BUFFER.erase(dib_hit_buffer_begin, dib_hit_buffer_end);
 
   return progress;
 }
@@ -367,6 +430,12 @@ long O3_CPU::schedule_instruction()
   champsim::bandwidth search_bw{SCHEDULER_SIZE};
   int progress{0};
   for (auto rob_it = std::begin(ROB); rob_it != std::end(ROB) && search_bw.has_remaining(); ++rob_it) {
+    // if there aren't enough physical registers available for the next instruction, stop scheduling
+    unsigned long sources_to_allocate = std::count_if(rob_it->source_registers.begin(), rob_it->source_registers.end(),
+                                                      [&alloc = std::as_const(reg_allocator)](auto srcreg) { return !alloc.isAllocated(srcreg); });
+    if (reg_allocator.count_free_registers() < (sources_to_allocate + rob_it->destination_registers.size())) {
+      break;
+    }
     if (!rob_it->scheduled && rob_it->ready_time <= current_time) {
       do_scheduling(*rob_it);
       ++progress;
@@ -383,21 +452,14 @@ long O3_CPU::schedule_instruction()
 void O3_CPU::do_scheduling(ooo_model_instr& instr)
 {
   // Mark register dependencies
-  for (auto src_reg : instr.source_registers) {
-    if (!std::empty(reg_producers.at(src_reg))) {
-      ooo_model_instr& prior = reg_producers.at(src_reg).back();
-      if (prior.registers_instrs_depend_on_me.empty() || prior.registers_instrs_depend_on_me.back().get().instr_id != instr.instr_id) {
-        prior.registers_instrs_depend_on_me.emplace_back(instr);
-        instr.num_reg_dependent++;
-      }
-    }
+  for (auto& src_reg : instr.source_registers) {
+    // rename source register
+    src_reg = reg_allocator.rename_src_register(src_reg);
   }
 
-  for (auto dreg : instr.destination_registers) {
-    auto begin = std::begin(reg_producers.at(dreg));
-    auto end = std::end(reg_producers.at(dreg));
-    auto ins = std::lower_bound(begin, end, instr, ooo_model_instr::program_order);
-    reg_producers.at(dreg).insert(ins, std::ref(instr));
+  for (auto& dreg : instr.destination_registers) {
+    // rename destination register
+    dreg = reg_allocator.rename_dest_register(dreg, instr.instr_id);
   }
 
   instr.scheduled = true;
@@ -407,9 +469,13 @@ long O3_CPU::execute_instruction()
 {
   champsim::bandwidth exec_bw{EXEC_WIDTH};
   for (auto rob_it = std::begin(ROB); rob_it != std::end(ROB) && exec_bw.has_remaining(); ++rob_it) {
-    if (rob_it->scheduled && !rob_it->executed && rob_it->num_reg_dependent == 0 && rob_it->ready_time <= current_time) {
-      do_execution(*rob_it);
-      exec_bw.consume();
+    if (rob_it->scheduled && !rob_it->executed && rob_it->ready_time <= current_time) {
+      bool ready = std::all_of(std::begin(rob_it->source_registers), std::end(rob_it->source_registers),
+                               [&alloc = std::as_const(reg_allocator)](auto srcreg) { return alloc.isValid(srcreg); });
+      if (ready) {
+        do_execution(*rob_it);
+        exec_bw.consume();
+      }
     }
   }
 
@@ -521,7 +587,7 @@ long O3_CPU::operate_lsq()
 void O3_CPU::do_finish_store(const LSQ_ENTRY& sq_entry)
 {
   if constexpr (champsim::debug_print) {
-    fmt::print("[SQ] {} instr_id: {} vaddr: {:x}\n", __func__, sq_entry.instr_id, sq_entry.virtual_address);
+    fmt::print("[SQ] {} instr_id: {} vaddr: {}\n", __func__, sq_entry.instr_id, sq_entry.virtual_address);
   }
 
   sq_entry.finish(std::begin(ROB), std::end(ROB));
@@ -544,7 +610,7 @@ bool O3_CPU::do_complete_store(const LSQ_ENTRY& sq_entry)
   data_packet.ip = sq_entry.ip;
 
   if constexpr (champsim::debug_print) {
-    fmt::print("[SQ] {} instr_id: {} vaddr: {:x}\n", __func__, data_packet.instr_id, data_packet.v_address);
+    fmt::print("[SQ] {} instr_id: {} vaddr: {}\n", __func__, data_packet.instr_id, data_packet.v_address);
   }
 
   return L1D_bus.issue_write(data_packet);
@@ -558,7 +624,7 @@ bool O3_CPU::execute_load(const LSQ_ENTRY& lq_entry)
   data_packet.ip = lq_entry.ip;
 
   if constexpr (champsim::debug_print) {
-    fmt::print("[LQ] {} instr_id: {} vaddr: {:#x}\n", __func__, data_packet.instr_id, data_packet.v_address);
+    fmt::print("[LQ] {} instr_id: {} vaddr: {}\n", __func__, data_packet.instr_id, data_packet.v_address);
   }
 
   return L1D_bus.issue_read(data_packet);
@@ -567,23 +633,11 @@ bool O3_CPU::execute_load(const LSQ_ENTRY& lq_entry)
 void O3_CPU::do_complete_execution(ooo_model_instr& instr)
 {
   for (auto dreg : instr.destination_registers) {
-    auto begin = std::begin(reg_producers.at(dreg));
-    auto end = std::end(reg_producers.at(dreg));
-    auto elem = std::find_if(begin, end, ooo_model_instr::matches_id(instr.instr_id));
-    assert(elem != end);
-    reg_producers.at(dreg).erase(elem);
+    // mark physical register's data as valid
+    reg_allocator.complete_dest_register(dreg);
   }
 
   instr.completed = true;
-
-  for (ooo_model_instr& dependent : instr.registers_instrs_depend_on_me) {
-    dependent.num_reg_dependent--;
-    assert(dependent.num_reg_dependent >= 0);
-
-    if (dependent.num_reg_dependent == 0) {
-      dependent.scheduled = true;
-    }
-  }
 
   if (instr.branch_mispredicted) {
     fetch_resume_time = current_time + BRANCH_MISPREDICT_PENALTY;
@@ -608,15 +662,15 @@ long O3_CPU::handle_memory_return()
 {
   long progress{0};
 
-  for (champsim::bandwidth l1i_bw{FETCH_WIDTH}, to_read{L1I_BANDWIDTH};
-       l1i_bw.has_remaining() && to_read.has_remaining() && !L1I_bus.lower_level->returned.empty(); to_read.consume()) {
+  for (champsim::bandwidth fetch_bw{FETCH_WIDTH}, l1i_bw{L1I_BANDWIDTH};
+       fetch_bw.has_remaining() && l1i_bw.has_remaining() && !L1I_bus.lower_level->returned.empty(); l1i_bw.consume()) {
     auto& l1i_entry = L1I_bus.lower_level->returned.front();
 
-    while (l1i_bw.has_remaining() && !l1i_entry.instr_depend_on_me.empty()) {
+    while (fetch_bw.has_remaining() && !l1i_entry.instr_depend_on_me.empty()) {
       auto fetched = std::find_if(std::begin(IFETCH_BUFFER), std::end(IFETCH_BUFFER), ooo_model_instr::matches_id(l1i_entry.instr_depend_on_me.front()));
       if (fetched != std::end(IFETCH_BUFFER) && champsim::block_number{fetched->ip} == champsim::block_number{l1i_entry.v_address} && fetched->fetch_issued) {
         fetched->fetch_completed = true;
-        l1i_bw.consume();
+        fetch_bw.consume();
         ++progress;
 
         if constexpr (champsim::debug_print) {
@@ -660,6 +714,15 @@ long O3_CPU::retire_rob()
       fmt::print("[ROB] retire_rob instr_id: {} is retired cycle: {}\n", x.instr_id, cycle);
     });
   }
+
+  // commit register writes to backend RAT
+  // and recycle the old physical registers
+  for (auto rob_it = retire_begin; rob_it != retire_end; ++rob_it) {
+    for (auto dreg : rob_it->destination_registers) {
+      reg_allocator.retire_dest_register(dreg);
+    }
+  }
+
   auto retire_count = std::distance(retire_begin, retire_end);
   num_retired += retire_count;
   ROB.erase(retire_begin, retire_end);
@@ -696,14 +759,14 @@ void O3_CPU::print_deadlock()
 {
   fmt::print("DEADLOCK! CPU {} cycle {}\n", cpu, current_time.time_since_epoch() / clock_period);
 
-  auto instr_pack = [period = clock_period](const auto& entry) {
+  auto instr_pack = [period = clock_period, this](const auto& entry) {
     return std::tuple{entry.instr_id,
                       entry.fetch_issued,
                       entry.fetch_completed,
                       entry.scheduled,
                       entry.executed,
                       entry.completed,
-                      +entry.num_reg_dependent,
+                      reg_allocator.count_reg_dependencies(entry),
                       entry.num_mem_ops() - entry.completed_mem_ops,
                       entry.ready_time.time_since_epoch() / period};
   };
@@ -713,6 +776,9 @@ void O3_CPU::print_deadlock()
   champsim::range_print_deadlock(DECODE_BUFFER, "cpu" + std::to_string(cpu) + "_DECODE", instr_fmt, instr_pack);
   champsim::range_print_deadlock(DISPATCH_BUFFER, "cpu" + std::to_string(cpu) + "_DISPATCH", instr_fmt, instr_pack);
   champsim::range_print_deadlock(ROB, "cpu" + std::to_string(cpu) + "_ROB", instr_fmt, instr_pack);
+
+  // print occupied physical registers
+  reg_allocator.print_deadlock();
 
   // print LQ entry
   auto lq_pack = [period = clock_period](const auto& entry) {
@@ -756,7 +822,7 @@ void LSQ_ENTRY::finish(ooo_model_instr& rob_entry) const
   assert(rob_entry.completed_mem_ops <= rob_entry.num_mem_ops());
 
   if constexpr (champsim::debug_print) {
-    fmt::print("[LSQ] {} instr_id: {} full_address: {:#x} remain_mem_ops: {}\n", __func__, instr_id, virtual_address,
+    fmt::print("[LSQ] {} instr_id: {} full_address: {} remain_mem_ops: {}\n", __func__, instr_id, virtual_address,
                rob_entry.num_mem_ops() - rob_entry.completed_mem_ops);
   }
 }

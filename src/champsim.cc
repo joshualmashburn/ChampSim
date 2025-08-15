@@ -74,10 +74,18 @@ phase_stats do_phase(const phase_info& phase, environment& env, std::vector<trac
   const auto time_quantum = std::accumulate(std::cbegin(operables), std::cend(operables), champsim::chrono::clock::duration::max(),
                                             [](const auto acc, const operable& y) { return std::min(acc, y.clock_period); });
 
+  bool livelock_trigger{false};
+  uint64_t livelock_period{10000000};
+  uint64_t livelock_timer{0};
+  //                                   die | critical | warning
+  std::vector<double> livelock_threshold{0.01, 0.02, 0.05};
+  std::vector<uint64_t> livelock_instr(std::size(env.cpu_view()), 0);
+
   // Perform phase
   int stalled_cycle{0};
   std::vector<bool> phase_complete(std::size(env.cpu_view()), false);
   while (!std::accumulate(std::begin(phase_complete), std::end(phase_complete), true, std::logical_and{})) {
+    auto next_phase_complete = phase_complete;
     global_clock.tick(time_quantum);
 
     auto progress = do_cycle(env, traces, trace_index, global_clock);
@@ -88,12 +96,35 @@ phase_stats do_phase(const phase_info& phase, environment& env, std::vector<trac
       stalled_cycle = 0;
     }
 
-    if (stalled_cycle >= DEADLOCK_CYCLE) {
+    // Livelock detect, every livelock_period cycles, check progress and alert the user
+    livelock_timer++;
+    if (livelock_timer >= livelock_period) {
+      // for each cpu
+      for (O3_CPU& cpu : env.cpu_view()) {
+        // for each threshold
+        for (auto thres = std::begin(livelock_threshold); thres != std::end(livelock_threshold); thres++) {
+          double livelock_ipc = std::ceil(cpu.sim_instr() - livelock_instr[cpu.cpu]) / std::ceil(livelock_period);
+          if (livelock_ipc <= *thres) {
+            if (std::distance(std::begin(livelock_threshold), thres) == 0) {
+              livelock_trigger = true;
+              fmt::print("{} CPU {} panic: IPC {:.5g} < {:.5g}\n", phase_name, cpu.cpu, livelock_ipc, *thres);
+            } else if (std::distance(std::begin(livelock_threshold), thres) == 1)
+              fmt::print("{} CPU {} critical: IPC {:.5g} < {:.5g}\n", phase_name, cpu.cpu, livelock_ipc, *thres);
+            else
+              fmt::print("{} CPU {} warning: IPC {:.5g} < {:.5g}\n", phase_name, cpu.cpu, livelock_ipc, *thres);
+
+            break;
+          }
+        }
+        livelock_instr[cpu.cpu] = cpu.sim_instr();
+      }
+      livelock_timer = 0;
+    }
+
+    if (stalled_cycle >= DEADLOCK_CYCLE || livelock_trigger) {
       std::for_each(std::begin(operables), std::end(operables), [](champsim::operable& c) { c.print_deadlock(); });
       abort();
     }
-
-    auto next_phase_complete = phase_complete;
 
     // If any trace reaches EOF, terminate all phases
     if (std::any_of(std::begin(traces), std::end(traces), [](const auto& tr) { return tr.eof(); })) {

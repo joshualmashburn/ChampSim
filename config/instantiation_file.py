@@ -22,8 +22,8 @@ import multiprocessing as mp
 from . import util
 from . import cxx
 
-pmem_fmtstr = 'champsim::chrono::picoseconds{{{clock_period}}}, champsim::chrono::picoseconds{{{_tRP}}}, champsim::chrono::picoseconds{{{_tRCD}}}, champsim::chrono::picoseconds{{{_tCAS}}}, champsim::chrono::picoseconds{{{_turn_around_time}}}, {{{_ulptr}}}, {rq_size}, {wq_size}, {channels}, champsim::data::bytes{{{channel_width}}}, {rows}, {columns}, {ranks}, {banks}'
-vmem_fmtstr = 'champsim::data::bytes{{{pte_page_size}}}, {num_levels}, champsim::chrono::picoseconds{{{clock_period}*{minor_fault_penalty}}}, {dram_name}'
+pmem_fmtstr = 'champsim::chrono::picoseconds{{{clock_period_dbus}}}, champsim::chrono::picoseconds{{{clock_period_mc}}}, std::size_t{{{_tRP}}}, std::size_t{{{_tRCD}}}, std::size_t{{{_tCAS}}}, std::size_t{{{_tRAS}}}, champsim::chrono::microseconds{{{_refresh_period}}}, {{{_ulptr}}}, {rq_size}, {wq_size}, {channels}, champsim::data::bytes{{{channel_width}}}, {_bank_rows}, {_bank_columns}, {ranks}, {bankgroups}, {banks}, {_refreshes_per_period}'
+vmem_fmtstr = 'champsim::data::bytes{{{pte_page_size}}}, {num_levels}, champsim::chrono::picoseconds{{{clock_period}*{minor_fault_penalty}}}, {dram_name}, {_randomization}'
 
 queue_fmtstr = '{rq_size}, {pq_size}, {wq_size}, champsim::data::bits{{{_offset_bits}}}, {_queue_check_full_addr:b}'
 
@@ -31,6 +31,7 @@ core_builder_parts = {
     'ifetch_buffer_size': '.ifetch_buffer_size({ifetch_buffer_size})',
     'decode_buffer_size': '.decode_buffer_size({decode_buffer_size})',
     'dispatch_buffer_size': '.dispatch_buffer_size({dispatch_buffer_size})',
+    'register_file_size': '.register_file_size({register_file_size})',
     'rob_size': '.rob_size({rob_size})',
     'lq_size': '.lq_size({lq_size})',
     'sq_size': '.sq_size({sq_size})',
@@ -55,7 +56,7 @@ core_builder_parts = {
     '_branch_predictor_data': '.branch_predictor<{^branch_predictor_string}>()',
     '_btb_data': '.btb<{^btb_string}>()',
     '_index': '.index({_index})',
-    '^clock_period': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
+    'frequency': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
 }
 
 dib_builder_parts = {
@@ -84,7 +85,7 @@ cache_builder_parts = {
     '_prefetcher_data': '.prefetcher<{^prefetcher_string}>()',
     'lower_translate': '.lower_translate(&{^lower_translate_queues})',
     'lower_level': '.lower_level(&{^lower_level_queues})',
-    '^clock_period': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
+    'frequency': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
 }
 
 ptw_builder_parts = {
@@ -94,7 +95,7 @@ ptw_builder_parts = {
     'mshr_size': '.mshr_size({mshr_size})',
     'max_read': '.tag_bandwidth(champsim::bandwidth::maximum_type{{{max_read}}})',
     'max_write': '.fill_bandwidth(champsim::bandwidth::maximum_type{{{max_write}}})',
-    '^clock_period': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
+    'frequency': '.clock_period(champsim::chrono::picoseconds{{{^clock_period}}})'
 }
 
 def vector_string(iterable):
@@ -119,9 +120,11 @@ def get_cpu_builder(cpu, caches, ul_pairs):
         '^btb_string': ', '.join(f'class {k["class"]}' for k in cpu.get('_btb_data',[])),
         '^fetch_queues': f'channels.at({ul_pairs.index((cpu.get("L1I"), cpu.get("name")))})',
         '^data_queues': f'channels.at({ul_pairs.index((cpu.get("L1D"), cpu.get("name")))})',
-        '^l1i_ptr': f'caches.at({cache_index(cpu.get("L1I"))})',
-        '^l1d_ptr': f'caches.at({cache_index(cpu.get("L1D"))})'
+        '^l1i_ptr': f'(*std::next(std::begin(caches), {cache_index(cpu.get("L1I"))}))',
+        '^l1d_ptr': f'(*std::next(std::begin(caches), {cache_index(cpu.get("L1D"))}))'
     }
+    if 'frequency' in cpu:
+        local_params['^clock_period'] = int(1000000/cpu['frequency'])
 
     builder_parts = itertools.chain(util.multiline(itertools.chain(
         ('champsim::core_builder{{ champsim::defaults::default_core }}',),
@@ -151,7 +154,6 @@ def get_cache_builder(elem, ul_pairs):
 
     uppers = (v for v in ul_pairs if v[0] == elem.get('name'))
     local_params = {
-        '^clock_period': int(1000000/elem['frequency']),
         '^defaults': elem.get('_defaults', ''),
         '^upper_levels_string': vector_string(f'&channels.at({ul_pairs.index(v)})' for v in uppers),
         '^prefetch_activate_string': ', '.join('access_type::'+t for t in elem.get('prefetch_activate',[])),
@@ -159,6 +161,8 @@ def get_cache_builder(elem, ul_pairs):
         '^prefetcher_string': ', '.join(f'class {k["class"]}' for k in elem.get('_prefetcher_data',[])),
         '^lower_level_queues': f'channels.at({ul_pairs.index((elem.get("lower_level"), elem.get("name")))})'
     }
+    if 'frequency' in elem:
+        local_params['^clock_period'] = int(1000000/elem['frequency'])
     if 'lower_translate' in elem:
         local_params.update({
             '^lower_translate_queues': f'channels.at({ul_pairs.index((elem.get("lower_translate"), elem.get("name")))})'
@@ -191,10 +195,11 @@ def get_ptw_builder(ptw, ul_pairs):
 
     uppers = (v for v in ul_pairs if v[0] == ptw.get('name'))
     local_params = {
-        '^clock_period': int(1000000/ptw['frequency']),
         '^upper_levels_string': vector_string(f'&channels.at({ul_pairs.index(v)})' for v in uppers),
         '^lower_level_queues': f'channels.at({ul_pairs.index((ptw.get("lower_level"), ptw.get("name")))})'
     }
+    if 'frequency' in ptw:
+        local_params['^clock_period'] = int(1000000/ptw['frequency'])
 
     builder_parts = itertools.chain(util.multiline(itertools.chain(
         ('champsim::ptw_builder{{ champsim::defaults::default_ptw }}',),
@@ -272,36 +277,11 @@ def get_upper_levels(cores, caches, ptws):
         map(functools.partial(named_selector, key='L1D'), cores)
     )))
 
-def check_header_compiles_for_class(clazz, file):
-    ''' Check if including the given header file is sufficient to compile an instance of the given class. '''
-    champsim_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    include_dir = os.path.join(champsim_root, 'inc')
-    vcpkg_parent = os.path.join(champsim_root, 'vcpkg_installed')
-    _, triplet_dirs, _ = next(os.walk(vcpkg_parent))
-    triplet_dir = os.path.join(vcpkg_parent, next(filter(lambda x: x != 'vcpkg', triplet_dirs), None), 'include')
-
-    with tempfile.TemporaryDirectory() as dtemp:
-        args = (
-            f'-I{include_dir}',
-            f'-I{triplet_dir}',
-            f'-I{dtemp}',
-        )
-
-        # touch this file
-        with open(os.path.join(dtemp, 'champsim_constants.h'), 'wt') as wfp:
-            print('', file=wfp)
-
-        return cxx.check_compiles((f'#include "{file}"', f'class {clazz} x{{nullptr}};'), *args)
-
 def module_include_files(datas):
     '''
     Generate C++ include lines for all header files necessary to compile the given modules.
 
-    Each module's paths are searched, and compilation checked (linking is not performed. If the compilation succeeds,
-    the file is emitted as a candidate.
-
-    A warning is printed if a class is entirely dropped from the list, that is, if it failed to compile with any header.
-    In this case, we procede, but ChampSim's compilation will likely fail.
+    It is assumed that all header files in the directory contribute to compilation.
     '''
 
     def all_headers_on(path):
@@ -311,24 +291,9 @@ def module_include_files(datas):
                     yield os.path.abspath(os.path.join(base, file))
 
     class_paths = (zip(itertools.repeat(module_data['class']), all_headers_on(module_data['path'])) for module_data in datas)
-    candidates = list(set(itertools.chain.from_iterable(class_paths)))
-    with mp.Pool() as pool:
-        successes = pool.starmap(check_header_compiles_for_class, candidates)
-    filtered_candidates = list(itertools.compress(candidates, successes))
+    candidates = set(itertools.chain.from_iterable(class_paths))
 
-    class_difference = set(n for n,_ in candidates) - set(n for n,_ in filtered_candidates)
-    for clazz in class_difference:
-        tried_files = (f for c,f in candidates if c == clazz)
-        print('WARNING: no header found for', clazz)
-        print('NOTE: after trying files')
-        for file in tried_files:
-            failed = successes[candidates.index((clazz,file))]
-            print('NOTE:', file)
-            print('NOTE:', failed.args)
-            for line in failed.stderr.splitlines():
-                print('NOTE:  ', line)
-
-    yield from (f'#include "{f}"' for _,f in filtered_candidates)
+    yield from (f'#include "{f}"' for _,f in candidates)
 
 def decorate_queues(caches, ptws, pmem):
     return util.chain(
@@ -366,29 +331,35 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem, build_id):
     # Get fastest clock period in picoseconds
     global_clock_period = int(1000000/max(x['frequency'] for x in itertools.chain(cores, caches, ptws, (pmem,))))
 
-    channels_head, channels_tail = util.cut(queues, n=-1)
-    channel_instantiation_body = (
-        'channels{',
-        *('champsim::channel{' + queue_fmtstr.format(**v) + '},' for v in channels_head),
-        *('champsim::channel{' + queue_fmtstr.format(**v) + '}' for v in channels_tail),
-        '},'
-    )
+    channels_head, channels_tail = util.cut((f'champsim::channel{{{queue_fmtstr.format(**v)}}}' for v in queues), n=-1)
+    channel_instantiation_body = ('channels{', *(v+',' for v in channels_head), *channels_tail, '},')
 
     pmem_instantiation_body = (
         'DRAM{',
         pmem_fmtstr.format(
-            clock_period=int(1000000/pmem['frequency']),
-            _tRP=int(1000*pmem['tRP']),
-            _tRCD=int(1000*pmem['tRCD']),
-            _tCAS=int(1000*pmem['tCAS']),
-            _turn_around_time=int(1000*pmem['turn_around_time']),
+            clock_period_dbus=int(1000000/pmem['data_rate']),
+            clock_period_mc=int(1000000/pmem['frequency']),
+            _tRP=int(pmem['tRP']),
+            _tRCD=int(pmem['tRCD']),
+            _tCAS=int(pmem['tCAS']),
+            _tRAS=int(pmem['tRAS']),
+            _bank_rows=int(pmem['bank_rows']), #added for supporting old configs, mainly column size change
+            _bank_columns=int(pmem['columns']*8 if 'columns' in pmem else pmem['bank_columns']),
+            _refresh_period=int(1000*pmem['refresh_period']),
+            _refreshes_per_period=int(pmem['refreshes_per_period']),
             _ulptr=vector_string(f'&channels.at({ul_pairs.index(v)})' for v in ul_pairs if v[0] == pmem['name']),
             **pmem),
         '},'
     )
 
     vmem_instantiation_body = (
-        'vmem{' + vmem_fmtstr.format(dram_name=pmem['name'], clock_period=global_clock_period, **vmem) + '},',
+        'vmem{',
+        vmem_fmtstr.format(
+            dram_name=pmem['name'], 
+            clock_period=global_clock_period,
+            _randomization= '{}' if (isinstance(vmem['randomization'],bool) and vmem['randomization'] == False) else int(vmem['randomization']),
+            **vmem),
+        '},',
     )
 
     ptw_instantiation_body = (
@@ -434,11 +405,11 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem, build_id):
 
     yield from cxx.function(f'{classname}::operable_view', (
         'std::vector<std::reference_wrapper<champsim::operable>> retval{};',
-        'auto make_ref = [](auto& x){ return std::ref(x); };',
+        'auto make_ref = [](auto& x){ return std::ref<champsim::operable>(x); };',
         'std::transform(std::begin(cores), std::end(cores), std::back_inserter(retval), make_ref);',
         'std::transform(std::begin(caches), std::end(caches), std::back_inserter(retval), make_ref);',
         'std::transform(std::begin(ptws), std::end(ptws), std::back_inserter(retval), make_ref);',
-        'retval.push_back(std::ref(DRAM));',
+        'retval.push_back(std::ref<champsim::operable>(DRAM));',
         'return retval;'
     ), rtype='std::vector<std::reference_wrapper<champsim::operable>>')
     yield ''
@@ -449,15 +420,16 @@ def get_instantiation_lines(cores, caches, ptws, pmem, vmem, build_id):
 def get_instantiation_header(num_cpus, env, build_id):
     yield '#include "environment.h"'
     yield '#include "vmem.h"'
+    yield '#include <forward_list>'
     yield 'template <>'
     struct_body = (
         'private:',
         'std::vector<champsim::channel> channels;',
         'MEMORY_CONTROLLER DRAM;',
         'VirtualMemory vmem;',
-        'std::vector<PageTableWalker> ptws;',
-        'std::vector<CACHE> caches;',
-        'std::vector<O3_CPU> cores;',
+        'std::forward_list<PageTableWalker> ptws;',
+        'std::forward_list<CACHE> caches;',
+        'std::forward_list<O3_CPU> cores;',
 
         'public:',
         f'constexpr static std::size_t num_cpus = {num_cpus};',

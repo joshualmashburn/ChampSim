@@ -32,6 +32,66 @@
 #include "util/bits.h"
 #include "util/span.h"
 
+CACHE::CACHE(CACHE&& other)
+    : operable(other),
+
+      upper_levels(std::move(other.upper_levels)), lower_level(std::move(other.lower_level)), lower_translate(std::move(other.lower_translate)),
+
+      cpu(other.cpu), NAME(std::move(other.NAME)), NUM_SET(other.NUM_SET), NUM_WAY(other.NUM_WAY), MSHR_SIZE(other.MSHR_SIZE), PQ_SIZE(other.PQ_SIZE),
+      HIT_LATENCY(other.HIT_LATENCY), FILL_LATENCY(other.FILL_LATENCY), OFFSET_BITS(other.OFFSET_BITS), block(std::move(other.block)), MAX_TAG(other.MAX_TAG),
+      MAX_FILL(other.MAX_FILL), prefetch_as_load(other.prefetch_as_load), match_offset_bits(other.match_offset_bits), virtual_prefetch(other.virtual_prefetch),
+      pref_activate_mask(std::move(other.pref_activate_mask)),
+
+      sim_stats(std::move(other.sim_stats)), roi_stats(std::move(other.roi_stats)),
+
+      pref_module_pimpl(std::move(other.pref_module_pimpl)), repl_module_pimpl(std::move(other.repl_module_pimpl))
+{
+  pref_module_pimpl->bind(this);
+  repl_module_pimpl->bind(this);
+}
+
+auto CACHE::operator=(CACHE&& other) -> CACHE&
+{
+  this->clock_period = other.clock_period;
+  this->current_time = other.current_time;
+  this->warmup = other.warmup;
+
+  this->upper_levels = std::move(other.upper_levels);
+  this->lower_level = std::move(other.lower_level);
+  this->lower_translate = std::move(other.lower_translate);
+
+  this->cpu = other.cpu;
+  this->NAME = std::move(other.NAME);
+  this->NUM_SET = other.NUM_SET;
+  this->NUM_WAY = other.NUM_WAY;
+  ;
+  this->MSHR_SIZE = other.MSHR_SIZE;
+  ;
+  this->PQ_SIZE = other.PQ_SIZE;
+  this->HIT_LATENCY = other.HIT_LATENCY;
+  this->FILL_LATENCY = other.FILL_LATENCY;
+  this->OFFSET_BITS = other.OFFSET_BITS;
+  ;
+  this->block = std::move(other.block);
+  this->MAX_TAG = other.MAX_TAG;
+  this->MAX_FILL = other.MAX_FILL;
+  this->prefetch_as_load = other.prefetch_as_load;
+  this->match_offset_bits = other.match_offset_bits;
+  this->virtual_prefetch = other.virtual_prefetch;
+  this->pref_activate_mask = std::move(other.pref_activate_mask);
+
+  this->sim_stats = std::move(other.sim_stats);
+  this->roi_stats = std::move(other.roi_stats);
+
+  this->pref_module_pimpl = std::move(other.pref_module_pimpl);
+  this->repl_module_pimpl = std::move(other.repl_module_pimpl);
+
+  pref_module_pimpl->bind(this);
+  repl_module_pimpl->bind(this);
+
+  return *this;
+}
+
 CACHE::tag_lookup_type::tag_lookup_type(const request_type& req, bool local_pref, bool skip)
     : address(req.address), v_address(req.v_address), data(req.data), ip(req.ip), instr_id(req.instr_id), pf_metadata(req.pf_metadata), cpu(req.cpu),
       type(req.type), prefetch_from_this(local_pref), skip_fill(skip), is_translated(req.is_translated), instr_depend_on_me(req.instr_depend_on_me)
@@ -55,6 +115,10 @@ CACHE::mshr_type CACHE::mshr_type::merge(mshr_type predecessor, mshr_type succes
                  std::back_inserter(merged_return));
 
   mshr_type retval{(successor.type == access_type::PREFETCH) ? predecessor : successor};
+
+  // set the time enqueued to the predecessor unless its a demand into prefetch, in which case we use the successor
+  retval.time_enqueued =
+      ((successor.type != access_type::PREFETCH && predecessor.type == access_type::PREFETCH)) ? successor.time_enqueued : predecessor.time_enqueued;
   retval.instr_depend_on_me = merged_instr;
   retval.to_return = merged_return;
   retval.data_promise = predecessor.data_promise;
@@ -138,7 +202,7 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
     writeback_packet.response_requested = false;
 
     if constexpr (champsim::debug_print) {
-      fmt::print("[{}] {} evict address: {:#x} v_address: {:#x} prefetch_metadata: {}\n", NAME, __func__, writeback_packet.address, writeback_packet.v_address,
+      fmt::print("[{}] {} evict address: {} v_address: {} prefetch_metadata: {}\n", NAME, __func__, writeback_packet.address, writeback_packet.v_address,
                  fill_mshr.data_promise->pf_metadata);
     }
 
@@ -155,8 +219,8 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
 
   auto metadata_thru = impl_prefetcher_cache_fill(module_address(fill_mshr), get_set_index(fill_mshr.address), way_idx,
                                                   (fill_mshr.type == access_type::PREFETCH), evicting_address, fill_mshr.data_promise->pf_metadata);
-  impl_update_replacement_state(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, module_address(fill_mshr), fill_mshr.ip, evicting_address,
-                                fill_mshr.type, false);
+  impl_replacement_cache_fill(fill_mshr.cpu, get_set_index(fill_mshr.address), way_idx, module_address(fill_mshr), fill_mshr.ip, evicting_address,
+                              fill_mshr.type);
 
   if (way != set_end) {
     if (way->valid && way->prefetch) {
@@ -171,7 +235,9 @@ bool CACHE::handle_fill(const mshr_type& fill_mshr)
   }
 
   // COLLECT STATS
-  sim_stats.total_miss_latency_cycles += (current_time - (fill_mshr.time_enqueued + clock_period)) / clock_period;
+  if (fill_mshr.type != access_type::PREFETCH)
+    sim_stats.total_miss_latency_cycles += (current_time - (fill_mshr.time_enqueued + clock_period)) / clock_period;
+  sim_stats.mshr_return.increment(std::pair{fill_mshr.type, fill_mshr.cpu});
 
   response_type response{fill_mshr.address, fill_mshr.v_address, fill_mshr.data_promise->data, metadata_thru, fill_mshr.instr_depend_on_me};
   for (auto* ret : fill_mshr.to_return) {
@@ -202,13 +268,13 @@ bool CACHE::try_hit(const tag_lookup_type& handle_pkt)
     metadata_thru = impl_prefetcher_cache_operate(module_address(handle_pkt), handle_pkt.ip, hit, useful_prefetch, handle_pkt.type, metadata_thru);
   }
 
+  // update replacement policy
+  const auto way_idx = std::distance(set_begin, way);
+  impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, module_address(handle_pkt), handle_pkt.ip, {}, handle_pkt.type,
+                                hit);
+
   if (hit) {
     sim_stats.hits.increment(std::pair{handle_pkt.type, handle_pkt.cpu});
-
-    // update replacement policy
-    const auto way_idx = std::distance(set_begin, way);
-    impl_update_replacement_state(handle_pkt.cpu, get_set_index(handle_pkt.address), way_idx, module_address(*way), handle_pkt.ip, champsim::address{},
-                                  handle_pkt.type, true);
 
     response_type response{handle_pkt.address, handle_pkt.v_address, way->data, metadata_thru, handle_pkt.instr_depend_on_me};
     for (auto* ret : handle_pkt.to_return) {
@@ -277,6 +343,9 @@ bool CACHE::handle_miss(const tag_lookup_type& handle_pkt)
         ++sim_stats.pf_useful;
       }
     }
+
+    // COLLECT STATS
+    sim_stats.mshr_merge.increment(std::pair{to_allocate.type, to_allocate.cpu});
 
     *mshr_entry = mshr_type::merge(*mshr_entry, to_allocate);
   } else {
@@ -391,14 +460,29 @@ long CACHE::operate()
       champsim::transform_while_n(translation_stash, std::back_inserter(inflight_tag_check), initiate_tag_bw, is_translated, initiate_tag_check<false>());
   initiate_tag_bw.consume(stash_bandwidth_consumed);
   std::vector<long long> channels_bandwidth_consumed{};
+
+  if (std::size(upper_levels) > 1) {
+    std::rotate(upper_levels.begin(), upper_levels.begin() + 1, upper_levels.end());
+  }
+
+  // upper levels get an equal portion of the remaining bandwidth
+  champsim::bandwidth::maximum_type per_upper_bandwidth =
+      std::size(upper_levels) >= 1
+          ? (champsim::bandwidth::maximum_type)std::max((size_t)initiate_tag_bw.amount_remaining() / std::size(upper_levels), size_t{1})
+          : champsim::bandwidth::maximum_type{};
+
   for (auto* ul : upper_levels) {
     for (auto q : {std::ref(ul->WQ), std::ref(ul->RQ), std::ref(ul->PQ)}) {
+      // this needs to be in this loop, we need to ensure that for cases where bandwidth doesn't divide nicely across upstreams,
+      // we don't accidentally consume more bandwidth than expected
+      champsim::bandwidth per_upper_tag_bw{std::min(per_upper_bandwidth, champsim::bandwidth::maximum_type{initiate_tag_bw.amount_remaining()})};
       auto bandwidth_consumed =
-          champsim::transform_while_n(q.get(), std::back_inserter(inflight_tag_check), initiate_tag_bw, can_translate, initiate_tag_check<true>(ul));
+          champsim::transform_while_n(q.get(), std::back_inserter(inflight_tag_check), per_upper_tag_bw, can_translate, initiate_tag_check<true>(ul));
       channels_bandwidth_consumed.push_back(bandwidth_consumed);
       initiate_tag_bw.consume(bandwidth_consumed);
     }
   }
+
   auto pq_bandwidth_consumed =
       champsim::transform_while_n(internal_PQ, std::back_inserter(inflight_tag_check), initiate_tag_bw, can_translate, initiate_tag_check<false>());
   initiate_tag_bw.consume(pq_bandwidth_consumed);
@@ -554,7 +638,7 @@ void CACHE::finish_translation(const response_type& packet)
     return (champsim::page_number{entry.v_address} == page_num) && !entry.is_translated;
   };
   auto mark_translated = [p_page = champsim::page_number{packet.data}, this](auto& entry) {
-    auto old_address = entry.address;
+    [[maybe_unused]] auto old_address = entry.address;
     entry.address = champsim::address{champsim::splice(p_page, champsim::page_offset{entry.v_address})}; // translated address
     entry.is_translated = true;                                                                          // This entry is now translated
 
@@ -745,6 +829,12 @@ void CACHE::impl_update_replacement_state(uint32_t triggering_cpu, long set, lon
   repl_module_pimpl->impl_update_replacement_state(triggering_cpu, set, way, full_addr, ip, victim_addr, type, hit);
 }
 
+void CACHE::impl_replacement_cache_fill(uint32_t triggering_cpu, long set, long way, champsim::address full_addr, champsim::address ip,
+                                        champsim::address victim_addr, access_type type) const
+{
+  repl_module_pimpl->impl_replacement_cache_fill(triggering_cpu, set, way, full_addr, ip, victim_addr, type);
+}
+
 void CACHE::impl_replacement_final_stats() const { repl_module_pimpl->impl_replacement_final_stats(); }
 
 void CACHE::initialize()
@@ -774,13 +864,13 @@ void CACHE::begin_phase()
 
 void CACHE::end_phase(unsigned finished_cpu)
 {
+  finished_cpu = finished_cpu;
   roi_stats.total_miss_latency_cycles = sim_stats.total_miss_latency_cycles;
 
-  for (auto type : {access_type::LOAD, access_type::RFO, access_type::PREFETCH, access_type::WRITE, access_type::TRANSLATION}) {
-    std::pair key{type, finished_cpu};
-    roi_stats.hits.set(key, sim_stats.hits.value_or(key, 0));
-    roi_stats.misses.set(key, sim_stats.misses.value_or(key, 0));
-  }
+  roi_stats.hits = sim_stats.hits;
+  roi_stats.misses = sim_stats.misses;
+  roi_stats.mshr_merge = sim_stats.mshr_merge;
+  roi_stats.mshr_return = sim_stats.mshr_return;
 
   roi_stats.pf_requested = sim_stats.pf_requested;
   roi_stats.pf_issued = sim_stats.pf_issued;

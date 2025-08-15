@@ -34,6 +34,9 @@ class CpuBuilderTest(unittest.TestCase):
 
     def test_dispatch_buffer_size(self):
         self.get_element_diff(['.dispatch_buffer_size(1)'], dispatch_buffer_size=1)
+    
+    def test_register_file_size(self):
+        self.get_element_diff(['.register_file_size(1)'], register_file_size=1)
 
     def test_rob_size(self):
         self.get_element_diff(['.rob_size(1)'], rob_size=1)
@@ -301,20 +304,3 @@ class GetQueueInfoTests(unittest.TestCase):
             { 'is_good_boy': False }
         ]
         self.assertEqual(expected, evaluated)
-
-class CheckHeaderCompilesForClassTests(unittest.TestCase):
-    def test_present(self):
-        with tempfile.TemporaryDirectory() as dtemp:
-            fname = os.path.join(dtemp, 'test.h')
-            with open(fname, 'wt') as wfp:
-                print('struct A { explicit A(int*); };', file=wfp)
-
-            self.assertTrue(config.instantiation_file.check_header_compiles_for_class('A', fname))
-
-    def test_absent(self):
-        with tempfile.TemporaryDirectory() as dtemp:
-            fname = os.path.join(dtemp, 'test.h')
-            with open(fname, 'wt') as wfp:
-                print('struct A { explicit A(int*); };', file=wfp)
-
-            self.assertFalse(config.instantiation_file.check_header_compiles_for_class('B', fname))
