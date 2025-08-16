@@ -28,6 +28,7 @@
 #include "operable.h"
 #include "phase_info.h"
 #include "tracereader.h"
+#include "event_listeners.h"
 
 constexpr int DEADLOCK_CYCLE{500};
 
@@ -190,6 +191,9 @@ std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases,
   champsim::chrono::clock global_clock;
   std::vector<phase_stats> results;
   for (auto phase : phases) {
+    // call event listeners
+    handle_begin_phase(phase.is_warmup);
+    
     auto stats = do_phase(phase, env, traces, global_clock);
     if (!phase.is_warmup) {
       results.push_back(stats);
