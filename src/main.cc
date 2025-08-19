@@ -148,8 +148,6 @@ int main(int argc, char** argv) // NOLINT(bugprone-exception-escape)
       champsim::json_printer{json_file}.print(phase_stats);
     }
   }
-  
-  cleanup_event_listeners();
 
   return 0;
 }

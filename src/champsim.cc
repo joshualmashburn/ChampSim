@@ -192,7 +192,8 @@ std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases,
   std::vector<phase_stats> results;
   for (auto phase : phases) {
     // call event listeners
-    handle_begin_phase(phase.is_warmup);
+    handle_event<Event::BEGIN_PHASE>(phase.is_warmup);
+    //handle_begin_phase(0, phase.is_warmup);
     
     auto stats = do_phase(phase, env, traces, global_clock);
     if (!phase.is_warmup) {
