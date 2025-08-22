@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>The ChampSim Module System &#8212; ChampSim  documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
     <script src="_static/documentation_options.js?v=5929fcd5"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
@@ -60,7 +60,7 @@ The module should inherit from one of the following classes:</p>
 </ul>
 <p>The module must be constructible with a <code class="docutils literal notranslate"><span class="pre">O3_CPU*</span></code> (for branch predictors and BTBs) or a <code class="docutils literal notranslate"><span class="pre">CACHE*</span></code> (for prefetchers and replacement policies).
 Such a constructor must call the superclass constructor of the same kind, for example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">my_pref</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">my_pref</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span>
 <span class="p">{</span>
     <span class="n">public</span><span class="p">:</span>
     <span class="n">explicit</span> <span class="n">my_pref</span><span class="p">(</span><span class="n">CACHE</span><span class="o">*</span> <span class="n">cache</span><span class="p">)</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span> <span class="p">{}</span>
@@ -68,7 +68,7 @@ Such a constructor must call the superclass constructor of the same kind, for ex
 </pre></div>
 </div>
 <p>One way to do this, if your module’s constructor has an empty body, is to inherit the constructors of the superclass, as with:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">my_pref</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">my_pref</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span>
 <span class="p">{</span>
     <span class="n">public</span><span class="p">:</span>
     <span class="n">using</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span><span class="p">::</span><span class="n">prefetcher</span><span class="p">;</span>
@@ -627,7 +627,7 @@ If so, this parameter is the address of the evicted block.</p></li>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2023, The ChampSim Contributors.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>
