@@ -4,8 +4,10 @@
 #include <iostream>
 #include <deque>
 #include <vector>
+#include <chrono>
+#include <fmt/chrono.h>
 
-#include "event_listeners.h"
+#include "events.h"
 #include "instruction.h"
 
 class Heartbeat {
@@ -34,18 +36,7 @@ public:
   }
 };
 
-/* using double_duration = std::chrono::duration<double, typename champsim::chrono::picoseconds::period>;
-auto heartbeat_instr{std::ceil(num_retired - last_heartbeat_instr)};
-auto heartbeat_cycle{double_duration{current_time - last_heartbeat_time} / clock_period};
-
-auto phase_instr{std::ceil(num_retired - begin_phase_instr)};
-auto phase_cycle{double_duration{current_time - begin_phase_time} / clock_period};
-
-fmt::print("Heartbeat CPU {} instructions: {} cycles: {} heartbeat IPC: {:.4g} cumulative IPC: {:.4g} (Simulation time: {:%H hr %M min %S sec})\n", cpu,
-           num_retired, current_time.time_since_epoch() / clock_period, heartbeat_instr / heartbeat_cycle, phase_instr / phase_cycle, elapsed_time());
-
-last_heartbeat_instr = num_retired;
-last_heartbeat_time = current_time; */
+std::chrono::seconds elapsed_time();
 
 namespace heartbeat {
 
@@ -80,9 +71,8 @@ inline void handle_event<Event::RETIRE>(Heartbeat* hb, uint32_t& cpu, std::deque
     double phase_instr = hb->num_retired[cpu] - hb->num_retired_start_phase[cpu];
     double phase_cycle = current_cycles - hb->cycles_start_phase[cpu];
     
-    // TODO: add "CPU" and "elapsed_time" back in
-    fmt::print("Heartbeat CPU {} instructions: {} cycles: {} heartbeat IPC: {:.4} cumulative IPC: {:.4}\n", cpu,
-      hb->num_retired[cpu], current_cycles, heartbeat_instr / heartbeat_cycle, phase_instr / phase_cycle);
+    fmt::print("Heartbeat CPU {} instructions: {} cycles: {} heartbeat IPC: {:.4} cumulative IPC: {:.4} (Simulation time: {:%H hr %M min %S sec})\n", cpu,
+               hb->num_retired[cpu], current_cycles, heartbeat_instr / heartbeat_cycle, phase_instr / phase_cycle, elapsed_time());
     
     hb->num_retired_last_printout[cpu] = hb->num_retired[cpu];
     hb->cycles_last_printout[cpu] = current_cycles;

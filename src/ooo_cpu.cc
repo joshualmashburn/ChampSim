@@ -31,9 +31,9 @@
 #include "util/span.h"
 #include "event_listeners.h"
 
-std::chrono::seconds elapsed_time();
-
-constexpr long long STAT_PRINTING_PERIOD = 10000000;
+// only used for heartbeat
+//std::chrono::seconds elapsed_time();
+//constexpr long long STAT_PRINTING_PERIOD = 10000000; // modify line 13 of inc/listeners/heartbeat.h instead
 
 long O3_CPU::operate()
 {
@@ -53,7 +53,7 @@ long O3_CPU::operate()
   progress += check_dib();
   initialize_instruction();
 
-  // heartbeat
+  // heartbeat (in inc/listeners/heartbeat.h now)
   /* if (show_heartbeat && (num_retired >= (last_heartbeat_instr + STAT_PRINTING_PERIOD))) {
     using double_duration = std::chrono::duration<double, typename champsim::chrono::picoseconds::period>;
     auto heartbeat_instr{std::ceil(num_retired - last_heartbeat_instr)};
