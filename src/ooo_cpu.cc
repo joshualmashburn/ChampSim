@@ -165,9 +165,6 @@ bool O3_CPU::do_predict_branch(ooo_model_instr& arch_instr)
       fmt::print("[BRANCH] instr_id: {} ip: {} taken: {}\n", arch_instr.instr_id, arch_instr.ip, arch_instr.branch_taken);
     }
     
-    uint64_t cycles = current_time.time_since_epoch() / clock_period;
-    handle_event<Event::DO_PREDICT_BRANCH>(arch_instr, cycles);
-
     // call code prefetcher every time the branch predictor is used
     l1i->impl_prefetcher_branch_operate(arch_instr.ip, arch_instr.branch, predicted_branch_target);
 
@@ -230,9 +227,11 @@ void O3_CPU::do_check_dib(ooo_model_instr& instr)
 
   instr.dib_checked = true;
   
-  bool is_hit = dib_result.has_value();
-  uint64_t cycles = current_time.time_since_epoch() / clock_period;
-  handle_event<Event::DO_CHECK_DIB>(instr, is_hit, cycles);
+  if constexpr (champsim::debug_print) {
+    fmt::print("[DIB] {} instr_id: {} ip: {} hit: {} cycle: {}\n", __func__, instr.instr_id, instr.ip, dib_result.has_value(),
+               current_time.time_since_epoch() / clock_period);
+  }
+  
 }
 
 long O3_CPU::fetch_instruction()

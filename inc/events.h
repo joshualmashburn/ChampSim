@@ -3,8 +3,6 @@
 
 enum Event {
   BEGIN_PHASE,
-  DO_PREDICT_BRANCH,
-  DO_CHECK_DIB,
   RETIRE
 };
 

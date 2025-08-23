@@ -8,17 +8,15 @@
 
 #include "events.h"
 
-#include "listeners/cpi_printout.h"
-#include "listeners/debug.h"
 #include "listeners/heartbeat.h"
 
-inline std::vector<std::string> listener_names = {"CPIPrintout", "Debug", "Heartbeat"};
-inline auto listeners = std::make_tuple(new CPIPrintout(), new Debug(), new Heartbeat());
+inline std::vector<std::string> listener_names = {"Heartbeat"};
+inline auto listeners = std::make_tuple(new Heartbeat());
 inline std::bitset<std::tuple_size_v<decltype(listeners)>> listener_activation_map;
 
 inline void init_event_listeners(const std::vector<std::string>& requested_listeners) {
   listener_activation_map.reset();
-  listener_activation_map[2] = true;
+  listener_activation_map[0] = true; // heartbeat is always enabled
   for (std::string name : requested_listeners) {
     bool found = false;
     for (size_t i = 0; i < listener_names.size(); i++) {
