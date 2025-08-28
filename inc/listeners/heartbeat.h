@@ -12,6 +12,8 @@
 
 class Heartbeat {
 public:
+  static constexpr auto cli_key = "Heartbeat";
+
   uint64_t cycles_between_printouts = 10000000;
   std::vector<uint64_t> num_retired_last_printout;
   std::vector<uint64_t> cycles_last_printout;
