@@ -12,6 +12,12 @@
 
 class Heartbeat {
 public:
+  std::ostream* std_out;
+
+  Heartbeat(std::ostream* so) {
+    std_out = so;
+  }
+
   static constexpr auto cli_key = "Heartbeat";
 
   uint64_t cycles_between_printouts = 10000000;
@@ -44,7 +50,7 @@ namespace heartbeat {
 
 template<Event e, typename... Args>
 inline void handle_event(Heartbeat* hb, Args&... args) {
-  //std::cout << "WARNING: generic handle event\n";
+  std::cout << "WARNING: generic handle event\n";
 }
 
 template<>
@@ -65,7 +71,7 @@ inline void handle_event<Event::RETIRE>(Heartbeat* hb, uint32_t& cpu, std::deque
     hb->cycles_start_phase[cpu] = current_cycles;
   }
   
-  if (hb->num_retired[cpu] > hb->num_retired_last_printout[cpu] + hb->cycles_between_printouts) {
+  if (hb->num_retired[cpu] >= hb->num_retired_last_printout[cpu] + hb->cycles_between_printouts) {
     
     double heartbeat_instr = hb->num_retired[cpu] - hb->num_retired_last_printout[cpu];
     double heartbeat_cycle = current_cycles - hb->cycles_last_printout[cpu];
@@ -73,7 +79,7 @@ inline void handle_event<Event::RETIRE>(Heartbeat* hb, uint32_t& cpu, std::deque
     double phase_instr = hb->num_retired[cpu] - hb->num_retired_start_phase[cpu];
     double phase_cycle = current_cycles - hb->cycles_start_phase[cpu];
     
-    fmt::print("Heartbeat CPU {} instructions: {} cycles: {} heartbeat IPC: {:.4} cumulative IPC: {:.4} (Simulation time: {:%H hr %M min %S sec})\n", cpu,
+    fmt::print(*(hb->std_out), "Heartbeat CPU {} instructions: {} cycles: {} heartbeat IPC: {:.4} cumulative IPC: {:.4} (Simulation time: {:%H hr %M min %S sec})\n", cpu,
                hb->num_retired[cpu], current_cycles, heartbeat_instr / heartbeat_cycle, phase_instr / phase_cycle, elapsed_time());
     
     hb->num_retired_last_printout[cpu] = hb->num_retired[cpu];

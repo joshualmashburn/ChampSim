@@ -10,7 +10,7 @@
 
 #include "listeners/heartbeat.h"
 
-inline auto listeners = std::make_tuple(Heartbeat());
+inline auto listeners = std::make_tuple(Heartbeat(&std::cout));
 
 template <typename>
 struct listener_names_helper{};
