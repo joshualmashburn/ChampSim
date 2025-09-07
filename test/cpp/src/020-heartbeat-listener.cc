@@ -28,10 +28,12 @@ TEST_CASE("The heartbeat listener prints one line after 10M instructions retired
     
     std::string res = stdout.str();
     
-    REQUIRE(res.substr(0, res.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ");
+    std::string rest = res.substr(res.find('\n')+1);
+    
+    REQUIRE((res.substr(0, res.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 " && rest.length() < 2));
 }
 
-TEST_CASE("The heartbeat listener prints cumulative IPC correctly after a phase change") {
+TEST_CASE("The heartbeat listener prints cumulative and heartbeat IPC correctly after a phase change") {
     std::ostringstream stdout{};
     Heartbeat uut{&stdout};
     
@@ -73,12 +75,58 @@ TEST_CASE("The heartbeat listener prints cumulative IPC correctly after a phase 
     std::string l2 = rest.substr(0, rest.find('\n')+1);
     rest = rest.substr(rest.find('\n')+1);
     std::string l3 = rest.substr(0, rest.find('\n')+1);
+    rest = rest.substr(rest.find('\n')+1);
     
     bool l1_correct = l1.substr(0, l1.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 2499999 heartbeat IPC: 4 cumulative IPC: 4 ";
     bool l2_correct = l2.substr(0, l2.find('(')) == "Heartbeat CPU 0 instructions: 20000000 cycles: 5999999 heartbeat IPC: 2.857 cumulative IPC: 2 ";
     bool l3_correct = l3.substr(0, l3.find('(')) == "Heartbeat CPU 0 instructions: 30000000 cycles: 10999999 heartbeat IPC: 2 cumulative IPC: 2 ";
     
-    REQUIRE((l1_correct && l2_correct && l3_correct));
+    REQUIRE((l1_correct && l2_correct && l3_correct && rest.length() < 2));
+}
+
+TEST_CASE("The heartbeat listener prints correctly with multiple CPUs") {
+    std::ostringstream stdout{};
+    Heartbeat uut{&stdout};
+    
+    // begin phase event
+    bool in_warmup = true;
+    uut.handle_event<Event::BEGIN_PHASE>(in_warmup);
+    
+    for (int i = 0; i < 5000000; ++i) {
+        
+        // simulation behavior (2 IPC)
+        std::deque<ooo_model_instr> fake_instructions{{ooo_model_instr(0, input_instr()), ooo_model_instr(0, input_instr())}};
+        uint32_t cpu = 0;
+        uint64_t curr_cycles = i;
+        auto cb = std::cbegin(fake_instructions);
+        auto ce = std::cend(fake_instructions);
+        uut.handle_event<Event::RETIRE>(cpu, cb, ce, curr_cycles);
+        cpu++;
+        uut.handle_event<Event::RETIRE>(cpu, cb, ce, curr_cycles);
+        cpu++;
+        uut.handle_event<Event::RETIRE>(cpu, cb, ce, curr_cycles);
+        cpu++;
+        uut.handle_event<Event::RETIRE>(cpu, cb, ce, curr_cycles);
+        
+    }
+    
+    std::string res = stdout.str();
+    
+    std::string l1 = res.substr(0, res.find('\n')+1);
+    std::string rest = res.substr(res.find('\n')+1);
+    std::string l2 = rest.substr(0, rest.find('\n')+1);
+    rest = rest.substr(rest.find('\n')+1);
+    std::string l3 = rest.substr(0, rest.find('\n')+1);
+    rest = rest.substr(rest.find('\n')+1);
+    std::string l4 = rest.substr(0, rest.find('\n')+1);
+    rest = rest.substr(rest.find('\n')+1);
+    
+    bool l1_correct = l1.substr(0, l1.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
+    bool l2_correct = l2.substr(0, l1.find('(')) == "Heartbeat CPU 1 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
+    bool l3_correct = l3.substr(0, l1.find('(')) == "Heartbeat CPU 2 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
+    bool l4_correct = l4.substr(0, l1.find('(')) == "Heartbeat CPU 3 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
+    
+    REQUIRE((l1_correct && l2_correct && l3_correct && l4_correct && rest.length() < 2));
 }
 
 }
