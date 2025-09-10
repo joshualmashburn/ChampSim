@@ -14,7 +14,7 @@ class Heartbeat {
 public:
   std::ostream* std_out;
 
-  Heartbeat(std::ostream* so) {
+  explicit Heartbeat(std::ostream* so) {
     std_out = so;
   }
 
@@ -50,7 +50,7 @@ namespace heartbeat {
 
 template<Event e, typename... Args>
 inline void handle_event(Heartbeat* hb, Args&... args) {
-  std::cout << "WARNING: generic handle event\n";
+  //std::cout << "WARNING: generic handle event\n";
 }
 
 template<>

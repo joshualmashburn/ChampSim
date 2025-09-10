@@ -30,7 +30,8 @@ TEST_CASE("The heartbeat listener prints one line after 10M instructions retired
     
     std::string rest = res.substr(res.find('\n')+1);
     
-    REQUIRE((res.substr(0, res.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 " && rest.length() < 2));
+    REQUIRE_THAT(res, Catch::Matchers::StartsWith("Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE(rest.length() < 2);
 }
 
 TEST_CASE("The heartbeat listener prints cumulative and heartbeat IPC correctly after a phase change") {
@@ -77,11 +78,10 @@ TEST_CASE("The heartbeat listener prints cumulative and heartbeat IPC correctly 
     std::string l3 = rest.substr(0, rest.find('\n')+1);
     rest = rest.substr(rest.find('\n')+1);
     
-    bool l1_correct = l1.substr(0, l1.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 2499999 heartbeat IPC: 4 cumulative IPC: 4 ";
-    bool l2_correct = l2.substr(0, l2.find('(')) == "Heartbeat CPU 0 instructions: 20000000 cycles: 5999999 heartbeat IPC: 2.857 cumulative IPC: 2 ";
-    bool l3_correct = l3.substr(0, l3.find('(')) == "Heartbeat CPU 0 instructions: 30000000 cycles: 10999999 heartbeat IPC: 2 cumulative IPC: 2 ";
-    
-    REQUIRE((l1_correct && l2_correct && l3_correct && rest.length() < 2));
+    REQUIRE_THAT(l1, Catch::Matchers::StartsWith("Heartbeat CPU 0 instructions: 10000000 cycles: 2499999 heartbeat IPC: 4 cumulative IPC: 4 "));
+    REQUIRE_THAT(l2, Catch::Matchers::StartsWith("Heartbeat CPU 0 instructions: 20000000 cycles: 5999999 heartbeat IPC: 2.857 cumulative IPC: 2 "));
+    REQUIRE_THAT(l3, Catch::Matchers::StartsWith("Heartbeat CPU 0 instructions: 30000000 cycles: 10999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE(rest.length() < 2);
 }
 
 TEST_CASE("The heartbeat listener prints correctly with multiple CPUs") {
@@ -121,12 +121,11 @@ TEST_CASE("The heartbeat listener prints correctly with multiple CPUs") {
     std::string l4 = rest.substr(0, rest.find('\n')+1);
     rest = rest.substr(rest.find('\n')+1);
     
-    bool l1_correct = l1.substr(0, l1.find('(')) == "Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
-    bool l2_correct = l2.substr(0, l1.find('(')) == "Heartbeat CPU 1 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
-    bool l3_correct = l3.substr(0, l1.find('(')) == "Heartbeat CPU 2 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
-    bool l4_correct = l4.substr(0, l1.find('(')) == "Heartbeat CPU 3 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 ";
-    
-    REQUIRE((l1_correct && l2_correct && l3_correct && l4_correct && rest.length() < 2));
+    REQUIRE_THAT(l1, Catch::Matchers::StartsWith("Heartbeat CPU 0 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE_THAT(l2, Catch::Matchers::StartsWith("Heartbeat CPU 1 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE_THAT(l3, Catch::Matchers::StartsWith("Heartbeat CPU 2 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE_THAT(l4, Catch::Matchers::StartsWith("Heartbeat CPU 3 instructions: 10000000 cycles: 4999999 heartbeat IPC: 2 cumulative IPC: 2 "));
+    REQUIRE(rest.length() < 2);
 }
 
 }
