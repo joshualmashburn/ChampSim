@@ -24,11 +24,11 @@
 #include <fmt/core.h>
 
 #include "environment.h"
+#include "event_listeners.h"
 #include "ooo_cpu.h"
 #include "operable.h"
 #include "phase_info.h"
 #include "tracereader.h"
-#include "event_listeners.h"
 
 constexpr int DEADLOCK_CYCLE{500};
 
@@ -193,8 +193,8 @@ std::vector<phase_stats> main(environment& env, std::vector<phase_info>& phases,
   for (auto phase : phases) {
     // call event listeners
     handle_event<Event::BEGIN_PHASE>(phase.is_warmup);
-    //handle_begin_phase(0, phase.is_warmup);
-    
+    // handle_begin_phase(0, phase.is_warmup);
+
     auto stats = do_phase(phase, env, traces, global_clock);
     if (!phase.is_warmup) {
       results.push_back(stats);

@@ -1,28 +1,29 @@
 #ifndef EVENT_LISTENERS_H
 #define EVENT_LISTENERS_H
 
-#include <vector>
-#include <string>
 #include <iostream>
+#include <string>
 #include <tuple>
+#include <vector>
 
 #include "events.h"
-
 #include "listeners/heartbeat.h"
 
 inline auto listeners = std::make_tuple(Heartbeat(&std::cout));
 
 template <typename>
-struct listener_names_helper{};
+struct listener_names_helper {
+};
 template <typename... Listeners>
-struct listener_names_helper<std::tuple<Listeners...>>{
+struct listener_names_helper<std::tuple<Listeners...>> {
   constexpr static auto names = std::array<const char*, sizeof...(Listeners)>{{Listeners::cli_key...}};
 };
 constexpr inline auto listener_names = listener_names_helper<decltype(listeners)>::names;
 
 inline std::bitset<std::tuple_size_v<decltype(listeners)>> listener_activation_map;
 
-inline void init_event_listeners(const std::vector<std::string>& requested_listeners) {
+inline void init_event_listeners(const std::vector<std::string>& requested_listeners)
+{
   listener_activation_map.reset();
   listener_activation_map[0] = true; // heartbeat is always enabled
   for (std::string name : requested_listeners) {
@@ -40,18 +41,19 @@ inline void init_event_listeners(const std::vector<std::string>& requested_liste
   }
 }
 
-template<Event e, std::size_t Idx, typename... Args>
-void handle_listener_event(Args&... args) {
-    if (listener_activation_map[Idx]) {
-        std::get<Idx>(listeners).template handle_event<e>(args...);
-    }
+template <Event e, std::size_t Idx, typename... Args>
+void handle_listener_event(Args&... args)
+{
+  if (listener_activation_map[Idx]) {
+    std::get<Idx>(listeners).template handle_event<e>(args...);
+  }
 }
 
-template<Event e, typename... Args>
-void handle_event(Args&... args) {
-    [&] <std::size_t... Is> (std::index_sequence<Is...>){
-        (handle_listener_event<e, Is>(args...), ...);
-    }(std::make_index_sequence<std::tuple_size_v<decltype(listeners)>>{}); // immediately invoked
+template <Event e, typename... Args>
+void handle_event(Args&... args)
+{
+  [&]<std::size_t... Is>(std::index_sequence<Is...>) { (handle_listener_event<e, Is>(args...), ...); }
+  (std::make_index_sequence<std::tuple_size_v<decltype(listeners)>>{}); // immediately invoked
 }
 
 #endif

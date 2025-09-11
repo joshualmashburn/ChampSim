@@ -29,12 +29,12 @@
 #endif
 #include "defaults.hpp"
 #include "environment.h"
+#include "event_listeners.h"
 #include "ooo_cpu.h" // for O3_CPU
 #include "phase_info.h"
 #include "stats_printer.h"
 #include "tracereader.h"
 #include "vmem.h"
-#include "event_listeners.h"
 
 namespace champsim
 {
@@ -90,7 +90,7 @@ int main(int argc, char** argv) // NOLINT(bugprone-exception-escape)
   app.add_option("traces", trace_names, "The paths to the traces")->required()->expected(NUM_CPUS)->check(CLI::ExistingFile);
 
   CLI11_PARSE(app, argc, argv);
-  
+
   init_event_listeners(requested_listeners);
 
   const bool warmup_given = (warmup_instr_option->count() > 0) || (deprec_warmup_instr_option->count() > 0);
