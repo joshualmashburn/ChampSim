@@ -174,19 +174,17 @@ bool CACHE::handle_fill(const fill_type& fill)
   auto [set_begin, set_end] = get_set_span(fill.address);
   auto way = std::find_if_not(set_begin, set_end, [](auto x) { return x.valid; });
   if (way == set_end) {
-    way = std::next(set_begin, impl_find_victim(fill.cpu, fill.instr_id, get_set_index(fill.address), &*set_begin, fill.ip,
-                                                fill.address, fill.type));
+    way = std::next(set_begin, impl_find_victim(fill.cpu, fill.instr_id, get_set_index(fill.address), &*set_begin, fill.ip, fill.address, fill.type));
   }
   assert(set_begin <= way);
   assert(way <= set_end);
   assert(way != set_end || fill.type != access_type::WRITE); // Writes may not bypass
-  const auto way_idx = std::distance(set_begin, way);             // cast protected by earlier assertion
+  const auto way_idx = std::distance(set_begin, way);        // cast protected by earlier assertion
 
   if constexpr (champsim::debug_print) {
     fmt::print("[{}] {} instr_id: {} address: {} v_address: {} set: {} way: {} type: {} prefetch_metadata: {} cycle_enqueued: {} cycle: {}\n", NAME, __func__,
-               fill.instr_id, fill.address, fill.v_address, get_set_index(fill.address), way_idx,
-               access_type_names.at(champsim::to_underlying(fill.type)), fill.data_promise->pf_metadata,
-               (fill.time_enqueued.time_since_epoch()) / clock_period, (current_time.time_since_epoch()) / clock_period);
+               fill.instr_id, fill.address, fill.v_address, get_set_index(fill.address), way_idx, access_type_names.at(champsim::to_underlying(fill.type)),
+               fill.data_promise->pf_metadata, (fill.time_enqueued.time_since_epoch()) / clock_period, (current_time.time_since_epoch()) / clock_period);
   }
 
   if (way != set_end && way->valid && way->dirty) {
@@ -217,10 +215,9 @@ bool CACHE::handle_fill(const fill_type& fill)
     evicting_address = module_address(*way);
   }
 
-  auto metadata_thru = impl_prefetcher_cache_fill(module_address(fill), get_set_index(fill.address), way_idx,
-                                                  (fill.type == access_type::PREFETCH), evicting_address, fill.data_promise->pf_metadata);
-  impl_replacement_cache_fill(fill.cpu, get_set_index(fill.address), way_idx, module_address(fill), fill.ip, evicting_address,
-                              fill.type);
+  auto metadata_thru = impl_prefetcher_cache_fill(module_address(fill), get_set_index(fill.address), way_idx, (fill.type == access_type::PREFETCH),
+                                                  evicting_address, fill.data_promise->pf_metadata);
+  impl_replacement_cache_fill(fill.cpu, get_set_index(fill.address), way_idx, module_address(fill), fill.ip, evicting_address, fill.type);
 
   if (way != set_end) {
     if (way->valid && way->prefetch) {
@@ -443,7 +440,7 @@ long CACHE::operate()
   // Perform fills
   champsim::bandwidth fill_bw{MAX_FILL};
   auto [fill_begin, fill_end] = champsim::get_span_p(std::cbegin(inflight_fills), std::cend(inflight_fills), fill_bw,
-                                                      [time = current_time](const auto& x) { return x.data_promise.is_ready_at(time); });
+                                                     [time = current_time](const auto& x) { return x.data_promise.is_ready_at(time); });
   auto complete_end = std::find_if_not(fill_begin, fill_end, [this](const auto& x) { return this->handle_fill(x); });
   fill_bw.consume(std::distance(fill_begin, complete_end));
   inflight_fills.erase(fill_begin, complete_end);
