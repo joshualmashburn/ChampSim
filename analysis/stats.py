@@ -7,6 +7,8 @@ import warnings
 
 warnings.simplefilter("ignore", FutureWarning)
 
+from datetime import timedelta
+
 weights = {
     "505.mcf_r_00": 0.073125,
     "505.mcf_r_01": 0.167787,
@@ -167,6 +169,7 @@ def parse_champsim_output(path):
                     filename.startswith("500.perlbench")
                     or filename.startswith("520.omnetpp")
                     or filename.startswith("523.xalancbmk")
+                    or filename.startswith("xapian")
                 ):
                     continue
 
@@ -204,6 +207,17 @@ def parse_single_file(file_path):
 
     roi_start = False
     for line in lines:
+        if "Simulation complete" in line:
+            match = re.search(
+                r"Simulation time: (\d{2}) hr (\d{2}) min (\d{2}) sec", line
+            )
+            if match:
+                hours, minutes, seconds = map(int, match.groups())
+                sim_time = timedelta(hours=hours, minutes=minutes, seconds=seconds)
+                data["Simulation Time"] = (
+                    sim_time.total_seconds()
+                )  # Store as total seconds
+                continue
         if "Region of Interest Statistics" in line:
             roi_start = True
             continue
@@ -300,6 +314,18 @@ def define_cpu_patterns():
         "BRANCH_DIRECT_CALL": r"BRANCH_DIRECT_CALL:\s*([\d.eE-]+)",
         "BRANCH_INDIRECT_CALL": r"BRANCH_INDIRECT_CALL:\s*([\d.eE-]+)",
         "BRANCH_RETURN": r"BRANCH_RETURN:\s*([\d.eE-]+)",
+        "Execute_Only_WP_Cycles": r"Execute Only WP Cycles (\d+)",
+        "Execute_Only_CP_Cycles": r"Execute Only CP Cycles (\d+)",
+        "Execute_CP_WP_Cycles": r"Execute CP WP Cycles (\d+)",
+        "Execute_ROB_Empty_Cycles": r"Execute nothing ROB Empty Cycles (\d+)",
+        "Execute_ROB_Empty_Repair_Cycles": r"Execute nothing ROB Empty Repair Cycles (\d+)",
+        "Execute_ROB_Empty_Fetch_Stalled_No_WP_Cycles": r"Execute nothing ROB Empty Fetch Stalled No WP Cycles (\d+)",
+        "Execute_ROB_Not_Ready_Not_Full_New_Added_Cycles": r"Execute nothing ROB Not Ready Not Full New Added Cycles (\d+)",
+        "Execute_ROB_Not_Ready_Not_Full_No_New_Added_Cycles": r"Execute nothing ROB Not Ready Not Full No New Added Cycles (\d+)",
+        "Execute_ROB_Not_Ready_Full_New_Added_Cycles": r"Execute nothing ROB Not Ready Full New Added Cycles (\d+)",
+        "Execute_ROB_Not_Ready_Full_No_New_Added_Cycles": r"Execute nothing ROB Not Ready Full No New Added Cycles (\d+)",
+        "Execute_Other_IDK_Cycles": r"Execute nothing Other IDK Cycles (\d+)",
+        "Execute_Total_Cycles": r"Execute Total Cycles Cycles (\d+)",
     }
 
 

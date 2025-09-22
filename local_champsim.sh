@@ -9,7 +9,7 @@ w=1000000
 s=10000000
 
 # for trace in $(ls ../Traces/TAGE_SC_L/cp-spec/*.gz); do
-    trace="../Traces/TAGE_SC_L/cp-spec/505.mcf_r_00.gz"
+    trace="../Traces/new_trace_format/SPEC/505.mcf_r_00.gz"
     trace_name=$(basename $trace)
     trace_name=${trace_name%.gz}
     echo "Running $trace_name"
