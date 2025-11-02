@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Address Operations &#8212; ChampSim  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Byte Sizes" href="Byte-sizes.html" />
+    <link rel="prev" title="Configuration API" href="Configuration-API.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Byte-sizes.html" title="Byte Sizes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Configuration-API.html" title="Configuration API"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Address Operations</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="address-operations">
+<span id="id1"></span><h1>Address Operations<a class="headerlink" href="#address-operations" title="Link to this heading">¶</a></h1>
+<section id="addresses">
+<h2>Addresses<a class="headerlink" href="#addresses" title="Link to this heading">¶</a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN8champsim13address_sliceE">
+<span id="_CPPv3I0EN8champsim13address_sliceE"></span><span id="_CPPv2I0EN8champsim13address_sliceE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Extent</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><a class="headerlink" href="#_CPPv4I0EN8champsim13address_sliceE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The correctness of address operations is critical to the correctness of ChampSim.</p>
+<p>This class is a strong type for addresses to prevent bugs that would result from unchecked operations on raw integers. The primary benefit is this: Most address operation bugs are compiler errors. Those that are not are usually runtime exceptions. If you need to manipulate the bits of an address, you can, but you must explicitly enter an unsafe mode.</p>
+<p>This class is a generalization of a subset of address bits. Implicit conversions between address slices of different extents are compile-time errors, providing a measure of safety. New slices must be explicitly constructed.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// LOG2_PAGE_SIZE = 12</span>
+<span class="c1">// LOG2_BLOCK_SIZE = 6</span>
+<span class="n">address</span><span class="w"> </span><span class="n">full_addr</span><span class="p">{</span><span class="mh">0xffff&#39;ffff</span><span class="p">};</span>
+<span class="n">block_number</span><span class="w"> </span><span class="n">block</span><span class="p">{</span><span class="n">full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;ffc0</span>
+<span class="n">page_number</span><span class="w"> </span><span class="n">page</span><span class="p">{</span><span class="n">full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;f000</span>
+</pre></div>
+</div>
+<p>All address slices can take their extent as a constructor parameter.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">address_slice</span><span class="w"> </span><span class="n">st_full_addr</span><span class="p">{</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="mi">0</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">{},</span><span class="mh">0xffff&#39;ffff</span><span class="p">};</span>
+<span class="n">address_slice</span><span class="w"> </span><span class="n">st_block</span><span class="p">{</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_BLOCK_SIZE</span><span class="p">}</span><span class="o">&gt;</span><span class="p">{},</span><span class="w"> </span><span class="n">st_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;ffc0</span>
+<span class="n">address_slice</span><span class="w"> </span><span class="n">st_page</span><span class="p">{</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_PAGE_SIZE</span><span class="p">}</span><span class="o">&gt;</span><span class="p">{},</span><span class="w"> </span><span class="n">st_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;f000</span>
+
+<span class="n">address_slice</span><span class="w"> </span><span class="n">dyn_full_addr</span><span class="p">{</span><span class="n">dynamic_extent</span><span class="p">{</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="mi">0</span><span class="n">_b</span><span class="p">},</span><span class="mh">0xffff&#39;ffff</span><span class="p">};</span>
+<span class="n">address_slice</span><span class="w"> </span><span class="n">dyn_block</span><span class="p">{</span><span class="n">dynamic_extent</span><span class="p">{</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_BLOCK_SIZE</span><span class="p">}},</span><span class="w"> </span><span class="n">dyn_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;ffc0</span>
+<span class="n">address_slice</span><span class="w"> </span><span class="n">dyn_page</span><span class="p">{</span><span class="n">dynamic_extent</span><span class="p">{</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_PAGE_SIZE</span><span class="p">}},</span><span class="w"> </span><span class="n">dyn_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xffff&#39;f000</span>
+</pre></div>
+</div>
+<p>For static extents, it can be useful to explicitly specify the template parameter.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">64</span><span class="n">_b</span><span class="p">,</span><span class="mi">0</span><span class="n">_b</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">st_full_addr</span><span class="p">{</span><span class="mh">0xffff&#39;ffff</span><span class="p">};</span>
+<span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_BLOCK_SIZE</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="n">_b</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">st_block</span><span class="p">{</span><span class="n">st_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0x3f</span>
+<span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">LOG2_PAGE_SIZE</span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="n">_b</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">st_page</span><span class="p">{</span><span class="n">st_full_addr</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0xfff</span>
+</pre></div>
+</div>
+<p>The address slices have a constructor that accepts a uint64_t. No bit shifting is performed in these constructors. The argument is assumed to be in the domain of the slice.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">champsim</span><span class="o">::</span><span class="n">block_number</span><span class="w"> </span><span class="n">block</span><span class="p">{</span><span class="mh">0xffff</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0x003f&#39;ffc0</span>
+</pre></div>
+</div>
+<p>Relative slicing is possible with member functions:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">24</span><span class="n">_b</span><span class="p">,</span><span class="mi">12</span><span class="n">_b</span><span class="o">&gt;&gt;::</span><span class="n">slice</span><span class="p">(</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">8</span><span class="n">_b</span><span class="p">,</span><span class="mi">4</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">{})</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">20</span><span class="n">_b</span><span class="p">,</span><span class="mi">16</span><span class="n">_b</span><span class="o">&gt;&gt;</span>
+<span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">24</span><span class="n">_b</span><span class="p">,</span><span class="mi">12</span><span class="n">_b</span><span class="o">&gt;&gt;::</span><span class="n">slice</span><span class="o">&lt;</span><span class="mi">8</span><span class="n">_b</span><span class="p">,</span><span class="mi">4</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">20</span><span class="n">_b</span><span class="p">,</span><span class="mi">16</span><span class="n">_b</span><span class="o">&gt;&gt;</span>
+<span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">24</span><span class="n">_b</span><span class="p">,</span><span class="mi">12</span><span class="n">_b</span><span class="o">&gt;&gt;::</span><span class="n">slice_upper</span><span class="o">&lt;</span><span class="mi">4</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">24</span><span class="n">_b</span><span class="p">,</span><span class="mi">16</span><span class="n">_b</span><span class="o">&gt;&gt;</span>
+<span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">24</span><span class="n">_b</span><span class="p">,</span><span class="mi">12</span><span class="n">_b</span><span class="o">&gt;&gt;::</span><span class="n">slice_lower</span><span class="o">&lt;</span><span class="mi">8</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">address_slice</span><span class="o">&lt;</span><span class="n">static_extent</span><span class="o">&lt;</span><span class="mi">20</span><span class="n">_b</span><span class="p">,</span><span class="mi">12</span><span class="n">_b</span><span class="o">&gt;&gt;</span>
+</pre></div>
+</div>
+<p>The offset between two addresses can be found with</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">offset</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">base</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="o">::</span><span class="n">difference_type</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">uoffset</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">base</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unsigned_t</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="o">::</span><span class="n">difference_type</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>The function is a template, so any address slice is accepted, but the two arguments must be of the same type. For the first function, the return type is signed and the conversion is safe against overflows, where it will throw an exception. For the second function, the return type is unsigned and the ‘other’ argument must succeed ‘base’, or the function will throw an exception.</p>
+<p>Address slices also support addition and subtraction with signed integers. The arguments to this arithmetic are in the domain of the type.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">champsim</span><span class="o">::</span><span class="n">block_number</span><span class="w"> </span><span class="n">block</span><span class="p">{</span><span class="mh">0xffff</span><span class="p">};</span><span class="w"> </span><span class="c1">// 0x003f&#39;ffc0</span>
+<span class="n">block</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">// 0x0040&#39;0000</span>
+</pre></div>
+</div>
+<p>Two or more slices can be spliced together. Later arguments takes priority over the first, and the result type has an extent that is a superset of all slices.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">champsim</span><span class="o">::</span><span class="n">splice</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">page_number</span><span class="p">{</span><span class="mh">0xaaa</span><span class="p">},</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">page_offset</span><span class="p">{</span><span class="mh">0xbbb</span><span class="p">})</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="p">{</span><span class="mh">0xaaabbb</span><span class="p">};</span>
+</pre></div>
+</div>
+<p>Sometimes, it is necessary to directly manipulate the bits of an address in a way that these strong types do not allow. Additionally, sometimes slices must be used as array indices. In those cases, the <a class="reference internal" href="#classchampsim_1_1address__slice_1a840651e7301b7b4b44c145d60ba0f08c"><span class="std std-ref">address_slice&lt;&gt;::to&lt;T&gt;()</span></a> function performs a checked cast to the type.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">{</span><span class="mh">0xffff&#39;ffff</span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Foo</span><span class="w"> </span><span class="p">{};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">Foo</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="o">&gt;</span><span class="w"> </span><span class="n">foos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">the_foo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foos</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="n">addr</span><span class="p">.</span><span class="n">slice_lower</span><span class="o">&lt;</span><span class="mi">8</span><span class="n">_b</span><span class="o">&gt;</span><span class="p">().</span><span class="n">to</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">());</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>EXTENT</strong> – One of <code class="docutils literal notranslate"><a class="reference internal" href="#structchampsim_1_1static__extent"><span class="std std-ref"><span class="pre">champsim::static_extent</span></span></a><span class="pre">&lt;&gt;</span></code>, <code class="docutils literal notranslate"><a class="reference internal" href="#structchampsim_1_1dynamic__extent"><span class="std std-ref"><span class="pre">champsim::dynamic_extent</span></span></a></code>, or one of the page- or block-sized extents. </p>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice11extent_typeE">
+<span id="_CPPv3N8champsim13address_slice11extent_typeE"></span><span id="_CPPv2N8champsim13address_slice11extent_typeE"></span><span class="target" id="classchampsim_1_1address__slice_1afe9e831300c8860b7a54b9f5f8339925"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">extent_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">EXTENT</span></span><a class="headerlink" href="#_CPPv4N8champsim13address_slice11extent_typeE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The extent passed as a template parameter. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice15underlying_typeE">
+<span id="_CPPv3N8champsim13address_slice15underlying_typeE"></span><span id="_CPPv2N8champsim13address_slice15underlying_typeE"></span><span class="target" id="classchampsim_1_1address__slice_1a4dbb5ad9b618e36e57697a01da384b87"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">underlying_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">uint64_t</span></span><a class="headerlink" href="#_CPPv4N8champsim13address_slice15underlying_typeE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The underlying representation of the address. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice15difference_typeE">
+<span id="_CPPv3N8champsim13address_slice15difference_typeE"></span><span id="_CPPv2N8champsim13address_slice15difference_typeE"></span><span class="target" id="classchampsim_1_1address__slice_1a6bee86cfc072f79d6491ed8e84bfd285"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">difference_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">make_signed_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15underlying_typeE" title="champsim::address_slice::underlying_type"><span class="n"><span class="pre">underlying_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim13address_slice15difference_typeE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The type of an offset between two addresses. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice13address_sliceEv">
+<span id="_CPPv3N8champsim13address_slice13address_sliceEv"></span><span id="_CPPv2N8champsim13address_slice13address_sliceEv"></span><span id="champsim::address_slice::address_sliceCE"></span><span class="target" id="classchampsim_1_1address__slice_1a4ed0a4ad3484974a5dcad16eb85bc08b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slice13address_sliceEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Default-initialize the slice. This constructor is invalid for dynamically-sized extents. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice13address_sliceE15underlying_type">
+<span id="_CPPv3N8champsim13address_slice13address_sliceE15underlying_type"></span><span id="_CPPv2N8champsim13address_slice13address_sliceE15underlying_type"></span><span id="champsim::address_slice::address_slice__underlying_typeCE"></span><span class="target" id="classchampsim_1_1address__slice_1a37b69a034e82e0eba958ef2889dc6d20"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15underlying_typeE" title="champsim::address_slice::underlying_type"><span class="n"><span class="pre">underlying_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slice13address_sliceE15underlying_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the slice with the given raw value. This constructor is invalid for dynamically-sized extents. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE">
+<span id="_CPPv3I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE"></span><span id="_CPPv2I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OTHER_EXT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a2352a34d8b1b18ce21d95505c9bd5dcc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE" title="champsim::address_slice::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE" title="champsim::address_slice::address_slice::OTHER_EXT"><span class="n"><span class="pre">OTHER_EXT</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the slice with the given slice, shifting and masking if necessary. If this extent is dynamic, it will have the same bounds as the given slice. If the conversion is a widening, the widened bits will be 0. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE">
+<span id="_CPPv3I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE"></span><span id="_CPPv2I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OTHER_EXT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a1935fba6b6bf923f2637abaf5cc9d974"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice11extent_typeE" title="champsim::address_slice::extent_type"><span class="n"><span class="pre">extent_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ext</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE" title="champsim::address_slice::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE" title="champsim::address_slice::address_slice::OTHER_EXT"><span class="n"><span class="pre">OTHER_EXT</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the slice with the given slice, shifting and masking if necessary. The extent type can be deduced from the first argument. If the conversion is a widening, the widened bits will be 0. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice13address_sliceE11extent_type15underlying_type">
+<span id="_CPPv3N8champsim13address_slice13address_sliceE11extent_type15underlying_type"></span><span id="_CPPv2N8champsim13address_slice13address_sliceE11extent_type15underlying_type"></span><span id="champsim::address_slice::address_slice__extent_type.underlying_typeCE"></span><span class="target" id="classchampsim_1_1address__slice_1ad81dd7922745f48247cec61cbf06014e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address_slice</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice11extent_typeE" title="champsim::address_slice::extent_type"><span class="n"><span class="pre">extent_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ext</span></span>, <a class="reference internal" href="#_CPPv4N8champsim13address_slice15underlying_typeE" title="champsim::address_slice::underlying_type"><span class="n"><span class="pre">underlying_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slice13address_sliceE11extent_type15underlying_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the slice with the given value. The extent type can be deduced from the first argument. If the conversion is a widening, the widened bits will be 0. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK8champsim13address_slice2toE1Tv">
+<span id="_CPPv3I0ENK8champsim13address_slice2toEv"></span><span id="_CPPv2I0ENK8champsim13address_slice2toEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a840651e7301b7b4b44c145d60ba0f08c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0ENK8champsim13address_slice2toE1Tv" title="champsim::address_slice::to::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK8champsim13address_slice2toE1Tv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Unwrap the value of this slice as a raw integer value. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceeqE9self_type">
+<span id="_CPPv3NK8champsim13address_sliceeqE9self_type"></span><span id="_CPPv2NK8champsim13address_sliceeqE9self_type"></span><span id="champsim::address_slice::eq-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1afafe6eedea729ca125b5e2ad42bcb3fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">==</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceeqE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for equality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceltE9self_type">
+<span id="_CPPv3NK8champsim13address_sliceltE9self_type"></span><span id="_CPPv2NK8champsim13address_sliceltE9self_type"></span><span id="champsim::address_slice::lt-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1a3f5aee866f161d21dffd798cbf1bf67d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceltE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for ordering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceneE9self_type">
+<span id="_CPPv3NK8champsim13address_sliceneE9self_type"></span><span id="_CPPv2NK8champsim13address_sliceneE9self_type"></span><span id="champsim::address_slice::neq-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1ac1dffa5f99b58c349d221403675b4edd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">!=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceneE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for inequality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceleE9self_type">
+<span id="_CPPv3NK8champsim13address_sliceleE9self_type"></span><span id="_CPPv2NK8champsim13address_sliceleE9self_type"></span><span id="champsim::address_slice::lte-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1ad24dab0f41be2bac7c8f3ba36c5187fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&lt;=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceleE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for ordering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slicegtE9self_type">
+<span id="_CPPv3NK8champsim13address_slicegtE9self_type"></span><span id="_CPPv2NK8champsim13address_slicegtE9self_type"></span><span id="champsim::address_slice::gt-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1a80468ac907d85910806010961921d333"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&gt;</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slicegtE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for ordering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slicegeE9self_type">
+<span id="_CPPv3NK8champsim13address_slicegeE9self_type"></span><span id="_CPPv2NK8champsim13address_slicegeE9self_type"></span><span id="champsim::address_slice::gte-operator__self_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1ae863b3a1c7c8fc2f215c418baa83dd8d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">&gt;=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slicegeE9self_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Compare with another address slice for ordering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – If the extents do not match </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicepLE15difference_type">
+<span id="_CPPv3N8champsim13address_slicepLE15difference_type"></span><span id="_CPPv2N8champsim13address_slicepLE15difference_type"></span><span id="champsim::address_slice::add-assign-operator__difference_type"></span><span class="target" id="classchampsim_1_1address__slice_1a55593f7f0e688057a950b0513cc8e1cf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15difference_typeE" title="champsim::address_slice::difference_type"><span class="n"><span class="pre">difference_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicepLE15difference_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice in place by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicepLEN8champsim4data5bytesE">
+<span id="_CPPv3N8champsim13address_slicepLEN8champsim4data5bytesE"></span><span id="_CPPv2N8champsim13address_slicepLEN8champsim4data5bytesE"></span><span id="champsim::address_slice::add-assign-operator__champsim::data::bytes"></span><span class="target" id="classchampsim_1_1address__slice_1ad40c6b071ccf1d8a9188f993e45566c5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data5bytesE" title="champsim::data::bytes"><span class="n"><span class="pre">bytes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicepLEN8champsim4data5bytesE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice in place by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceplE15difference_type">
+<span id="_CPPv3NK8champsim13address_sliceplE15difference_type"></span><span id="_CPPv2NK8champsim13address_sliceplE15difference_type"></span><span id="champsim::address_slice::add-operator__difference_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1aed9114de25277617f2becd719ccb0fe0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15difference_typeE" title="champsim::address_slice::difference_type"><span class="n"><span class="pre">difference_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceplE15difference_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_sliceplEN8champsim4data5bytesE">
+<span id="_CPPv3NK8champsim13address_sliceplEN8champsim4data5bytesE"></span><span id="_CPPv2NK8champsim13address_sliceplEN8champsim4data5bytesE"></span><span id="champsim::address_slice::add-operator__champsim::data::bytesC"></span><span class="target" id="classchampsim_1_1address__slice_1a24ad3946d7ca022b5122595e852d74f2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data5bytesE" title="champsim::data::bytes"><span class="n"><span class="pre">bytes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_sliceplEN8champsim4data5bytesE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicemIE15difference_type">
+<span id="_CPPv3N8champsim13address_slicemIE15difference_type"></span><span id="_CPPv2N8champsim13address_slicemIE15difference_type"></span><span id="champsim::address_slice::sub-assign-operator__difference_type"></span><span class="target" id="classchampsim_1_1address__slice_1a6b445341aeadbcce9ba0b00b583cc082"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15difference_typeE" title="champsim::address_slice::difference_type"><span class="n"><span class="pre">difference_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicemIE15difference_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice in place by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicemIEN8champsim4data5bytesE">
+<span id="_CPPv3N8champsim13address_slicemIEN8champsim4data5bytesE"></span><span id="_CPPv2N8champsim13address_slicemIEN8champsim4data5bytesE"></span><span id="champsim::address_slice::sub-assign-operator__champsim::data::bytes"></span><span class="target" id="classchampsim_1_1address__slice_1a8a20c3b91645d3b25a261ee16f5ca9e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-=</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data5bytesE" title="champsim::data::bytes"><span class="n"><span class="pre">bytes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicemIEN8champsim4data5bytesE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice in place by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slicemiE15difference_type">
+<span id="_CPPv3NK8champsim13address_slicemiE15difference_type"></span><span id="_CPPv2NK8champsim13address_slicemiE15difference_type"></span><span id="champsim::address_slice::sub-operator__difference_typeC"></span><span class="target" id="classchampsim_1_1address__slice_1aefa2af21f5446d813abfa34dbdc439cb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15difference_typeE" title="champsim::address_slice::difference_type"><span class="n"><span class="pre">difference_type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slicemiE15difference_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slicemiEN8champsim4data5bytesE">
+<span id="_CPPv3NK8champsim13address_slicemiEN8champsim4data5bytesE"></span><span id="_CPPv2NK8champsim13address_slicemiEN8champsim4data5bytesE"></span><span id="champsim::address_slice::sub-operator__champsim::data::bytesC"></span><span class="target" id="classchampsim_1_1address__slice_1a20a08a596e418e089536412b5eec8b25"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">-</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data5bytesE" title="champsim::data::bytes"><span class="n"><span class="pre">bytes</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">delta</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slicemiEN8champsim4data5bytesE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice by the given amount. The delta is interpreted in the domain of the slice. That is, the delta need not be scaled by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;&lt;</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_sliceppEv">
+<span id="_CPPv3N8champsim13address_sliceppEv"></span><span id="_CPPv2N8champsim13address_sliceppEv"></span><span id="champsim::address_slice::inc-operator"></span><span class="target" id="classchampsim_1_1address__slice_1ac7ff7c730eafaaaa4ee46afffc8eee26"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">++</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_sliceppEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice by one. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_sliceppEi">
+<span id="_CPPv3N8champsim13address_sliceppEi"></span><span id="_CPPv2N8champsim13address_sliceppEi"></span><span id="champsim::address_slice::inc-operator__i"></span><span class="target" id="classchampsim_1_1address__slice_1ae00631b7d9d5f8d8e7f558370f422edb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">++</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_sliceppEi" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Increment the slice by one. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicemmEv">
+<span id="_CPPv3N8champsim13address_slicemmEv"></span><span id="_CPPv2N8champsim13address_slicemmEv"></span><span id="champsim::address_slice::dec-operator"></span><span class="target" id="classchampsim_1_1address__slice_1a06689d8adc03b894ba35b76d2cde4304"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">--</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicemmEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice by one. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slicemmEi">
+<span id="_CPPv3N8champsim13address_slicemmEi"></span><span id="_CPPv2N8champsim13address_slicemmEi"></span><span id="champsim::address_slice::dec-operator__i"></span><span class="target" id="classchampsim_1_1address__slice_1aa917f2a63e0cf4b6fd336f2b38d236b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">self_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">--</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim13address_slicemmEi" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Decrement the slice by one. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK8champsim13address_slice5sliceEDa10SUB_EXTENT">
+<span id="_CPPv3I0ENK8champsim13address_slice5sliceE10SUB_EXTENT"></span><span id="_CPPv2I0ENK8champsim13address_slice5sliceE10SUB_EXTENT"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SUB_EXTENT</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1af38df9964cd42a2aafe4e0d202f8b046"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK8champsim13address_slice5sliceEDa10SUB_EXTENT" title="champsim::address_slice::slice::SUB_EXTENT"><span class="n"><span class="pre">SUB_EXTENT</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">subextent</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK8champsim13address_slice5sliceEDa10SUB_EXTENT" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Perform a slice on this address. The given extent should be relative to this slice’s extent. If either this extent or the subextent are runtime-sized, the result will have a runtime-sized extent. Otherwise, the extent will be statically-sized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEENK8champsim13address_slice5sliceEDav">
+<span id="_CPPv3I_N8champsim4data4bitsE_N8champsim4data4bitsEENK8champsim13address_slice5sliceEv"></span><span id="_CPPv2I_N8champsim4data4bitsE_N8champsim4data4bitsEENK8champsim13address_slice5sliceEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">new_upper</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">new_lower</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a14aca7a0b0617419aa0b6fddeaa6e02a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEENK8champsim13address_slice5sliceEDav" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Perform a slice on this address. The given extent should be relative to this slice’s extent. This is a synonym for <code class="docutils literal notranslate"><span class="pre">slice(</span><a class="reference internal" href="#structchampsim_1_1static__extent"><span class="std std-ref"><span class="pre">static_extent</span></span></a><span class="pre">&lt;new_upper,</span> <span class="pre">new_lower&gt;{})</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_upperEDav">
+<span id="_CPPv3I_N8champsim4data4bitsEENK8champsim13address_slice11slice_upperEv"></span><span id="_CPPv2I_N8champsim4data4bitsEENK8champsim13address_slice11slice_upperEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">new_lower</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1ad8e6e58030ad47502be2af007a5bc3bc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice_upper</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_upperEDav" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Slice the upper bits, ending with the given bit relative to the lower extent of this. If this slice is statically-sized, the result will be statically-sized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_lowerEDav">
+<span id="_CPPv3I_N8champsim4data4bitsEENK8champsim13address_slice11slice_lowerEv"></span><span id="_CPPv2I_N8champsim4data4bitsEENK8champsim13address_slice11slice_lowerEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">new_upper</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a0ab62e7a07c486d2e1c0232b50456e05"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice_lower</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_lowerEDav" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Slice the lower bits, ending with the given bit relative to the lower extent of this. If this slice is statically-sized, the result will be statically-sized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slice11slice_upperEN8champsim4data4bitsE">
+<span id="_CPPv3NK8champsim13address_slice11slice_upperEN8champsim4data4bitsE"></span><span id="_CPPv2NK8champsim13address_slice11slice_upperEN8champsim4data4bitsE"></span><span id="champsim::address_slice::slice_upper__champsim::data::bitsC"></span><span class="target" id="classchampsim_1_1address__slice_1a42a3d2d7c7ef1b72e7969657f9e451d0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice_upper</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">new_lower</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slice11slice_upperEN8champsim4data4bitsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Slice the upper bits, ending with the given bit relative to the lower extent of this. The result of this will always be runtime-sized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slice11slice_lowerEN8champsim4data4bitsE">
+<span id="_CPPv3NK8champsim13address_slice11slice_lowerEN8champsim4data4bitsE"></span><span id="_CPPv2NK8champsim13address_slice11slice_lowerEN8champsim4data4bitsE"></span><span id="champsim::address_slice::slice_lower__champsim::data::bitsC"></span><span class="target" id="classchampsim_1_1address__slice_1acd48fce406264ccb4bb239a9f5fdb7eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice_lower</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">new_upper</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slice11slice_lowerEN8champsim4data4bitsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Slice the lower bits, ending with the given bit relative to the lower extent of this. The result of this will always be runtime-sized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice5splitEDav">
+<span id="_CPPv3I_N8champsim4data4bitsEENK8champsim13address_slice5splitEv"></span><span id="_CPPv2I_N8champsim4data4bitsEENK8champsim13address_slice5splitEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">split_loc</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1address__slice_1a7e762b0adc757a42864d567b426390a1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">split</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice5splitEDav" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Split the slice into an upper and lower slice. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slice5splitEN8champsim4data4bitsE">
+<span id="_CPPv3NK8champsim13address_slice5splitEN8champsim4data4bitsE"></span><span id="_CPPv2NK8champsim13address_slice5splitEN8champsim4data4bitsE"></span><span id="champsim::address_slice::split__champsim::data::bitsC"></span><span class="target" id="classchampsim_1_1address__slice_1accafdd2f105598c9a6f4b8d6f4705c5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">split</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">split_loc</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slice5splitEN8champsim4data4bitsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Split the slice into an upper and lower slice. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slice12upper_extentEv">
+<span id="_CPPv3NK8champsim13address_slice12upper_extentEv"></span><span id="_CPPv2NK8champsim13address_slice12upper_extentEv"></span><span id="champsim::address_slice::upper_extentC"></span><span class="target" id="classchampsim_1_1address__slice_1a0766317a73d317f11f3411d1c8ea2846"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">upper_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slice12upper_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get the upper portion of the extent. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim13address_slice12lower_extentEv">
+<span id="_CPPv3NK8champsim13address_slice12lower_extentEv"></span><span id="_CPPv2NK8champsim13address_slice12lower_extentEv"></span><span id="champsim::address_slice::lower_extentC"></span><span class="target" id="classchampsim_1_1address__slice_1a202e9b0eb71fa82638f54ffde8c5ab4c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lower_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><a class="headerlink" href="#_CPPv4NK8champsim13address_slice12lower_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Get the lower portion of the extent. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13address_slice4bitsE">
+<span id="_CPPv3N8champsim13address_slice4bitsE"></span><span id="_CPPv2N8champsim13address_slice4bitsE"></span><span id="champsim::address_slice::bits__champsim::data::bits"></span><span class="target" id="classchampsim_1_1address__slice_1adcd641fefa008fae8b498dc5d5cfec1f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bits</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim13address_slice15underlying_typeE" title="champsim::address_slice::underlying_type"><span class="n"><span class="pre">underlying_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">digits</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N8champsim13address_slice4bitsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The maximum width of any address slice. This is not the width of this slice, which can be found by <code class="docutils literal notranslate"><span class="pre">slice.upper_extent()</span> <span class="pre">-</span> <span class="pre">slice.lower_extent()</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE">
+<span id="_CPPv3I0EN8champsim6offsetE13address_sliceI6ExtentE13address_sliceI6ExtentE"></span><span id="_CPPv2I0EN8champsim6offsetE13address_sliceI6ExtentE13address_sliceI6ExtentE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Extent</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="address_8h_1a9d49e85a34297b525a052c4d49f29aa0"></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::offset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">difference_type</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">offset</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::offset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">base</span></span>, <a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::offset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Find the offset between two slices with the same types.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">overflow_error</span></span></span> – if the difference cannot be represented in the difference type </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE">
+<span id="_CPPv3I0EN8champsim7uoffsetE13address_sliceI6ExtentE13address_sliceI6ExtentE"></span><span id="_CPPv2I0EN8champsim7uoffsetE13address_sliceI6ExtentE13address_sliceI6ExtentE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Extent</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="address_8h_1ab8ef3f50a1b9a2f9f54be75084613332"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">make_unsigned_t</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::uoffset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">difference_type</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">uoffset</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::uoffset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">base</span></span>, <a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="champsim::uoffset::Extent"><span class="n"><span class="pre">Extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Find the offset between two slices with the same types, where the first element must be less than or equal to than the second. The return type of this function is unsigned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">overflow_error</span></span></span> – if the difference cannot be represented in the difference type </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN8champsim6spliceEDaDp13address_sliceI7ExtentsE">
+<span id="_CPPv3IDpEN8champsim6spliceEDp13address_sliceI7ExtentsE"></span><span id="_CPPv2IDpEN8champsim6spliceEDp13address_sliceI7ExtentsE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Extents</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="address_8h_1a596906c014000a57ab285841014f0602"></span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">splice</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4IDpEN8champsim6spliceEDaDp13address_sliceI7ExtentsE" title="champsim::splice::Extents"><span class="n"><span class="pre">Extents</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slices</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN8champsim6spliceEDaDp13address_sliceI7ExtentsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Join address slices together. Later slices will overwrite bits from earlier slices. The extent of the returned slice is the superset of all slices. If all of the slices are statically-sized, the result will be statically-sized as well. </p>
+</dd></dl>
+
+<section id="convenience-typedefs">
+<h3>Convenience typedefs<a class="headerlink" href="#convenience-typedefs" title="Link to this heading">¶</a></h3>
+<p>Champsim provides five specializations of an address slice in <code class="docutils literal notranslate"><span class="pre">inc/champsim.h</span></code></p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim7addressE">
+<span id="_CPPv3N8champsim7addressE"></span><span id="_CPPv2N8champsim7addressE"></span><span class="target" id="champsim_8h_1abd0716221f1e4f3a95e5c4448eda9412"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE" title="champsim::static_extent"><span class="n"><span class="pre">static_extent</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">numeric_limits</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint64_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">digits</span></span><span class="p"><span class="pre">}</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim7addressE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Convenience definitions for commmon address slices </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim11page_numberE">
+<span id="_CPPv3N8champsim11page_numberE"></span><span id="_CPPv2N8champsim11page_numberE"></span><span class="target" id="champsim_8h_1ad4085cfe2ffa3c9cbc3a7f6bf7ab6ef0"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">page_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim18page_number_extentE" title="champsim::page_number_extent"><span class="n"><span class="pre">page_number_extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim11page_numberE" title="Link to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim11page_offsetE">
+<span id="_CPPv3N8champsim11page_offsetE"></span><span id="_CPPv2N8champsim11page_offsetE"></span><span class="target" id="champsim_8h_1a6a68a0cbd3a9266096dd49992542a346"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">page_offset</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim18page_offset_extentE" title="champsim::page_offset_extent"><span class="n"><span class="pre">page_offset_extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim11page_offsetE" title="Link to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim12block_numberE">
+<span id="_CPPv3N8champsim12block_numberE"></span><span id="_CPPv2N8champsim12block_numberE"></span><span class="target" id="champsim_8h_1afc1dbea887717905e654a0881fdafaf4"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">block_number</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim19block_number_extentE" title="champsim::block_number_extent"><span class="n"><span class="pre">block_number_extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim12block_numberE" title="Link to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim12block_offsetE">
+<span id="_CPPv3N8champsim12block_offsetE"></span><span id="_CPPv2N8champsim12block_offsetE"></span><span class="target" id="champsim_8h_1ac9eab6578363b58848ff0808dce20774"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">block_offset</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE" title="champsim::address_slice"><span class="n"><span class="pre">address_slice</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N8champsim19block_offset_extentE" title="champsim::block_offset_extent"><span class="n"><span class="pre">block_offset_extent</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N8champsim12block_offsetE" title="Link to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+<section id="extents">
+<h2>Extents<a class="headerlink" href="#extents" title="Link to this heading">¶</a></h2>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE">
+<span id="_CPPv3I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE"></span><span id="_CPPv2I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UP</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structchampsim_1_1static__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">static_extent</span></span></span><a class="headerlink" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent with compile-time size </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13static_extent5upperE">
+<span id="_CPPv3N8champsim13static_extent5upperE"></span><span id="_CPPv2N8champsim13static_extent5upperE"></span><span id="champsim::static_extent::upper__champsim::data::bits"></span><span class="target" id="structchampsim_1_1static__extent_1a9c258bbf48cf39ecdd7b7fe7dbfb5d24"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">upper</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE" title="champsim::static_extent::UP"><span class="n"><span class="pre">UP</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N8champsim13static_extent5upperE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The upper limit of the extent. Generally, this is not inclusive. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim13static_extent5lowerE">
+<span id="_CPPv3N8champsim13static_extent5lowerE"></span><span id="_CPPv2N8champsim13static_extent5lowerE"></span><span id="champsim::static_extent::lower__champsim::data::bits"></span><span class="target" id="structchampsim_1_1static__extent_1a6221fec766999cbf751f374019413075"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lower</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE" title="champsim::static_extent::LOW"><span class="n"><span class="pre">LOW</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N8champsim13static_extent5lowerE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The lower limit of the extent. This is generally inclusive. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim14dynamic_extentE">
+<span id="_CPPv3N8champsim14dynamic_extentE"></span><span id="_CPPv2N8champsim14dynamic_extentE"></span><span id="champsim::dynamic_extent"></span><span class="target" id="structchampsim_1_1dynamic__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dynamic_extent</span></span></span><a class="headerlink" href="#_CPPv4N8champsim14dynamic_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent with runtime size </p>
+<p>Subclassed by <a class="reference internal" href="#structchampsim_1_1block__number__extent"><span class="std std-ref">champsim::block_number_extent</span></a>, <a class="reference internal" href="#structchampsim_1_1block__offset__extent"><span class="std std-ref">champsim::block_offset_extent</span></a>, <a class="reference internal" href="#structchampsim_1_1page__number__extent"><span class="std std-ref">champsim::page_number_extent</span></a>, <a class="reference internal" href="#structchampsim_1_1page__offset__extent"><span class="std std-ref">champsim::page_offset_extent</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsEN8champsim4data4bitsE">
+<span id="_CPPv3N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsEN8champsim4data4bitsE"></span><span id="_CPPv2N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsEN8champsim4data4bitsE"></span><span id="champsim::dynamic_extent::dynamic_extent__champsim::data::bits.champsim::data::bitsCE"></span><span class="target" id="structchampsim_1_1dynamic__extent_1ae49fd0033fa294ac156eef238cc28928"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dynamic_extent</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">up</span></span>, <span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">low</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsEN8champsim4data4bitsE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the extent with the given upper and lower extents. The upper must be greater than or equal to the lower. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsENSt6size_tE">
+<span id="_CPPv3N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsENSt6size_tE"></span><span id="_CPPv2N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsENSt6size_tE"></span><span id="champsim::dynamic_extent::dynamic_extent__champsim::data::bits.std::sCE"></span><span class="target" id="structchampsim_1_1dynamic__extent_1a6ab83eef9865202566bcb69501153477"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dynamic_extent</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">low</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsENSt6size_tE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Initialize the extent with a lower extent and size. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim14dynamic_extent5upperE">
+<span id="_CPPv3N8champsim14dynamic_extent5upperE"></span><span id="_CPPv2N8champsim14dynamic_extent5upperE"></span><span id="champsim::dynamic_extent::upper__champsim::data::bits"></span><span class="target" id="structchampsim_1_1dynamic__extent_1aae225f1435f5701e2ad759e7ce0d4046"></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">upper</span></span></span><a class="headerlink" href="#_CPPv4N8champsim14dynamic_extent5upperE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The upper limit of the extent. Generally, this is not inclusive. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim14dynamic_extent5lowerE">
+<span id="_CPPv3N8champsim14dynamic_extent5lowerE"></span><span id="_CPPv2N8champsim14dynamic_extent5lowerE"></span><span id="champsim::dynamic_extent::lower__champsim::data::bits"></span><span class="target" id="structchampsim_1_1dynamic__extent_1ade2daa1adea686826d9fd9fc7040380f"></span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="Byte-sizes.html#_CPPv4N8champsim4data4bitsE" title="champsim::data::bits"><span class="n"><span class="pre">bits</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lower</span></span></span><a class="headerlink" href="#_CPPv4N8champsim14dynamic_extent5lowerE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>The lower limit of the extent. This is generally inclusive. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim18page_number_extentE">
+<span id="_CPPv3N8champsim18page_number_extentE"></span><span id="_CPPv2N8champsim18page_number_extentE"></span><span id="champsim::page_number_extent"></span><span class="target" id="structchampsim_1_1page__number__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">page_number_extent</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extentE" title="champsim::dynamic_extent"><span class="n"><span class="pre">dynamic_extent</span></span></a><a class="headerlink" href="#_CPPv4N8champsim18page_number_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent that is always the size of a page number </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim18page_number_extent18page_number_extentEv">
+<span id="_CPPv3N8champsim18page_number_extent18page_number_extentEv"></span><span id="_CPPv2N8champsim18page_number_extent18page_number_extentEv"></span><span id="champsim::page_number_extent::page_number_extent"></span><span class="target" id="structchampsim_1_1page__number__extent_1a05f94cb359feda5e40fa161e38417bfd"></span><span class="sig-name descname"><span class="n"><span class="pre">page_number_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim18page_number_extent18page_number_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>This extent can only be default-initialized. It will have <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">==</span> <a class="reference internal" href="#classchampsim_1_1address__slice_1adcd641fefa008fae8b498dc5d5cfec1f"><span class="std std-ref"><span class="pre">champsim::address::bits</span></span></a></code> and <code class="docutils literal notranslate"><span class="pre">lower</span> <span class="pre">==</span> <span class="pre">LOG2_PAGE_SIZE</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim18page_offset_extentE">
+<span id="_CPPv3N8champsim18page_offset_extentE"></span><span id="_CPPv2N8champsim18page_offset_extentE"></span><span id="champsim::page_offset_extent"></span><span class="target" id="structchampsim_1_1page__offset__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">page_offset_extent</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extentE" title="champsim::dynamic_extent"><span class="n"><span class="pre">dynamic_extent</span></span></a><a class="headerlink" href="#_CPPv4N8champsim18page_offset_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent that is always the size of a page offset </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim18page_offset_extent18page_offset_extentEv">
+<span id="_CPPv3N8champsim18page_offset_extent18page_offset_extentEv"></span><span id="_CPPv2N8champsim18page_offset_extent18page_offset_extentEv"></span><span id="champsim::page_offset_extent::page_offset_extent"></span><span class="target" id="structchampsim_1_1page__offset__extent_1ab48494f7f0824a687be0c3e2b6c3fec7"></span><span class="sig-name descname"><span class="n"><span class="pre">page_offset_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim18page_offset_extent18page_offset_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>This extent can only be default-initialized. It will have <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">==</span> <span class="pre">LOG2_PAGE_SIZE</span></code> and <code class="docutils literal notranslate"><span class="pre">lower</span> <span class="pre">==</span> <span class="pre">0</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim19block_number_extentE">
+<span id="_CPPv3N8champsim19block_number_extentE"></span><span id="_CPPv2N8champsim19block_number_extentE"></span><span id="champsim::block_number_extent"></span><span class="target" id="structchampsim_1_1block__number__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_number_extent</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extentE" title="champsim::dynamic_extent"><span class="n"><span class="pre">dynamic_extent</span></span></a><a class="headerlink" href="#_CPPv4N8champsim19block_number_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent that is always the size of a block number </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim19block_number_extent19block_number_extentEv">
+<span id="_CPPv3N8champsim19block_number_extent19block_number_extentEv"></span><span id="_CPPv2N8champsim19block_number_extent19block_number_extentEv"></span><span id="champsim::block_number_extent::block_number_extent"></span><span class="target" id="structchampsim_1_1block__number__extent_1a4e3e0c1c8e50b4efbff88441cde37101"></span><span class="sig-name descname"><span class="n"><span class="pre">block_number_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim19block_number_extent19block_number_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>This extent can only be default-initialized. It will have <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">==</span> <a class="reference internal" href="#classchampsim_1_1address__slice_1adcd641fefa008fae8b498dc5d5cfec1f"><span class="std std-ref"><span class="pre">champsim::address::bits</span></span></a></code> and <code class="docutils literal notranslate"><span class="pre">lower</span> <span class="pre">==</span> <span class="pre">LOG2_BLOCK_SIZE</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim19block_offset_extentE">
+<span id="_CPPv3N8champsim19block_offset_extentE"></span><span id="_CPPv2N8champsim19block_offset_extentE"></span><span id="champsim::block_offset_extent"></span><span class="target" id="structchampsim_1_1block__offset__extent"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_offset_extent</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extentE" title="champsim::dynamic_extent"><span class="n"><span class="pre">dynamic_extent</span></span></a><a class="headerlink" href="#_CPPv4N8champsim19block_offset_extentE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>An extent that is always the size of a block offset </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim19block_offset_extent19block_offset_extentEv">
+<span id="_CPPv3N8champsim19block_offset_extent19block_offset_extentEv"></span><span id="_CPPv2N8champsim19block_offset_extent19block_offset_extentEv"></span><span id="champsim::block_offset_extent::block_offset_extent"></span><span class="target" id="structchampsim_1_1block__offset__extent_1a90899cdf04e9a00262ea74453d1e250c"></span><span class="sig-name descname"><span class="n"><span class="pre">block_offset_extent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim19block_offset_extent19block_offset_extentEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>This extent can only be default-initialized. It will have <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">==</span> <span class="pre">LOG2_BLOCK_SIZE</span></code> and <code class="docutils literal notranslate"><span class="pre">lower</span> <span class="pre">==</span> <span class="pre">0</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Address Operations</a><ul>
+<li><a class="reference internal" href="#addresses">Addresses</a><ul>
+<li><a class="reference internal" href="#_CPPv4I0EN8champsim13address_sliceE"><code class="docutils literal notranslate"><span class="pre">champsim::address_slice</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice11extent_typeE"><code class="docutils literal notranslate"><span class="pre">extent_type</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice15underlying_typeE"><code class="docutils literal notranslate"><span class="pre">underlying_type</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice15difference_typeE"><code class="docutils literal notranslate"><span class="pre">difference_type</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice13address_sliceEv"><code class="docutils literal notranslate"><span class="pre">address_slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice13address_sliceE15underlying_type"><code class="docutils literal notranslate"><span class="pre">address_slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceERK13address_sliceI9OTHER_EXTE"><code class="docutils literal notranslate"><span class="pre">address_slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I0EN8champsim13address_slice13address_sliceE11extent_typeRK13address_sliceI9OTHER_EXTE"><code class="docutils literal notranslate"><span class="pre">address_slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice13address_sliceE11extent_type15underlying_type"><code class="docutils literal notranslate"><span class="pre">address_slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I0ENK8champsim13address_slice2toE1Tv"><code class="docutils literal notranslate"><span class="pre">to()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceeqE9self_type"><code class="docutils literal notranslate"><span class="pre">operator==()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceltE9self_type"><code class="docutils literal notranslate"><span class="pre">operator&lt;()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceneE9self_type"><code class="docutils literal notranslate"><span class="pre">operator!=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceleE9self_type"><code class="docutils literal notranslate"><span class="pre">operator&lt;=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slicegtE9self_type"><code class="docutils literal notranslate"><span class="pre">operator&gt;()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slicegeE9self_type"><code class="docutils literal notranslate"><span class="pre">operator&gt;=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicepLE15difference_type"><code class="docutils literal notranslate"><span class="pre">operator+=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicepLEN8champsim4data5bytesE"><code class="docutils literal notranslate"><span class="pre">operator+=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceplE15difference_type"><code class="docutils literal notranslate"><span class="pre">operator+()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_sliceplEN8champsim4data5bytesE"><code class="docutils literal notranslate"><span class="pre">operator+()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicemIE15difference_type"><code class="docutils literal notranslate"><span class="pre">operator-=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicemIEN8champsim4data5bytesE"><code class="docutils literal notranslate"><span class="pre">operator-=()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slicemiE15difference_type"><code class="docutils literal notranslate"><span class="pre">operator-()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slicemiEN8champsim4data5bytesE"><code class="docutils literal notranslate"><span class="pre">operator-()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_sliceppEv"><code class="docutils literal notranslate"><span class="pre">operator++()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_sliceppEi"><code class="docutils literal notranslate"><span class="pre">operator++()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicemmEv"><code class="docutils literal notranslate"><span class="pre">operator--()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slicemmEi"><code class="docutils literal notranslate"><span class="pre">operator--()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I0ENK8champsim13address_slice5sliceEDa10SUB_EXTENT"><code class="docutils literal notranslate"><span class="pre">slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEENK8champsim13address_slice5sliceEDav"><code class="docutils literal notranslate"><span class="pre">slice()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_upperEDav"><code class="docutils literal notranslate"><span class="pre">slice_upper()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice11slice_lowerEDav"><code class="docutils literal notranslate"><span class="pre">slice_lower()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slice11slice_upperEN8champsim4data4bitsE"><code class="docutils literal notranslate"><span class="pre">slice_upper()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slice11slice_lowerEN8champsim4data4bitsE"><code class="docutils literal notranslate"><span class="pre">slice_lower()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsEENK8champsim13address_slice5splitEDav"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slice5splitEN8champsim4data4bitsE"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slice12upper_extentEv"><code class="docutils literal notranslate"><span class="pre">upper_extent()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim13address_slice12lower_extentEv"><code class="docutils literal notranslate"><span class="pre">lower_extent()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13address_slice4bitsE"><code class="docutils literal notranslate"><span class="pre">bits</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4I0EN8champsim6offsetEN13address_sliceI6ExtentE15difference_typeE13address_sliceI6ExtentE13address_sliceI6ExtentE"><code class="docutils literal notranslate"><span class="pre">offset()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4I0EN8champsim7uoffsetENSt15make_unsigned_tIN13address_sliceI6ExtentE15difference_typeEEE13address_sliceI6ExtentE13address_sliceI6ExtentE"><code class="docutils literal notranslate"><span class="pre">uoffset()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4IDpEN8champsim6spliceEDaDp13address_sliceI7ExtentsE"><code class="docutils literal notranslate"><span class="pre">splice()</span></code></a></li>
+<li><a class="reference internal" href="#convenience-typedefs">Convenience typedefs</a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim7addressE"><code class="docutils literal notranslate"><span class="pre">address</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim11page_numberE"><code class="docutils literal notranslate"><span class="pre">page_number</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim11page_offsetE"><code class="docutils literal notranslate"><span class="pre">page_offset</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim12block_numberE"><code class="docutils literal notranslate"><span class="pre">block_number</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim12block_offsetE"><code class="docutils literal notranslate"><span class="pre">block_offset</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#extents">Extents</a><ul>
+<li><a class="reference internal" href="#_CPPv4I_N8champsim4data4bitsE_N8champsim4data4bitsEEN8champsim13static_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::static_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim13static_extent5upperE"><code class="docutils literal notranslate"><span class="pre">upper</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim13static_extent5lowerE"><code class="docutils literal notranslate"><span class="pre">lower</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::dynamic_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsEN8champsim4data4bitsE"><code class="docutils literal notranslate"><span class="pre">dynamic_extent()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extent14dynamic_extentEN8champsim4data4bitsENSt6size_tE"><code class="docutils literal notranslate"><span class="pre">dynamic_extent()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extent5upperE"><code class="docutils literal notranslate"><span class="pre">upper</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim14dynamic_extent5lowerE"><code class="docutils literal notranslate"><span class="pre">lower</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim18page_number_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::page_number_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim18page_number_extent18page_number_extentEv"><code class="docutils literal notranslate"><span class="pre">page_number_extent()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim18page_offset_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::page_offset_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim18page_offset_extent18page_offset_extentEv"><code class="docutils literal notranslate"><span class="pre">page_offset_extent()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim19block_number_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::block_number_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim19block_number_extent19block_number_extentEv"><code class="docutils literal notranslate"><span class="pre">block_number_extent()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim19block_offset_extentE"><code class="docutils literal notranslate"><span class="pre">champsim::block_offset_extent</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim19block_offset_extent19block_offset_extentEv"><code class="docutils literal notranslate"><span class="pre">block_offset_extent()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="Configuration-API.html"
+                          title="previous chapter">Configuration API</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="Byte-sizes.html"
+                          title="next chapter">Byte Sizes</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Address-operations.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div><div role="note">
+  <h3> This page on other branches</h3>
+  <h4>Branches</h4>
+  <ul>
+      
+        <li><a href="../../master/index.html">master</a></li>
+      
+      
+        <li><a href="../../develop/index.html">develop</a></li>
+      
+      
+        <li><strong>feature/tracer-bzip2-compression</strong></li>
+      
+  </ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Byte-sizes.html" title="Byte Sizes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Configuration-API.html" title="Configuration API"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Address Operations</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, The ChampSim Contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+  </body>
+</html>
