@@ -30,8 +30,10 @@ ooo_model_instr apply_branch_target(ooo_model_instr branch, const ooo_model_inst
 {
   branch.branch_target = (branch.is_branch && branch.branch_taken) ? target.ip : champsim::address{};
 
-  // Detect wrong-path transitions: if the next instruction is wrong-path and this one is not,
-  // mark this instruction as the boundary before wrong-path execution begins.
+  // Detect wrong-path transitions from the trace: when the next instruction is wrong-path
+  // and the current one is not, the trace indicates a misprediction occurred here.
+  // This trace-level annotation is used to seed the misprediction state before the
+  // simulator's branch predictor processes the instruction.
   if (target.is_wrong_path && branch.is_branch && !branch.is_wrong_path) {
     branch.branch_mispredicted = true;
   }

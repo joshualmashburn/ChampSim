@@ -94,7 +94,8 @@ struct program_ordered {
 };
 } // namespace champsim
 
-// Flag bit positions for wrong-path trace format
+// Bit positions in the trace instruction flags field.
+// FLAG_SQUASHED (bit 7) marks instructions that were on the mispredicted (wrong) path.
 enum instr_flags { FLAG_NON_SPEC = 0, FLAG_SERIAL, FLAG_SERIAL_AFTER, FLAG_SERIAL_BEFORE, FLAG_READ_BARRIER, FLAG_WRITE_BARRIER, FLAG_SQUASH_AFTER, FLAG_SQUASHED };
 
 struct ooo_model_instr : champsim::program_ordered<ooo_model_instr> {
