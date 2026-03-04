@@ -29,6 +29,16 @@ uint64_t tracereader::instr_unique_id = 0; // NOLINT(cppcoreguidelines-avoid-non
 ooo_model_instr apply_branch_target(ooo_model_instr branch, const ooo_model_instr& target)
 {
   branch.branch_target = (branch.is_branch && branch.branch_taken) ? target.ip : champsim::address{};
+
+  // Detect wrong-path transitions: if the next instruction is wrong-path and this one is not,
+  // mark this instruction as the boundary before wrong-path execution begins.
+  if (target.is_wrong_path && branch.is_branch && !branch.is_wrong_path) {
+    branch.branch_mispredicted = true;
+  }
+  if (target.is_wrong_path && !branch.is_wrong_path) {
+    branch.before_wrong_path = true;
+  }
+
   return branch;
 }
 

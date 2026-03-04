@@ -62,6 +62,11 @@ std::vector<std::string> champsim::plain_printer::format(O3_CPU::stats_type stat
                                 ::print_ratio(std::kilo::num * stats.branch_type_misses.value_or(idx, 0), stats.instrs())));
   }
 
+  if (stats.wrong_path_insts > 0 || stats.wrong_path_skipped > 0) {
+    lines.push_back(fmt::format("{} Wrong Path Instructions: {} Skipped: {} Loads: {}", stats.name, stats.wrong_path_insts, stats.wrong_path_skipped,
+                                stats.wrong_path_loads));
+  }
+
   return lines;
 }
 

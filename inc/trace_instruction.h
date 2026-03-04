@@ -41,11 +41,18 @@ struct input_instr {
   unsigned char is_branch;
   unsigned char branch_taken;
 
+  // branch target address (used by wrong-path traces)
+  unsigned long long branch_target;
+
   unsigned char destination_registers[NUM_INSTR_DESTINATIONS]; // output registers
   unsigned char source_registers[NUM_INSTR_SOURCES];           // input registers
 
   unsigned long long destination_memory[NUM_INSTR_DESTINATIONS]; // output memory
   unsigned long long source_memory[NUM_INSTR_SOURCES];           // input memory
+
+  // wrong-path support flags
+  unsigned char flags;
+  unsigned char pref;
 };
 
 struct cloudsuite_instr {
@@ -56,6 +63,9 @@ struct cloudsuite_instr {
   unsigned char is_branch;
   unsigned char branch_taken;
 
+  // branch target address (used by wrong-path traces)
+  unsigned long long branch_target;
+
   unsigned char destination_registers[NUM_INSTR_DESTINATIONS_SPARC]; // output registers
   unsigned char source_registers[NUM_INSTR_SOURCES];                 // input registers
 
@@ -63,6 +73,10 @@ struct cloudsuite_instr {
   unsigned long long source_memory[NUM_INSTR_SOURCES];                 // input memory
 
   unsigned char asid[2];
+
+  // wrong-path support flags
+  unsigned char flags;
+  unsigned char pref;
 };
 // NOLINTEND(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
