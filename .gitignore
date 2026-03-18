@@ -12,6 +12,7 @@ bin/
 test/000-test-main
 
 tracer/pin/obj-intel64/
+tracer/dynamorio/build/
 
 vcpkg_installed/
 
