@@ -13,7 +13,7 @@ RegisterAllocator::RegisterAllocator(size_t num_physical_registers)
   backend_RAT.fill(-1);
 }
 
-PHYSICAL_REGISTER_ID RegisterAllocator::rename_dest_register(int16_t reg, champsim::program_ordered<ooo_model_instr>::id_type producer_id)
+PHYSICAL_REGISTER_ID RegisterAllocator::rename_dest_register(int16_t reg, uint64_t producer_id)
 {
   assert(!free_registers.empty());
 
@@ -21,7 +21,9 @@ PHYSICAL_REGISTER_ID RegisterAllocator::rename_dest_register(int16_t reg, champs
   free_registers.pop();
   frontend_RAT[reg] = phys_reg;
   physical_register_file.at(phys_reg) = {(uint16_t)reg, producer_id, false, true}; // arch_reg_index, valid, busy
-
+  if(in_wp) {
+    wp_issued_registers.push_back(phys_reg);
+  }
   return phys_reg;
 }
 
@@ -80,12 +82,22 @@ int RegisterAllocator::count_reg_dependencies(const ooo_model_instr& instr) cons
   return static_cast<int>(std::count_if(std::begin(instr.source_registers), std::end(instr.source_registers), [this](auto reg) { return !isValid(reg); }));
 }
 
-void RegisterAllocator::reset_frontend_RAT()
-{
-  std::copy(std::begin(backend_RAT), std::end(backend_RAT), std::begin(frontend_RAT));
-  // once wrong path is implemented:
-  // find registers allocated by wrong-path instructions and free them
+void RegisterAllocator::save_frontend_RAT() {
+  std::copy(std::begin(frontend_RAT), std::end(frontend_RAT), std::begin(snapshot_frontend_RAT));
+  in_wp = true;
 }
+
+void RegisterAllocator::restore_frontend_RAT()
+{
+  in_wp = false;
+  std::copy(std::begin(snapshot_frontend_RAT), std::end(snapshot_frontend_RAT), std::begin(frontend_RAT));
+  for (auto physreg : wp_issued_registers) {
+    free_register(physreg);
+  }
+  wp_issued_registers.clear();
+}
+
+bool RegisterAllocator::inWrongPath() const { return in_wp; }
 
 void RegisterAllocator::print_deadlock()
 {
