@@ -11,5 +11,9 @@ cpu_stats operator-(cpu_stats lhs, cpu_stats rhs)
   lhs.total_branch_types -= rhs.total_branch_types;
   lhs.branch_type_misses -= rhs.branch_type_misses;
 
+  lhs.wrong_path_insts -= rhs.wrong_path_insts;
+  lhs.wrong_path_skipped -= rhs.wrong_path_skipped;
+  lhs.wrong_path_loads -= rhs.wrong_path_loads;
+
   return lhs;
 }

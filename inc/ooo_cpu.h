@@ -98,6 +98,14 @@ public:
 
   bool show_heartbeat = true;
 
+  // wrong-path state
+  bool enable_wrong_path = false;
+  bool enable_wpa = false;
+  bool in_wrong_path = false;
+  uint64_t fetch_instr_id = 0;
+  uint64_t exec_instr_id = 0;
+  uint64_t flush_after = 0;
+
   using stats_type = cpu_stats;
 
   stats_type roi_stats{}, sim_stats{};

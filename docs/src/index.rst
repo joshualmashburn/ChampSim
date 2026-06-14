@@ -19,6 +19,7 @@ We encourage you to read below to see if ChampSim is right for your research, cl
    Bandwidth
    Core-model
    Cache-model
+   Wrong-path-support
    Legacy-modules
 
 ChampSim is commonly used as the basis for academic research.

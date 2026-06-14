@@ -94,14 +94,25 @@ struct program_ordered {
 };
 } // namespace champsim
 
+// Bit positions in the trace instruction flags field.
+// FLAG_SQUASHED (bit 7) marks instructions that were on the mispredicted (wrong) path.
+enum instr_flags { FLAG_NON_SPEC = 0, FLAG_SERIAL, FLAG_SERIAL_AFTER, FLAG_SERIAL_BEFORE, FLAG_READ_BARRIER, FLAG_WRITE_BARRIER, FLAG_SQUASH_AFTER, FLAG_SQUASHED };
+
 struct ooo_model_instr : champsim::program_ordered<ooo_model_instr> {
   champsim::address ip{};
+  champsim::address trace_target{}; // branch target from trace (before pipeline prediction)
   champsim::chrono::clock::time_point ready_time{};
 
   bool is_branch = false;
   bool branch_taken = false;
   bool branch_prediction = false;
   bool branch_mispredicted = false; // A branch can be mispredicted even if the direction prediction is correct when the predicted target is not correct
+
+  // wrong-path support fields
+  bool before_wrong_path = false;
+  bool squashed = false;
+  bool is_wrong_path = false;
+  bool is_prefetch = false;
 
   std::array<uint8_t, 2> asid = {std::numeric_limits<uint8_t>::max(), std::numeric_limits<uint8_t>::max()};
 
@@ -140,6 +151,14 @@ private:
 
     auto smem_end = std::remove(std::begin(instr.source_memory), std::end(instr.source_memory), uint64_t{0});
     std::transform(std::begin(instr.source_memory), smem_end, std::back_inserter(this->source_memory), [](auto x) { return champsim::address{x}; });
+
+    // Parse wrong-path flags from trace
+    trace_target = champsim::address{instr.branch_target};
+    is_wrong_path = (instr.flags & (1 << FLAG_SQUASHED)) != 0;
+    is_prefetch = instr.pref != 0;
+    if (is_prefetch) {
+      is_wrong_path = true;
+    }
 
     bool writes_sp = std::count(std::begin(destination_registers), std::end(destination_registers), champsim::REG_STACK_POINTER);
     bool writes_ip = std::count(std::begin(destination_registers), std::end(destination_registers), champsim::REG_INSTRUCTION_POINTER);

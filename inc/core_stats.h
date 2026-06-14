@@ -18,6 +18,11 @@ struct cpu_stats {
   champsim::stats::event_counter<branch_type> total_branch_types = {};
   champsim::stats::event_counter<branch_type> branch_type_misses = {};
 
+  // wrong-path statistics
+  uint64_t wrong_path_insts = 0;
+  uint64_t wrong_path_skipped = 0;
+  uint64_t wrong_path_loads = 0;
+
   [[nodiscard]] auto instrs() const { return end_instrs - begin_instrs; }
   [[nodiscard]] auto cycles() const { return end_cycles - begin_cycles; }
 };

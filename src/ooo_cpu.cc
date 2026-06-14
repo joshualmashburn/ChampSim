@@ -110,11 +110,107 @@ void O3_CPU::initialize_instruction()
   champsim::bandwidth instrs_to_read_this_cycle{
       std::min(FETCH_WIDTH, champsim::bandwidth::maximum_type{static_cast<long>(IFETCH_BUFFER_SIZE - std::size(IFETCH_BUFFER))})};
 
+  // Helper to drain wrong-path instructions from the input queue and track stats
+  auto drain_wrong_path_from_input = [this]() {
+    while (!input_queue.empty() && input_queue.front().is_wrong_path) {
+      auto& inst = input_queue.front();
+      if (!std::empty(inst.source_memory)) {
+        sim_stats.wrong_path_loads++;
+      }
+      sim_stats.wrong_path_insts++;
+      sim_stats.wrong_path_skipped++;
+      input_queue.pop_front();
+    }
+  };
+
+  // When wrong-path is detected at execution, flush wrong-path instructions from input queue
+  if (fetch_instr_id != 0 && fetch_instr_id == exec_instr_id) {
+    drain_wrong_path_from_input();
+
+    if (!input_queue.empty() && !input_queue.front().is_wrong_path) {
+      in_wrong_path = false;
+      flush_after = 0;
+      fetch_instr_id = 0;
+      fetch_resume_time = current_time + BRANCH_MISPREDICT_PENALTY;
+    }
+  }
+
+  // Flush pending wrong-path instructions
+  if (flush_after != 0) {
+    drain_wrong_path_from_input();
+
+    if (!input_queue.empty() && !input_queue.front().is_wrong_path) {
+      in_wrong_path = false;
+      flush_after = 0;
+    }
+  }
+
   bool stop_fetch = false;
   while (current_time >= fetch_resume_time && instrs_to_read_this_cycle.has_remaining() && !stop_fetch && !std::empty(input_queue)) {
     instrs_to_read_this_cycle.consume();
 
-    stop_fetch = do_init_instruction(input_queue.front());
+    // When wrong-path mode is disabled, skip wrong-path and prefetch instructions
+    if (!enable_wrong_path) {
+      while (!input_queue.empty() && (input_queue.front().is_wrong_path || input_queue.front().is_prefetch)) {
+        auto& inst = input_queue.front();
+        if (inst.is_wrong_path && !std::empty(inst.source_memory)) {
+          sim_stats.wrong_path_loads++;
+        }
+        sim_stats.wrong_path_insts++;
+        sim_stats.wrong_path_skipped++;
+        input_queue.pop_front();
+      }
+
+      if (input_queue.empty()) {
+        break;
+      }
+    }
+
+    auto& inst = input_queue.front();
+
+    // Transition from wrong-path back to correct-path: wait for flush
+    if (in_wrong_path && !inst.is_wrong_path) {
+      stop_fetch = true;
+      in_wrong_path = false;
+      fetch_resume_time = champsim::chrono::clock::time_point::max();
+      break;
+    }
+
+    stop_fetch = do_init_instruction(inst);
+
+    if (enable_wrong_path) {
+      if (inst.branch_mispredicted || inst.before_wrong_path) {
+        in_wrong_path = true;
+      }
+
+      if (inst.is_wrong_path && !std::empty(inst.source_memory)) {
+        sim_stats.wrong_path_loads++;
+      }
+    } else {
+      // When wrong-path mode is disabled, a mispredicted branch stalls fetch
+      // until the misprediction is resolved at execution. We don't enter
+      // wrong-path state since wrong-path instructions will be skipped.
+      if (inst.branch_mispredicted || inst.before_wrong_path) {
+        stop_fetch = true;
+        fetch_resume_time = champsim::chrono::clock::time_point::max();
+        fetch_instr_id = inst.instr_id;
+      }
+    }
+
+    // A taken branch ends fetch for this cycle (fetch can only follow one path)
+    if (inst.branch_taken) {
+      stop_fetch = true;
+    }
+
+    if (inst.before_wrong_path) {
+      if (enable_wrong_path) {
+        fetch_instr_id = inst.instr_id;
+      }
+    }
+
+    if (inst.is_wrong_path) {
+      sim_stats.wrong_path_insts++;
+    }
 
     // Add to IFETCH_BUFFER
     IFETCH_BUFFER.push_back(input_queue.front());
@@ -150,6 +246,11 @@ void do_stack_pointer_folding(ooo_model_instr& arch_instr)
 bool O3_CPU::do_predict_branch(ooo_model_instr& arch_instr)
 {
   bool stop_fetch = false;
+
+  // Skip branch prediction for wrong-path instructions
+  if (arch_instr.is_wrong_path) {
+    return stop_fetch;
+  }
 
   // handle branch prediction for all instructions as at this point we do not know if the instruction is a branch
   sim_stats.total_branch_types.increment(arch_instr.branch);
@@ -436,6 +537,10 @@ long O3_CPU::schedule_instruction()
     if (reg_allocator.count_free_registers() < (sources_to_allocate + rob_it->destination_registers.size())) {
       break;
     }
+    if (rob_it->is_wrong_path && reg_allocator.inWrongPath()) {
+      // we've hit the first non-WP instruction, so we need to restore the frontend RAT
+      reg_allocator.restore_frontend_RAT();
+    }
     if (!rob_it->scheduled && rob_it->ready_time <= current_time) {
       do_scheduling(*rob_it);
       ++progress;
@@ -443,6 +548,11 @@ long O3_CPU::schedule_instruction()
 
     if (!rob_it->executed) {
       search_bw.consume();
+    }
+
+    if(rob_it->before_wrong_path) {
+      // checkpoint the frontend register file for recovery when we get back to correct path
+      reg_allocator.save_frontend_RAT();
     }
   }
 
@@ -639,7 +749,44 @@ void O3_CPU::do_complete_execution(ooo_model_instr& instr)
 
   instr.completed = true;
 
-  if (instr.branch_mispredicted) {
+  if (instr.branch_mispredicted && !instr.is_wrong_path) {
+    // When wrong-path mode is enabled, squash pipeline on misprediction resolution
+    if (enable_wrong_path && !instr.squashed && instr.instr_id == fetch_instr_id) {
+      instr.squashed = true;
+
+      // Mark all wrong-path instructions in ROB as completed for squashing
+      for (auto& x : ROB) {
+        if (x.instr_id > instr.instr_id) {
+          x.scheduled = true;
+          x.executed = true;
+          x.completed = true;
+        }
+      }
+
+      // Squash wrong-path entries from SQ
+      auto sq_squash = std::find_if(std::begin(SQ), std::end(SQ), [id = instr.instr_id](auto& x) { return x.instr_id > id; });
+      SQ.erase(sq_squash, std::end(SQ));
+
+      // Squash wrong-path entries from LQ
+      for (auto& lq_entry : LQ) {
+        if (lq_entry.has_value() && lq_entry->instr_id > instr.instr_id) {
+          lq_entry.reset();
+        }
+      }
+
+      // Remove wrong-path entries from ROB
+      auto rob_squash = std::find_if(std::begin(ROB), std::end(ROB), [id = instr.instr_id](auto& x) { return x.instr_id > id; });
+      ROB.erase(rob_squash, std::end(ROB));
+
+      // Clear pipeline buffers
+      DISPATCH_BUFFER.clear();
+      DECODE_BUFFER.clear();
+      DIB_HIT_BUFFER.clear();
+      IFETCH_BUFFER.clear();
+
+      exec_instr_id = instr.instr_id;
+    }
+
     fetch_resume_time = current_time + BRANCH_MISPREDICT_PENALTY;
   }
 }
@@ -723,11 +870,14 @@ long O3_CPU::retire_rob()
     }
   }
 
-  auto retire_count = std::distance(retire_begin, retire_end);
+  // Count only correct-path instructions as retired (for IPC calculation)
+  auto retire_count = std::count_if(retire_begin, retire_end, [](const auto& x) { return !x.is_wrong_path; });
   num_retired += retire_count;
+  auto total_retired = std::distance(retire_begin, retire_end);
   ROB.erase(retire_begin, retire_end);
 
-  return retire_count;
+  // Return total instructions removed from ROB (including wrong-path) for progress tracking
+  return total_retired;
 }
 
 void O3_CPU::impl_initialize_branch_predictor() const { branch_module_pimpl->impl_initialize_branch_predictor(); }
