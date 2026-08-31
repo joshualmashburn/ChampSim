@@ -29,3 +29,23 @@ Functions for bit operations
 .. doxygenfunction:: champsim::msl::splice_bits(T, T, champsim::data::bits)
 .. doxygenfunction:: champsim::msl::splice_bits(T, T, std::size_t, std::size_t)
 .. doxygenfunction:: champsim::msl::splice_bits(T, T, std::size_t)
+
+------------------------------------------
+LRU Table
+------------------------------------------
+
+.. doxygenclass:: champsim::msl::lru_table
+   :members:
+
+------------------------------------------
+Set-dueling utilities
+------------------------------------------
+
+.. doxygenclass:: champsim::msl::categorizer
+   :members:
+
+.. doxygenclass:: champsim::msl::dscounter
+   :members:
+
+.. doxygenfunction:: champsim::msl::get_sample_rate
+.. doxygenfunction:: champsim::msl::get_num_samples

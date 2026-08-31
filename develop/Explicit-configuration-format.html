@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Explicit Configuration Format &#8212; ChampSim  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Legacy Configuration API (Compile-Time)" href="Configuration-API.html" />
+    <link rel="prev" title="Creating a Configuration File" href="Creating-a-configuration-file.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Configuration-API.html" title="Legacy Configuration API (Compile-Time)"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Creating-a-configuration-file.html" title="Creating a Configuration File"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Explicit Configuration Format</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="explicit-configuration-format">
+<span id="explicit-config"></span><h1>Explicit Configuration Format<a class="headerlink" href="#explicit-configuration-format" title="Link to this heading">¶</a></h1>
+<p>The explicit configuration format gives full control over every module in the ChampSim
+hierarchy. Unlike the <a class="reference internal" href="Creating-a-configuration-file.html#creating-config"><span class="std std-ref">legacy format</span></a>, which uses shorthand keys
+and auto-generates modules, the explicit format requires you to define every module
+(channels, caches, cores, DRAM, etc.) individually.</p>
+<p>To use the explicit format, set <code class="docutils literal notranslate"><span class="pre">&quot;environment&quot;:</span> <span class="pre">&quot;ENVIRONMENT&quot;</span></code> at the root of
+your JSON configuration file. All modules are defined in a flat <code class="docutils literal notranslate"><span class="pre">&quot;children&quot;</span></code> array.</p>
+<section id="basic-structure">
+<h2>Basic Structure<a class="headerlink" href="#basic-structure" title="Link to this heading">¶</a></h2>
+<p>An explicit configuration file has the following top-level structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;ENVIRONMENT&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;block_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="s2">&quot;page_size&quot;</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span>
+    <span class="s2">&quot;num_cores&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+
+    <span class="s2">&quot;children&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span> <span class="o">...</span> <span class="n">module</span> <span class="n">definitions</span> <span class="o">...</span> <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Each entry in the <code class="docutils literal notranslate"><span class="pre">&quot;children&quot;</span></code> array defines one module instance. Every module has at
+minimum three keys:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">name</span></code></dt><dd><p>A unique identifier for this module instance (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;cpu0_L1D&quot;</span></code>).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">module</span></code></dt><dd><p>The interface type this module implements (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;cache&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;core&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;memory_controller&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;channel&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;prefetcher&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;replacement&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;branch_predictor&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;btb&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vmem&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;page_table_walker&quot;</span></code>).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">model</span></code></dt><dd><p>The registered model name of the implementation to use (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;DEFAULT_CACHE&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;DEFAULT_CORE&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;lru&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;ip_stride&quot;</span></code>).</p>
+</dd>
+</dl>
+<p>Additional keys are module-specific parameters.</p>
+</section>
+<section id="module-references">
+<h2>Module References<a class="headerlink" href="#module-references" title="Link to this heading">¶</a></h2>
+<p>Modules refer to each other using the <code class="docutils literal notranslate"><span class="pre">&#64;name</span></code> syntax. For example, a cache connects to
+its lower-level channel via:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;lower_level&quot;</span><span class="p">:</span> <span class="s2">&quot;@cpu0_L1D_cpu0_L2C_channel&quot;</span>
+</pre></div>
+</div>
+<p>This tells the simulator to look up the module named <code class="docutils literal notranslate"><span class="pre">cpu0_L1D_cpu0_L2C_channel</span></code> and
+connect it as the lower-level channel for this cache.</p>
+<p>References are resolved after all modules have been constructed, so definition order in
+the <code class="docutils literal notranslate"><span class="pre">&quot;children&quot;</span></code> array does not matter.</p>
+</section>
+<section id="typed-parameter-objects">
+<h2>Typed Parameter Objects<a class="headerlink" href="#typed-parameter-objects" title="Link to this heading">¶</a></h2>
+<p>Some parameters use typed wrapper objects instead of plain values:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;time&quot;:</span> <span class="pre">&quot;250p&quot;}</span></code></dt><dd><p>A time duration. Suffixes: <code class="docutils literal notranslate"><span class="pre">p</span></code> (picoseconds), <code class="docutils literal notranslate"><span class="pre">n</span></code> (nanoseconds), <code class="docutils literal notranslate"><span class="pre">u</span></code> (microseconds).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;frequency&quot;:</span> <span class="pre">&quot;4G&quot;}</span></code></dt><dd><p>A frequency value. Suffixes: <code class="docutils literal notranslate"><span class="pre">G</span></code> (GHz), <code class="docutils literal notranslate"><span class="pre">M</span></code> (MHz).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;bits&quot;:</span> <span class="pre">&quot;6&quot;}</span></code></dt><dd><p>A bit-width value.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;bytes&quot;:</span> <span class="pre">&quot;8&quot;}</span></code> or <code class="docutils literal notranslate"><span class="pre">{&quot;bytes&quot;:</span> <span class="pre">&quot;4Ki&quot;}</span></code></dt><dd><p>A byte size. <code class="docutils literal notranslate"><span class="pre">Ki</span></code>, <code class="docutils literal notranslate"><span class="pre">Mi</span></code>, <code class="docutils literal notranslate"><span class="pre">Gi</span></code> for binary prefixes.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;bandwidth&quot;:</span> <span class="pre">2}</span></code></dt><dd><p>A bandwidth value (operations per cycle).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;access_types&quot;:</span> <span class="pre">[&quot;LOAD&quot;,</span> <span class="pre">&quot;PREFETCH&quot;]}</span></code></dt><dd><p>A bitmask of access types.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;null&quot;:</span> <span class="pre">&quot;channel&quot;}</span></code></dt><dd><p>A null reference for an optional module connection.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">{&quot;optional_uint64&quot;:</span> <span class="pre">1}</span></code></dt><dd><p>An optional 64-bit unsigned integer.</p>
+</dd>
+</dl>
+</section>
+<section id="submodules-children">
+<h2>Submodules (Children)<a class="headerlink" href="#submodules-children" title="Link to this heading">¶</a></h2>
+<p>Modules like caches and cores can have submodules defined inline using a nested
+<code class="docutils literal notranslate"><span class="pre">&quot;children&quot;</span></code> array. This is how prefetchers, replacement policies, branch predictors,
+and BTBs are attached to their parent:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L2C&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;cache&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_CACHE&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;num_sets&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="s2">&quot;num_ways&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="o">...</span>
+    <span class="s2">&quot;children&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L2C_prefetcher&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;ip_stride&quot;</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L2C_replacement&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;replacement&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;lru&quot;</span><span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Custom parameters (like <code class="docutils literal notranslate"><span class="pre">&quot;degree&quot;:</span> <span class="pre">4</span></code> above) are passed to the module’s constructor
+via <code class="docutils literal notranslate"><span class="pre">ModuleBuilder::get_parameter&lt;T&gt;()</span></code>.</p>
+<section id="passing-parameters-to-submodules">
+<span id="explicit-submodule-params"></span><h3>Passing Parameters to Submodules<a class="headerlink" href="#passing-parameters-to-submodules" title="Link to this heading">¶</a></h3>
+<p>In the explicit format, submodule parameters are <strong>inline keys</strong> in the child’s JSON
+object.  Any key that is not one of the three reserved keys (<code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;module&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code>) is treated as a parameter and forwarded to the <code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code>.</p>
+<p>For example, the following gives the prefetcher two custom parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L2C_pref&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;ip_stride&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s2">&quot;tracker_sets&quot;</span><span class="p">:</span> <span class="mi">512</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Inside the module’s constructor, these are read as:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">degree</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;degree&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span><span class="w">          </span><span class="c1">// returns 6</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">sets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;tracker_sets&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="p">);</span><span class="w"> </span><span class="c1">// returns 512</span>
+</pre></div>
+</div>
+<p><strong>Parameter types</strong> — JSON values are mapped to C++ types as follows:</p>
+<ul class="simple">
+<li><p>JSON integers → <code class="docutils literal notranslate"><span class="pre">int64_t</span></code> (use <code class="docutils literal notranslate"><span class="pre">numeric_any_cast</span></code> for <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">std::size_t</span></code>, etc.)</p></li>
+<li><p>JSON floats → <code class="docutils literal notranslate"><span class="pre">double</span></code></p></li>
+<li><p>JSON booleans → <code class="docutils literal notranslate"><span class="pre">bool</span></code></p></li>
+<li><p>JSON strings → <code class="docutils literal notranslate"><span class="pre">std::string</span></code></p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_parameter&lt;T&gt;()</span></code> method handles type conversion automatically via
+<code class="docutils literal notranslate"><span class="pre">numeric_any_cast</span></code> for all arithmetic types, so requesting <code class="docutils literal notranslate"><span class="pre">int</span></code> from a value stored
+as <code class="docutils literal notranslate"><span class="pre">int64_t</span></code> works seamlessly.</p>
+<p><strong>Debugging parameters</strong> — use <code class="docutils literal notranslate"><span class="pre">--dump</span></code> to verify that your parameters were set
+correctly.  Values read from JSON show as <code class="docutils literal notranslate"><span class="pre">(set)</span></code>; default values show as <code class="docutils literal notranslate"><span class="pre">(default)</span></code>.</p>
+</section>
+</section>
+<section id="channels">
+<h2>Channels<a class="headerlink" href="#channels" title="Link to this heading">¶</a></h2>
+<p>Channels connect modules together. A channel definition looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L1D_cpu0_L2C_channel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;channel&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_CHANNEL&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rq_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="s2">&quot;wq_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="s2">&quot;pq_size&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="s2">&quot;offset_bits&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;bits&quot;</span><span class="p">:</span> <span class="s2">&quot;6&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;match_offset_bits&quot;</span><span class="p">:</span> <span class="n">false</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="a-minimal-example">
+<h2>A Minimal Example<a class="headerlink" href="#a-minimal-example" title="Link to this heading">¶</a></h2>
+<p>The following is a stripped-down explicit config showing the essential structure. See
+<code class="docutils literal notranslate"><span class="pre">champsim_config_explicit.json</span></code> in the repository root for a complete example with
+all default modules:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;ENVIRONMENT&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;block_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="s2">&quot;page_size&quot;</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span>
+    <span class="s2">&quot;num_cores&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+
+    <span class="s2">&quot;children&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;LLC_DRAM_channel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;channel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_CHANNEL&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rq_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span> <span class="s2">&quot;wq_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span> <span class="s2">&quot;pq_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+            <span class="s2">&quot;offset_bits&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;bits&quot;</span><span class="p">:</span> <span class="s2">&quot;6&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;match_offset_bits&quot;</span><span class="p">:</span> <span class="n">false</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;DRAM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;memory_controller&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_MEMORY_CONTROLLER&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;ul_channels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;@LLC_DRAM_channel&quot;</span><span class="p">],</span>
+            <span class="o">...</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;LLC&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;cache&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_CACHE&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;num_sets&quot;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">,</span> <span class="s2">&quot;num_ways&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+            <span class="s2">&quot;lower_level&quot;</span><span class="p">:</span> <span class="s2">&quot;@LLC_DRAM_channel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;children&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;LLC_pref&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;no&quot;</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;LLC_repl&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;replacement&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;lru&quot;</span><span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="o">...</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="debugging-with-dump">
+<h2>Debugging with –dump<a class="headerlink" href="#debugging-with-dump" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--dump</span></code> to see the fully-resolved module hierarchy that ChampSim constructs from
+your config. This is useful for verifying that modules are connected correctly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">champsim</span> <span class="o">--</span><span class="n">config</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">dump</span>
+</pre></div>
+</div>
+<p>This prints every module, its parameters, and its connections to stderr.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Explicit Configuration Format</a><ul>
+<li><a class="reference internal" href="#basic-structure">Basic Structure</a></li>
+<li><a class="reference internal" href="#module-references">Module References</a></li>
+<li><a class="reference internal" href="#typed-parameter-objects">Typed Parameter Objects</a></li>
+<li><a class="reference internal" href="#submodules-children">Submodules (Children)</a><ul>
+<li><a class="reference internal" href="#passing-parameters-to-submodules">Passing Parameters to Submodules</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#channels">Channels</a></li>
+<li><a class="reference internal" href="#a-minimal-example">A Minimal Example</a></li>
+<li><a class="reference internal" href="#debugging-with-dump">Debugging with –dump</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="Creating-a-configuration-file.html"
+                          title="previous chapter">Creating a Configuration File</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="Configuration-API.html"
+                          title="next chapter">Legacy Configuration API (Compile-Time)</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Explicit-configuration-format.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div><div role="note">
+  <h3> This page on other branches</h3>
+  <h4>Branches</h4>
+  <ul>
+      
+        <li><a href="../master/index.html">master</a></li>
+      
+      
+        <li><strong>develop</strong></li>
+      
+  </ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Configuration-API.html" title="Legacy Configuration API (Compile-Time)"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Creating-a-configuration-file.html" title="Creating a Configuration File"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Explicit Configuration Format</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, The ChampSim Contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

@@ -14,7 +14,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Creating a Configuration File" href="Creating-a-configuration-file.html" />
-    <link rel="prev" title="The ChampSim Module System" href="Modules.html" /> 
+    <link rel="prev" title="Tutorial: Creating New Modules" href="Tutorial.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -23,13 +23,10 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
           <a href="Creating-a-configuration-file.html" title="Creating a Configuration File"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="Modules.html" title="The ChampSim Module System"
+          <a href="Tutorial.html" title="Tutorial: Creating New Modules"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Module Support Library</a></li> 
@@ -249,6 +246,232 @@
 </dd></dl>
 
 </section>
+<section id="lru-table">
+<h2>LRU Table<a class="headerlink" href="#lru-table" title="Link to this heading">¶</a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I000EN8champsim3msl9lru_tableE">
+<span id="_CPPv3I000EN8champsim3msl9lru_tableE"></span><span id="_CPPv2I000EN8champsim3msl9lru_tableE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetProj</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">table_indexer</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I000EN8champsim3msl9lru_tableE" title="champsim::msl::lru_table::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TagProj</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">table_tagger</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I000EN8champsim3msl9lru_tableE" title="champsim::msl::lru_table::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1msl_1_1lru__table"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lru_table</span></span></span><a class="headerlink" href="#_CPPv4I000EN8champsim3msl9lru_tableE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>A set-associative table with LRU eviction.</p>
+<p>Elements are placed into sets using a set projection function object and matched within a set using a tag projection function object. By default, these call <code class="docutils literal notranslate"><span class="pre">.index()</span></code> and <code class="docutils literal notranslate"><span class="pre">.tag()</span></code> member functions on the element type. The number of sets must be a power of 2.</p>
+<p>This is useful for building hardware tables such as BTB entries, stride tracker tables, and signature tables. See <code class="docutils literal notranslate"><span class="pre">ip_stride</span></code> and <code class="docutils literal notranslate"><span class="pre">basic_btb</span></code> for examples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – The element type stored in the table. </p></li>
+<li><p><strong>SetProj</strong> – A function object that projects an element to a set index. Defaults to calling <code class="docutils literal notranslate"><span class="pre">T::index()</span></code>. </p></li>
+<li><p><strong>TagProj</strong> – A function object that projects an element to a tag for matching. Defaults to calling <code class="docutils literal notranslate"><span class="pre">T::tag()</span></code>. </p></li>
+</ul>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9lru_table9check_hitERK10value_type">
+<span id="_CPPv3N8champsim3msl9lru_table9check_hitERK10value_type"></span><span id="_CPPv2N8champsim3msl9lru_table9check_hitERK10value_type"></span><span id="champsim::msl::lru_table::check_hit__value_typeCR"></span><span class="target" id="classchampsim_1_1msl_1_1lru__table_1a0023e1d1c7af0b1ff941e242af4214df"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">value_type</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">check_hit</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">value_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">elem</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9lru_table9check_hitERK10value_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Look up an element in the table by set and tag.</p>
+<p>If a matching element is found, its LRU timestamp is updated and the element is returned. Otherwise returns <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>elem</strong> – An element whose set and tag projections identify the lookup. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matching element, or <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code> on a miss. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9lru_table4fillERK10value_type">
+<span id="_CPPv3N8champsim3msl9lru_table4fillERK10value_type"></span><span id="_CPPv2N8champsim3msl9lru_table4fillERK10value_type"></span><span id="champsim::msl::lru_table::fill__value_typeCR"></span><span class="target" id="classchampsim_1_1msl_1_1lru__table_1a8a65e19e238bd99423b07830d0f08bac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fill</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">value_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">elem</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9lru_table4fillERK10value_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Insert or update an element in the table.</p>
+<p>If an element with a matching tag already exists in the set, it is updated in place. Otherwise the LRU element in the set is evicted and replaced.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>elem</strong> – The element to insert. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9lru_table10invalidateERK10value_type">
+<span id="_CPPv3N8champsim3msl9lru_table10invalidateERK10value_type"></span><span id="_CPPv2N8champsim3msl9lru_table10invalidateERK10value_type"></span><span id="champsim::msl::lru_table::invalidate__value_typeCR"></span><span class="target" id="classchampsim_1_1msl_1_1lru__table_1a1e2fb65a359c390d59eb83b66332115c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">value_type</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invalidate</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">value_type</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">elem</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9lru_table10invalidateERK10value_type" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Remove an element from the table.</p>
+<p>If a matching element is found, it is removed and returned. Otherwise returns <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>elem</strong> – An element whose set and tag projections identify the entry to remove. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The removed element, or <code class="docutils literal notranslate"><span class="pre">std::nullopt</span></code> if not found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9lru_table9lru_tableENSt6size_tENSt6size_tE7SetProj7TagProj">
+<span id="_CPPv3N8champsim3msl9lru_table9lru_tableENSt6size_tENSt6size_tE7SetProj7TagProj"></span><span id="_CPPv2N8champsim3msl9lru_table9lru_tableENSt6size_tENSt6size_tE7SetProj7TagProj"></span><span id="champsim::msl::lru_table::lru_table__std::s.std::s.SetProj.TagProj"></span><span class="target" id="classchampsim_1_1msl_1_1lru__table_1a5bab2a08242e938c5dd7a03a64bd05c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">lru_table</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sets</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ways</span></span>, <a class="reference internal" href="#_CPPv4I000EN8champsim3msl9lru_tableE" title="champsim::msl::lru_table::SetProj"><span class="n"><span class="pre">SetProj</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">set_proj</span></span>, <a class="reference internal" href="#_CPPv4I000EN8champsim3msl9lru_tableE" title="champsim::msl::lru_table::TagProj"><span class="n"><span class="pre">TagProj</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tag_proj</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9lru_table9lru_tableENSt6size_tENSt6size_tE7SetProj7TagProj" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Construct an LRU table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sets</strong> – The number of sets. Must be a positive power of 2. </p></li>
+<li><p><strong>ways</strong> – The number of ways per set. </p></li>
+<li><p><strong>set_proj</strong> – The function object used to compute the set index from an element. </p></li>
+<li><p><strong>tag_proj</strong> – The function object used to compute the tag from an element. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="set-dueling-utilities">
+<h2>Set-dueling utilities<a class="headerlink" href="#set-dueling-utilities" title="Link to this heading">¶</a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I00EN8champsim3msl11categorizerE">
+<span id="_CPPv3I00EN8champsim3msl11categorizerE"></span><span id="_CPPv2I00EN8champsim3msl11categorizerE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CatProj</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">category_projector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I00EN8champsim3msl11categorizerE" title="champsim::msl::categorizer::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1msl_1_1categorizer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">categorizer</span></span></span><a class="headerlink" href="#_CPPv4I00EN8champsim3msl11categorizerE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Splits an input space into categories for set dueling.</p>
+<p>Given a candidate value and a sample rate, the categorizer assigns the candidate to a category number. Category 0 and category 1 are the two “leader” categories used by set-dueling policies like DRRIP and SHiP; all other categories are “follower” sets that use the winning policy.</p>
+<p>The sample rate must be a power of 2 and determines how many categories exist (equal to the sample rate).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – The type of value being categorized (e.g. <code class="docutils literal notranslate"><span class="pre">long</span></code> for set indices). </p></li>
+<li><p><strong>CatProj</strong> – A function object that projects a value of type T to an integer. Defaults to identity. </p></li>
+</ul>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim3msl11categorizer15get_sample_rateEv">
+<span id="_CPPv3NK8champsim3msl11categorizer15get_sample_rateEv"></span><span id="_CPPv2NK8champsim3msl11categorizer15get_sample_rateEv"></span><span id="champsim::msl::categorizer::get_sample_rateC"></span><span class="target" id="classchampsim_1_1msl_1_1categorizer_1ae4e5792cfa7ae4303d2cbd402df44c41"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_sample_rate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim3msl11categorizer15get_sample_rateEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Return the sample rate used by this categorizer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim3msl11categorizer19get_sample_categoryERK1T">
+<span id="_CPPv3NK8champsim3msl11categorizer19get_sample_categoryERK1T"></span><span id="_CPPv2NK8champsim3msl11categorizer19get_sample_categoryERK1T"></span><span id="champsim::msl::categorizer::get_sample_category__TCRC"></span><span class="target" id="classchampsim_1_1msl_1_1categorizer_1a3ede24932fe02f14b740073543a74ba2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_sample_category</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I00EN8champsim3msl11categorizerE" title="champsim::msl::categorizer::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">candidate</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim3msl11categorizer19get_sample_categoryERK1T" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Return the category number for a given candidate.</p>
+<p>Category 0 and 1 are the two leader categories. All other values are follower categories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>candidate</strong> – The value to categorize. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The category index (0 to sample_rate - 1). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl11categorizer11categorizerENSt6size_tE">
+<span id="_CPPv3N8champsim3msl11categorizer11categorizerENSt6size_tE"></span><span id="_CPPv2N8champsim3msl11categorizer11categorizerENSt6size_tE"></span><span id="champsim::msl::categorizer::categorizer__std::s"></span><span class="target" id="classchampsim_1_1msl_1_1categorizer_1ae629355bbd1f65823040320ffe285ef0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">categorizer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">sample_rate_</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl11categorizer11categorizerENSt6size_tE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Construct a categorizer with the given sample rate and default projection. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE">
+<span id="_CPPv3I0_NSt6size_tE0EN8champsim3msl9dscounterE"></span><span id="_CPPv2I0_NSt6size_tE0EN8champsim3msl9dscounterE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTER_WIDTH</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CatProj</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">category_projector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE" title="champsim::msl::dscounter::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classchampsim_1_1msl_1_1dscounter"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dscounter</span></span></span><a class="headerlink" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE" title="Link to this definition">¶</a><br /></dt>
+<dd><p>A dueling saturating counter for set-dueling policies.</p>
+<p>Combines a categorizer with a fixed-width saturating counter to implement set dueling. Category 0 samples are treated as “policy A” and category 1 samples as “policy B”. The counter tracks which policy is performing better.</p>
+<p>Use <code class="docutils literal notranslate"><a class="reference internal" href="#classchampsim_1_1msl_1_1dscounter_1abfa61ddb80451e49a7c8919eda8f60b2"><span class="std std-ref"><span class="pre">decide()</span></span></a></code> to choose a policy for follower sets, <code class="docutils literal notranslate"><a class="reference internal" href="#classchampsim_1_1msl_1_1dscounter_1a1ad6ecca15cadd0a7da8950f4afb6cb8"><span class="std std-ref"><span class="pre">update_good()</span></span></a></code> when a sample performs well, and <code class="docutils literal notranslate"><a class="reference internal" href="#classchampsim_1_1msl_1_1dscounter_1a2803b819987c4705daf13cffbd9ab5f4"><span class="std std-ref"><span class="pre">update_bad()</span></span></a></code> when a sample performs poorly.</p>
+<p>Used by replacement policies such as DRRIP and SHiP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – The type of value being categorized (e.g. <code class="docutils literal notranslate"><span class="pre">long</span></code> for set indices). </p></li>
+<li><p><strong>COUNTER_WIDTH</strong> – The bit width of the internal saturating counter. </p></li>
+<li><p><strong>CatProj</strong> – A function object that projects a value of type T to an integer. Defaults to identity. </p></li>
+</ul>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK8champsim3msl9dscounter15get_sample_rateEv">
+<span id="_CPPv3NK8champsim3msl9dscounter15get_sample_rateEv"></span><span id="_CPPv2NK8champsim3msl9dscounter15get_sample_rateEv"></span><span id="champsim::msl::dscounter::get_sample_rateC"></span><span class="target" id="classchampsim_1_1msl_1_1dscounter_1a50474131cabfeddeb820919c777c6221"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_sample_rate</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK8champsim3msl9dscounter15get_sample_rateEv" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Return the sample rate used by the internal categorizer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9dscounter6decideERK1T">
+<span id="_CPPv3N8champsim3msl9dscounter6decideERK1T"></span><span id="_CPPv2N8champsim3msl9dscounter6decideERK1T"></span><span id="champsim::msl::dscounter::decide__TCR"></span><span class="target" id="classchampsim_1_1msl_1_1dscounter_1abfa61ddb80451e49a7c8919eda8f60b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decide</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE" title="champsim::msl::dscounter::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">candidate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9dscounter6decideERK1T" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Choose a policy for the given candidate.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">true</span></code> for category-0 candidates (always use policy A), <code class="docutils literal notranslate"><span class="pre">false</span></code> for category-1 candidates (always use policy B), and for follower categories returns <code class="docutils literal notranslate"><span class="pre">true</span></code> if policy A is currently winning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>candidate</strong> – The value to decide on. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">true</span></code> if policy A should be used. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9dscounter11update_goodERK1T">
+<span id="_CPPv3N8champsim3msl9dscounter11update_goodERK1T"></span><span id="_CPPv2N8champsim3msl9dscounter11update_goodERK1T"></span><span id="champsim::msl::dscounter::update_good__TCR"></span><span class="target" id="classchampsim_1_1msl_1_1dscounter_1a1ad6ecca15cadd0a7da8950f4afb6cb8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_good</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE" title="champsim::msl::dscounter::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">candidate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9dscounter11update_goodERK1T" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Report a good outcome for the given candidate.</p>
+<p>Increments the counter for category-0 samples and decrements it for category-1 samples. Has no effect on follower categories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>candidate</strong> – The value that had a good outcome. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl9dscounter10update_badERK1T">
+<span id="_CPPv3N8champsim3msl9dscounter10update_badERK1T"></span><span id="_CPPv2N8champsim3msl9dscounter10update_badERK1T"></span><span id="champsim::msl::dscounter::update_bad__TCR"></span><span class="target" id="classchampsim_1_1msl_1_1dscounter_1a2803b819987c4705daf13cffbd9ab5f4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_bad</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE" title="champsim::msl::dscounter::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">candidate</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl9dscounter10update_badERK1T" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Report a bad outcome for the given candidate.</p>
+<p>Decrements the counter for category-0 samples and increments it for category-1 samples. Has no effect on follower categories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>candidate</strong> – The value that had a bad outcome. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl15get_sample_rateEl">
+<span id="_CPPv3N8champsim3msl15get_sample_rateEl"></span><span id="_CPPv2N8champsim3msl15get_sample_rateEl"></span><span id="champsim::msl::get_sample_rate__l"></span><span class="target" id="stat__methods_8h_1aa72fe8ccc1f8bf26babb778649fb89da"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">msl</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">get_sample_rate</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl15get_sample_rateEl" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Determine the sampling rate for set dueling based on the number of sets.</p>
+<p>Returns a power-of-2 sample rate: 32 for 1024+ sets, 16 for 256&amp;#8212;1023, 8 for 64&amp;#8212;255, 4 for 8&amp;#8212;63. Asserts if fewer than 8 sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num</strong> – The total number of sets. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The sample rate (a power of 2). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N8champsim3msl15get_num_samplesEl">
+<span id="_CPPv3N8champsim3msl15get_num_samplesEl"></span><span id="_CPPv2N8champsim3msl15get_num_samplesEl"></span><span id="champsim::msl::get_num_samples__l"></span><span class="target" id="stat__methods_8h_1acb7a0cc9aff012fed1b3c06492809b22"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">champsim</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">msl</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">get_num_samples</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">long</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">num</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N8champsim3msl15get_num_samplesEl" title="Link to this definition">¶</a><br /></dt>
+<dd><p>Calculate the number of samples for set dueling.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">/</span> <span class="pre">get_sample_rate(num)</span></code>. Asserts that the number of sets is evenly divisible by the sample rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num</strong> – The total number of sets. </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of samples per category. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -293,6 +516,34 @@
 <li><a class="reference internal" href="#_CPPv4I0EN8champsim3msl11splice_bitsEDa1T1TNSt6size_tE"><code class="docutils literal notranslate"><span class="pre">splice_bits()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#lru-table">LRU Table</a><ul>
+<li><a class="reference internal" href="#_CPPv4I000EN8champsim3msl9lru_tableE"><code class="docutils literal notranslate"><span class="pre">champsim::msl::lru_table</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9lru_table9check_hitERK10value_type"><code class="docutils literal notranslate"><span class="pre">check_hit()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9lru_table4fillERK10value_type"><code class="docutils literal notranslate"><span class="pre">fill()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9lru_table10invalidateERK10value_type"><code class="docutils literal notranslate"><span class="pre">invalidate()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9lru_table9lru_tableENSt6size_tENSt6size_tE7SetProj7TagProj"><code class="docutils literal notranslate"><span class="pre">lru_table()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#set-dueling-utilities">Set-dueling utilities</a><ul>
+<li><a class="reference internal" href="#_CPPv4I00EN8champsim3msl11categorizerE"><code class="docutils literal notranslate"><span class="pre">champsim::msl::categorizer</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4NK8champsim3msl11categorizer15get_sample_rateEv"><code class="docutils literal notranslate"><span class="pre">get_sample_rate()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4NK8champsim3msl11categorizer19get_sample_categoryERK1T"><code class="docutils literal notranslate"><span class="pre">get_sample_category()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl11categorizer11categorizerENSt6size_tE"><code class="docutils literal notranslate"><span class="pre">categorizer()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4I0_NSt6size_tE0EN8champsim3msl9dscounterE"><code class="docutils literal notranslate"><span class="pre">champsim::msl::dscounter</span></code></a><ul>
+<li><a class="reference internal" href="#_CPPv4NK8champsim3msl9dscounter15get_sample_rateEv"><code class="docutils literal notranslate"><span class="pre">get_sample_rate()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9dscounter6decideERK1T"><code class="docutils literal notranslate"><span class="pre">decide()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9dscounter11update_goodERK1T"><code class="docutils literal notranslate"><span class="pre">update_good()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl9dscounter10update_badERK1T"><code class="docutils literal notranslate"><span class="pre">update_bad()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl15get_sample_rateEl"><code class="docutils literal notranslate"><span class="pre">get_sample_rate()</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N8champsim3msl15get_num_samplesEl"><code class="docutils literal notranslate"><span class="pre">get_num_samples()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -300,8 +551,8 @@
   </div>
   <div>
     <h4>Previous topic</h4>
-    <p class="topless"><a href="Modules.html"
-                          title="previous chapter">The ChampSim Module System</a></p>
+    <p class="topless"><a href="Tutorial.html"
+                          title="previous chapter">Tutorial: Creating New Modules</a></p>
   </div>
   <div>
     <h4>Next topic</h4>
@@ -347,13 +598,10 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
           <a href="Creating-a-configuration-file.html" title="Creating a Configuration File"
              >next</a> |</li>
         <li class="right" >
-          <a href="Modules.html" title="The ChampSim Module System"
+          <a href="Tutorial.html" title="Tutorial: Creating New Modules"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Module Support Library</a></li> 

@@ -13,7 +13,7 @@
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Configuration API" href="Configuration-API.html" />
+    <link rel="next" title="Explicit Configuration Format" href="Explicit-configuration-format.html" />
     <link rel="prev" title="Module Support Library" href="Module-support-library.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
@@ -23,10 +23,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="Configuration-API.html" title="Configuration API"
+          <a href="Explicit-configuration-format.html" title="Explicit Configuration Format"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="Module-support-library.html" title="Module Support Library"
@@ -43,16 +40,24 @@
             
   <section id="creating-a-configuration-file">
 <span id="creating-config"></span><h1>Creating a Configuration File<a class="headerlink" href="#creating-a-configuration-file" title="Link to this heading">¶</a></h1>
-<p>The configuration file is a central fixture of the ChampSim build system.
-An example configuration file (champsim_config.json) is given in the root of the repository, but it is large and unwieldy.
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This page describes the <strong>legacy</strong> configuration format, which uses high-level shorthand
+keys (<code class="docutils literal notranslate"><span class="pre">&quot;branch_predictor&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;L1D&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;num_cores&quot;</span></code>, etc.) to auto-generate the full
+module hierarchy at runtime. This format is handled by the <code class="docutils literal notranslate"><span class="pre">LEGACY_ENVIRONMENT</span></code> module.</p>
+<p>For full control over every module in the hierarchy, see the
+<a class="reference internal" href="Explicit-configuration-format.html#explicit-config"><span class="std std-ref">Explicit Configuration Format</span></a>.</p>
+</div>
+<p>The configuration file is a central fixture of ChampSim.
+An example configuration file (<code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code>) is given in the root of the repository, but it is large and unwieldy.
 Your configuration file will likely be much smaller.
 This page will walk you through many of the features of the ChampSim configuration system.</p>
-<p>The configuration file is given as an input to the configuration script as below:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">config</span><span class="o">.</span><span class="n">sh</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span>
+<p>The configuration file is loaded at runtime via the <code class="docutils literal notranslate"><span class="pre">--config</span></code> flag:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">champsim</span> <span class="o">--</span><span class="n">config</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">warmup</span><span class="o">-</span><span class="n">instructions</span> <span class="mi">200000000</span> <span class="o">--</span><span class="n">simulation</span><span class="o">-</span><span class="n">instructions</span> <span class="mi">500000000</span> <span class="n">trace</span><span class="o">.</span><span class="n">xz</span>
 </pre></div>
 </div>
-<p>In fact, the configuration file is entirely optional.
-Not specifying any file will configure ChampSim with a default configuration.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">--config</span></code> is omitted, ChampSim loads <code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code> from the current directory.
+You can also pipe a config via stdin with <code class="docutils literal notranslate"><span class="pre">--config</span> <span class="pre">-</span></code>.</p>
 <section id="your-first-configuration-file">
 <h2>Your first configuration file<a class="headerlink" href="#your-first-configuration-file" title="Link to this heading">¶</a></h2>
 <p>All ChampSim configuration files are JSON files.
@@ -64,8 +69,11 @@ We can start with the most trivial of configuration files.:</p>
 <p>This would specify a default configuration.
 But, this is not frequently useful.
 Let’s change the branch predictor that ChampSim uses.
-Legal values for the <code class="docutils literal notranslate"><span class="pre">branch_predictor</span></code> key are directory names under the <code class="docutils literal notranslate"><span class="pre">branch/</span></code> directory, or valid paths.
-The same is true for specifying BTBs in the core and both prefetchers and replacement policies in the cache.:</p>
+Legal values for the <code class="docutils literal notranslate"><span class="pre">branch_predictor</span></code> key are registered model names.
+By convention, these match the directory names under the <code class="docutils literal notranslate"><span class="pre">branch/</span></code> directory
+(e.g. <code class="docutils literal notranslate"><span class="pre">&quot;hashed_perceptron&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;bimodal&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;perceptron&quot;</span></code>).
+The same convention applies for BTBs (under <code class="docutils literal notranslate"><span class="pre">btb/</span></code>),
+prefetchers (under <code class="docutils literal notranslate"><span class="pre">prefetcher/</span></code>), and replacement policies (under <code class="docutils literal notranslate"><span class="pre">replacement/</span></code>).:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;branch_predictor&quot;</span><span class="p">:</span> <span class="s2">&quot;perceptron&quot;</span>
 <span class="p">}</span>
@@ -102,7 +110,7 @@ The default prefetcher is the do-nothing prefetcher, and the default replacement
     <span class="s2">&quot;L1D&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">&quot;sets&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span> <span class="s2">&quot;ways&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
         <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="s2">&quot;next_line&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;replacement&quot;</span><span class="p">:</span> <span class="s2">&quot;../../my/repl/path&quot;</span>
+        <span class="s2">&quot;replacement&quot;</span><span class="p">:</span> <span class="s2">&quot;drrip&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -183,9 +191,9 @@ In the following configuration, each core has a distinct L1 cache.:</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The configuration script will make every attempt to assign defaults to objects, but it may not be able to do so for.
+<p>The runtime environment will make every attempt to assign defaults to objects, but it may not be able to do so for all configurations.
 In the following configuration, cores 0 and 1 are attached to <code class="docutils literal notranslate"><span class="pre">llcA</span></code> and cores 2 and 3 are attached to <code class="docutils literal notranslate"><span class="pre">llcB</span></code>.
-The script is able to assign LLC-like defaults to each of the caches specified under <code class="docutils literal notranslate"><span class="pre">&quot;caches&quot;</span></code>:</p>
+The runtime is able to assign LLC-like defaults to each of the caches specified under <code class="docutils literal notranslate"><span class="pre">&quot;caches&quot;</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;num_cores&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
     <span class="s2">&quot;ooo_cpu&quot;</span><span class="p">:</span> <span class="p">[</span>
@@ -199,7 +207,7 @@ The script is able to assign LLC-like defaults to each of the caches specified u
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>However, in the following, the script will not be able to assign defaults to all caches, and you may need to specify additional parameters:</p>
+<p>However, in the following, the runtime may not be able to assign defaults to all caches, and you may need to specify additional parameters:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;num_cores&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
     <span class="s2">&quot;ooo_cpu&quot;</span><span class="p">:</span> <span class="p">[</span>
@@ -211,6 +219,65 @@ The script is able to assign LLC-like defaults to each of the caches specified u
         <span class="p">{</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;llcB&quot;</span><span class="p">,</span> <span class="s2">&quot;lower_level&quot;</span><span class="p">:</span> <span class="s2">&quot;L4C&quot;</span> <span class="p">},</span>
         <span class="p">{</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;L4C&quot;</span> <span class="p">}</span>
     <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="passing-parameters-to-submodules">
+<span id="legacy-submodule-params"></span><h2>Passing Parameters to Submodules<a class="headerlink" href="#passing-parameters-to-submodules" title="Link to this heading">¶</a></h2>
+<p>By default, submodules (prefetchers, replacement policies, branch predictors, BTBs) are
+specified by name as a plain string:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="s2">&quot;ip_stride&quot;</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To pass configuration parameters to a submodule, use the <strong>object form</strong> instead.
+Specify the model name under the <code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code> key and any additional keys as parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;ip_stride&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;tracker_sets&quot;</span><span class="p">:</span> <span class="mi">512</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>These additional keys (<code class="docutils literal notranslate"><span class="pre">&quot;degree&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;tracker_sets&quot;</span></code>) are forwarded to the module’s
+constructor via <code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code>.  Inside the module, they are read with
+<code class="docutils literal notranslate"><span class="pre">builder.get_parameter&lt;T&gt;(&quot;degree&quot;,</span> <span class="pre">true,</span> <span class="pre">3)</span></code> (see the <a class="reference internal" href="Tutorial.html#tutorial-prefetcher"><span class="std std-ref">Tutorial</span></a>).</p>
+<p><strong>Multiple submodules with parameters</strong> — when specifying multiple modules of the same
+type (e.g. chained prefetchers), use the <strong>array form</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;no&quot;</span><span class="p">,</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;ip_stride&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+                <span class="s2">&quot;tracker_sets&quot;</span><span class="p">:</span> <span class="mi">256</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Plain string entries (<code class="docutils literal notranslate"><span class="pre">&quot;no&quot;</span></code>) get no extra parameters.  Object entries must have a
+<code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code> key plus any desired parameters.</p>
+<p>This same pattern works for any submodule type:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;replacement&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;srrip&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;max_rrpv&quot;</span><span class="p">:</span> <span class="mi">7</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;branch_predictor&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;hashed_perceptron&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;num_tables&quot;</span><span class="p">:</span> <span class="mi">16</span>
+    <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -232,6 +299,7 @@ The script is able to assign LLC-like defaults to each of the caches specified u
 <li><a class="reference internal" href="#cache-configuration">Cache Configuration</a></li>
 <li><a class="reference internal" href="#multi-core-configurations">Multi-core configurations</a></li>
 <li><a class="reference internal" href="#heterogeneous-systems">Heterogeneous systems</a></li>
+<li><a class="reference internal" href="#passing-parameters-to-submodules">Passing Parameters to Submodules</a></li>
 </ul>
 </li>
 </ul>
@@ -244,8 +312,8 @@ The script is able to assign LLC-like defaults to each of the caches specified u
   </div>
   <div>
     <h4>Next topic</h4>
-    <p class="topless"><a href="Configuration-API.html"
-                          title="next chapter">Configuration API</a></p>
+    <p class="topless"><a href="Explicit-configuration-format.html"
+                          title="next chapter">Explicit Configuration Format</a></p>
   </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -286,10 +354,7 @@ The script is able to assign LLC-like defaults to each of the caches specified u
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="Configuration-API.html" title="Configuration API"
+          <a href="Explicit-configuration-format.html" title="Explicit Configuration Format"
              >next</a> |</li>
         <li class="right" >
           <a href="Module-support-library.html" title="Module Support Library"

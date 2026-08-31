@@ -13,6 +13,7 @@
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Publications" href="Publications-using-champsim.html" />
     <link rel="prev" title="Cache Model" href="Cache-model.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
@@ -22,8 +23,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
+          <a href="Publications-using-champsim.html" title="Publications"
+             accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="Cache-model.html" title="Cache Model"
              accesskey="P">previous</a> |</li>
@@ -39,23 +40,22 @@
             
   <section id="the-legacy-champsim-module-system">
 <span id="legacy-modules"></span><h1>The Legacy ChampSim Module System<a class="headerlink" href="#the-legacy-champsim-module-system" title="Link to this heading">¶</a></h1>
-<p>Previous versions of ChampSim used the following module system.
-Many modules exist in published artifacts, so documentation is included here.
-New work should use the updated module system.</p>
-<p>Legacy modules can be enabled by adding an empty file named “__legacy__” in the same directory as the module sources.
-This is the preferred method.
-Alternatively, ChampSim can be configured with (for example):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;prefetcher&quot;</span> <span class="p">{</span>
-            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;../path/to/module&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;legacy&quot;</span><span class="p">:</span> <span class="n">true</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The free-function module system described on this page is <strong>not supported</strong> in the
+runtime (RT) version of ChampSim. It is documented here for historical reference only,
+as many published artifacts use this system.</p>
+<p>New work should use the current class-based module system described in <a class="reference internal" href="Modules.html#modules"><span class="std std-ref">The ChampSim Module System</span></a>.
+For guidance on migrating legacy modules to the new system, see the
+<a class="reference internal" href="Tutorial.html#tutorial"><span class="std std-ref">migration guide</span></a>.</p>
 </div>
-<p>ChampSim uses four kinds of modules:</p>
+<p>Previous versions of ChampSim used the following module system.
+Modules were implemented as sets of free functions with specific names and signatures.
+The <code class="docutils literal notranslate"><span class="pre">CACHE::</span></code> or <code class="docutils literal notranslate"><span class="pre">O3_CPU::</span></code> prefix indicated which simulator component the function
+belonged to.</p>
+<p>In older compile-time (CT) builds, legacy modules could be enabled by adding an empty file
+named <code class="docutils literal notranslate"><span class="pre">__legacy__</span></code> in the same directory as the module sources, or by setting
+<code class="docutils literal notranslate"><span class="pre">&quot;legacy&quot;:</span> <span class="pre">true</span></code> in the JSON config. These mechanisms are not available in RT builds.</p>
 <ul class="simple">
 <li><p>Branch Direction Predictors</p></li>
 <li><p>Branch Target Predictors</p></li>
@@ -279,6 +279,11 @@ Alternatively, ChampSim can be configured with (for example):</p>
     <p class="topless"><a href="Cache-model.html"
                           title="previous chapter">Cache Model</a></p>
   </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="Publications-using-champsim.html"
+                          title="next chapter">Publications</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -318,8 +323,8 @@ Alternatively, ChampSim can be configured with (for example):</p>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
+          <a href="Publications-using-champsim.html" title="Publications"
+             >next</a> |</li>
         <li class="right" >
           <a href="Cache-model.html" title="Cache Model"
              >previous</a> |</li>

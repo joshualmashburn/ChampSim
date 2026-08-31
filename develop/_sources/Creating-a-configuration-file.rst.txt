@@ -4,17 +4,26 @@
 Creating a Configuration File
 ================================================
 
-The configuration file is a central fixture of the ChampSim build system.
-An example configuration file (champsim_config.json) is given in the root of the repository, but it is large and unwieldy.
+.. note::
+
+   This page describes the **legacy** configuration format, which uses high-level shorthand
+   keys (``"branch_predictor"``, ``"L1D"``, ``"num_cores"``, etc.) to auto-generate the full
+   module hierarchy at runtime. This format is handled by the ``LEGACY_ENVIRONMENT`` module.
+
+   For full control over every module in the hierarchy, see the
+   :ref:`Explicit Configuration Format <Explicit_Config>`.
+
+The configuration file is a central fixture of ChampSim.
+An example configuration file (``champsim_config.json``) is given in the root of the repository, but it is large and unwieldy.
 Your configuration file will likely be much smaller.
 This page will walk you through many of the features of the ChampSim configuration system.
 
-The configuration file is given as an input to the configuration script as below::
+The configuration file is loaded at runtime via the ``--config`` flag::
 
-    ./config.sh my_config.json
+    bin/champsim --config my_config.json --warmup-instructions 200000000 --simulation-instructions 500000000 trace.xz
 
-In fact, the configuration file is entirely optional.
-Not specifying any file will configure ChampSim with a default configuration.
+If ``--config`` is omitted, ChampSim loads ``champsim_config.json`` from the current directory.
+You can also pipe a config via stdin with ``--config -``.
 
 -------------------------------
 Your first configuration file
@@ -29,8 +38,11 @@ We can start with the most trivial of configuration files.::
 This would specify a default configuration.
 But, this is not frequently useful.
 Let's change the branch predictor that ChampSim uses.
-Legal values for the ``branch_predictor`` key are directory names under the ``branch/`` directory, or valid paths.
-The same is true for specifying BTBs in the core and both prefetchers and replacement policies in the cache.::
+Legal values for the ``branch_predictor`` key are registered model names.
+By convention, these match the directory names under the ``branch/`` directory
+(e.g. ``"hashed_perceptron"``, ``"bimodal"``, ``"perceptron"``).
+The same convention applies for BTBs (under ``btb/``),
+prefetchers (under ``prefetcher/``), and replacement policies (under ``replacement/``).::
 
     {
         "branch_predictor": "perceptron"
@@ -70,7 +82,7 @@ The default prefetcher is the do-nothing prefetcher, and the default replacement
         "L1D": {
             "sets": 256, "ways": 4,
             "prefetcher": "next_line",
-            "replacement": "../../my/repl/path"
+            "replacement": "drrip"
         }
     }
 
@@ -154,9 +166,9 @@ In the following configuration, each core has a distinct L1 cache.::
         ]
     }
 
-The configuration script will make every attempt to assign defaults to objects, but it may not be able to do so for.
+The runtime environment will make every attempt to assign defaults to objects, but it may not be able to do so for all configurations.
 In the following configuration, cores 0 and 1 are attached to ``llcA`` and cores 2 and 3 are attached to ``llcB``.
-The script is able to assign LLC-like defaults to each of the caches specified under ``"caches"``::
+The runtime is able to assign LLC-like defaults to each of the caches specified under ``"caches"``::
 
     {
         "num_cores": 4,
@@ -170,7 +182,7 @@ The script is able to assign LLC-like defaults to each of the caches specified u
         ]
     }
 
-However, in the following, the script will not be able to assign defaults to all caches, and you may need to specify additional parameters::
+However, in the following, the runtime may not be able to assign defaults to all caches, and you may need to specify additional parameters::
 
     {
         "num_cores": 8,
@@ -183,4 +195,68 @@ However, in the following, the script will not be able to assign defaults to all
             { "name": "llcB", "lower_level": "L4C" },
             { "name": "L4C" }
         ]
+    }
+
+.. _Legacy_Submodule_Params:
+
+-------------------------------------------
+Passing Parameters to Submodules
+-------------------------------------------
+
+By default, submodules (prefetchers, replacement policies, branch predictors, BTBs) are
+specified by name as a plain string::
+
+    {
+        "L2C": { "prefetcher": "ip_stride" }
+    }
+
+To pass configuration parameters to a submodule, use the **object form** instead.
+Specify the model name under the ``"model"`` key and any additional keys as parameters::
+
+    {
+        "L2C": {
+            "prefetcher": {
+                "model": "ip_stride",
+                "degree": 4,
+                "tracker_sets": 512
+            }
+        }
+    }
+
+These additional keys (``"degree"``, ``"tracker_sets"``) are forwarded to the module's
+constructor via ``ModuleBuilder``.  Inside the module, they are read with
+``builder.get_parameter<T>("degree", true, 3)`` (see the :ref:`Tutorial <Tutorial_Prefetcher>`).
+
+**Multiple submodules with parameters** — when specifying multiple modules of the same
+type (e.g. chained prefetchers), use the **array form**::
+
+    {
+        "L2C": {
+            "prefetcher": [
+                "no",
+                {
+                    "model": "ip_stride",
+                    "degree": 6,
+                    "tracker_sets": 256
+                }
+            ]
+        }
+    }
+
+Plain string entries (``"no"``) get no extra parameters.  Object entries must have a
+``"model"`` key plus any desired parameters.
+
+This same pattern works for any submodule type::
+
+    {
+        "L2C": {
+            "replacement": {
+                "model": "srrip",
+                "max_rrpv": 7
+            }
+        },
+        "branch_predictor": {
+            "model": "hashed_perceptron",
+            "num_tables": 16
+        }
     }

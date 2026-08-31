@@ -4,310 +4,169 @@
 The ChampSim Module System
 ====================================
 
-ChampSim uses four kinds of modules:
+ChampSim provides a runtime module system that allows you to swap implementations of key
+simulator components without recompilation. Each component type has an **interface** (a C++
+abstract base class with pure virtual methods) and one or more **implementations** (concrete
+classes that override every method). ChampSim ships default implementations for all
+interfaces; you can replace any of them with your own.
 
-* Branch Direction Predictors
-* Branch Target Predictors
-* Memory Prefetchers
-* Cache Replacement Policies
+Modules are implemented as C++ classes that inherit from an interface base class in the
+``champsim::modules`` namespace. Every module:
 
-Modules are implemented as C++ objects.
-The module should inherit from one of the following classes:
+1. **Inherits** from one of the interface base classes listed below.
+2. **Implements** every pure virtual method declared by that interface (use empty stubs
+   ``override {}`` for methods where no behavior is needed).
+3. **Accepts a** ``champsim::modules::ModuleBuilder`` **in its constructor** to receive
+   configuration parameters and access its parent module.
+4. **Registers itself** with a static registration line so the simulator can instantiate it
+   by name at runtime.
 
-* ``champsim::modules::branch_predictor``
-* ``champsim::modules::btb``
-* ``champsim::modules::prefetcher``
-* ``champsim::modules::replacement``
+------------------------------------------
+Interfaces and Implementations
+------------------------------------------
 
-The module must be constructible with a ``O3_CPU*`` (for branch predictors and BTBs) or a ``CACHE*`` (for prefetchers and replacement policies).
-Such a constructor must call the superclass constructor of the same kind, for example::
+ChampSim distinguishes between **interfaces** and **implementations**:
 
-    class my_pref : champsim::modules::prefetcher
-    {
-        public:
-        explicit my_pref(CACHE* cache) : champsim::modules::prefetcher(cache) {}
+* An **interface** is an abstract base class that defines the contract a module must fulfill.
+  Interfaces live in ``champsim::modules`` and have names like ``prefetcher``,
+  ``replacement``, ``branch_predictor``, ``btb``, ``cache_module``, ``core_module``, etc.
+
+* An **implementation** is a concrete class that inherits from an interface and provides the
+  actual behavior. ChampSim ships default implementations (e.g. ``DEFAULT_CACHE``,
+  ``DEFAULT_CORE``, ``lru``, ``hashed_perceptron``, ``ip_stride``, etc.).
+
+When writing a new module, you implement an existing interface. The four user-facing
+module interfaces are:
+
+* ``champsim::modules::branch_predictor`` — attached to a core
+* ``champsim::modules::btb`` — attached to a core
+* ``champsim::modules::prefetcher`` — attached to a cache
+* ``champsim::modules::replacement`` — attached to a cache
+
+Higher-level interfaces (``cache_module``, ``core_module``, ``memory_controller_module``,
+etc.) define the contracts that caches, cores, and DRAM controllers fulfill. The default
+implementations ``DEFAULT_CACHE`` (``CACHE`` class) and ``DEFAULT_CORE`` (``O3_CPU`` class)
+implement these interfaces. See :ref:`Cache_model` and :ref:`Core_model` for details.
+
+------------------------------------------
+Module Construction and ModuleBuilder
+------------------------------------------
+
+All modules receive a ``champsim::modules::ModuleBuilder`` in their constructor. The
+``ModuleBuilder`` provides:
+
+* **Configuration parameters** from the JSON config file via ``get_parameter<T>()``.
+* **Access to the parent module** via ``get_parent<T>()``. For example, a prefetcher can
+  obtain a pointer to its parent cache.
+* **The module's name and model** via ``get_name()`` and ``get_model()``.
+
+Example constructor::
+
+    struct my_pref : champsim::modules::prefetcher {
+        champsim::modules::cache_module* cache_ = nullptr;
+        int degree = 3;
+
+        my_pref(champsim::modules::ModuleBuilder builder)
+            : cache_(builder.get_parent<champsim::modules::cache_module>()),
+              degree(builder.get_parameter<int>("degree", true, 3))
+        {}
     };
 
-One way to do this, if your module's constructor has an empty body, is to inherit the constructors of the superclass, as with::
+.. doxygenstruct:: champsim::modules::ModuleBuilder
+   :members: get_parameter,get_parent,get_name,get_model
 
-    class my_pref : champsim::modules::prefetcher
-    {
-        public:
-        using champsim::modules::prefetcher::prefetcher;
-    };
+------------------------------------------
+Module Registration
+------------------------------------------
 
-A module may implement any of the listed member functions.
-If a member function has overloads listed, any of them may be implemented, and the simulator will select the first candidate overload in the list.
+After defining your module class, register it with a static registration line in the
+``.cc`` file::
+
+    #include "my_pref.h"
+    #include "cache.h"
+
+    champsim::modules::prefetcher::register_module<my_pref> my_pref_register("my_pref");
+
+The string ``"my_pref"`` is the **model name** — this is the value you use in the JSON
+configuration file to select your module::
+
+    { "L2C": { "prefetcher": "my_pref" } }
+
+Or in the explicit config format::
+
+    { "name": "L2C_prefetcher", "module": "prefetcher", "model": "my_pref", "degree": 4 }
+
+By convention, the model name matches the directory name under ``prefetcher/``,
+``replacement/``, ``branch/``, or ``btb/``.
 
 ----------------------------
 Branch Predictors
 ----------------------------
 
-A branch predictor module may implement three functions.
+A branch predictor module inherits from ``champsim::modules::branch_predictor`` and must
+implement three functions.
 
-.. cpp:function:: void initialize_branch_predictor()
-
-   This function is called when the core is initialized. You can use it to initialize elements of dynamic structures, such as ``std::vector`` or ``std::map``.
-
-.. cpp:function:: bool predict_branch(champsim::address ip, champsim::address predicted_target, bool always_taken, uint8_t branch_type)
-.. cpp:function:: bool predict_branch(uint64_t ip, uint64_t predicted_target, bool always_taken, uint8_t branch_type)
-.. cpp:function:: bool predict_branch(champsim::address ip)
-.. cpp:function:: bool predict_branch(uint64_t ip)
-
-   This function is called when a prediction is needed.
-
-   :param ip: The instruction pointer of the branch
-   :param predicted_target: The predicted target of the branch.
-       This is passed directly from the branch target predictor module and may be incorrect.
-   :param always_taken: A boolean value.
-       This parameter will be nonzero if the branch target predictor determines that the branch is always taken.
-   :param branch_type: One of the following
-
-     * ``BRANCH_DIRECT_JUMP``: Direct non-call, unconditional branches, whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT``: Indirect non-call, unconditional branches, whose target is stored in a register
-     * ``BRANCH_CONDITIONAL``: A direct conditional branch
-     * ``BRANCH_DIRECT_CALL``: A call to a procedure whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT_CALL``: A call to a procedure whose target is stored in a register
-     * ``BRANCH_RETURN``: A return to a calling procedure
-     * ``BRANCH_OTHER``: If the branch type cannot be determined
-
-   :return: This function must return true if the branch is predicted taken, and false otherwise.
-
-.. cpp:function:: void last_branch_result(champsim::address ip, champsim::address branch_target, uint8_t taken, uint8_t branch_type)
-.. cpp:function:: void last_branch_result(uint64_t ip, uint64_t branch_target, uint8_t taken, uint8_t branch_type)
-
-   This function is called when a branch is resolved. The parameters are the same as in the previous hook, except that the last three are guaranteed to be correct.
+.. doxygenstruct:: champsim::modules::branch_predictor
+   :members:
 
 -----------------------------------
 Branch Target Buffers
 -----------------------------------
 
-A BTB module may implement three functions.
+A BTB module inherits from ``champsim::modules::btb`` and must implement three functions.
 
-.. cpp:function:: void initialize_btb()
-
-   This function is called when the core is initialized. You can use it to initialize elements of dynamic structures, such as ``std::vector`` or ``std::map``.
-
-.. cpp:function:: std::pair<champsim::address, bool> btb_prediction(champsim::address ip, uint8_t branch_type)
-.. cpp:function:: std::pair<champsim::address, bool> btb_prediction(champsim::address ip)
-.. cpp:function:: std::pair<champsim::address, bool> btb_prediction(uint64_t ip, uint8_t branch_type)
-.. cpp:function:: std::pair<champsim::address, bool> btb_prediction(uint64_t ip)
-
-   This function is called when a prediction is needed.
-
-   :param ip: The instruction pointer of the branch
-   :param branch_type: One of the following
-
-     * ``BRANCH_DIRECT_JUMP``: Direct non-call, unconditional branches, whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT``: Indirect non-call, unconditional branches, whose target is stored in a register
-     * ``BRANCH_CONDITIONAL``: A direct conditional branch
-     * ``BRANCH_DIRECT_CALL``: A call to a procedure whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT_CALL``: A call to a procedure whose target is stored in a register
-     * ``BRANCH_RETURN``: A return to a calling procedure
-     * ``BRANCH_OTHER``: If the branch type cannot be determined
-
-   :return: The function should return a pair containing the predicted address and a boolean that describes if the branch is known to be always taken.
-       If the prediction fails, the function should return a default-initialized address, e.g. ``champsim::address{}``.
-
-.. cpp:function:: void update_btb(champsim::address ip, champsim::address branch_target, bool taken, uint8_t branch_type)
-.. cpp:function:: void update_btb(uint64_t ip, uint64_t branch_target, bool taken, uint8_t branch_type)
-
-   This function is called when a branch is resolved.
-
-   :param ip: The instruction pointer of the branch
-   :param branch_target: The correct target of the branch.
-   :param taken: A boolean value. This parameter will be nonzero if the branch was taken.
-   :param branch_type: One of the following
-
-     * ``BRANCH_DIRECT_JUMP``: Direct non-call, unconditional branches, whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT``: Indirect non-call, unconditional branches, whose target is stored in a register
-     * ``BRANCH_CONDITIONAL``: A direct conditional branch
-     * ``BRANCH_DIRECT_CALL``: A call to a procedure whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT_CALL``: A call to a procedure whose target is stored in a register
-     * ``BRANCH_RETURN``: A return to a calling procedure
-     * ``BRANCH_OTHER``: If the branch type cannot be determined
+.. doxygenstruct:: champsim::modules::btb
+   :members:
 
 -----------------------------------
 Memory Prefetchers
 -----------------------------------
 
-A prefetcher module may implement five or six functions.
+A prefetcher module inherits from ``champsim::modules::prefetcher`` and must implement six
+functions. The ``prefetch_line()`` helper is provided by the base class for issuing
+prefetch requests into the parent cache.
 
-.. cpp:function:: void prefetcher_initialize()
-
-   This function is called when the cache is initialized. You can use it to initialize elements of dynamic structures, such as ``std::vector`` or ``std::map``.
-
-.. cpp:function:: uint32_t prefetcher_cache_operate(champsim::address addr, champsim::address ip, bool cache_hit, bool useful_prefetch, access_type type, uint32_t metadata_in)
-.. cpp:function:: uint32_t prefetcher_cache_operate(champsim::address addr, champsim::address ip, bool cache_hit, bool useful_prefetch, uint8_t type, uint32_t metadata_in)
-.. cpp:function:: uint32_t prefetcher_cache_operate(uint64_t addr, uint64_t ip, bool cache_hit, uint8_t type, uint32_t metadata_in)
-
-   This function is called when a tag is checked in the cache.
-
-   :param addr: the address of the packet.
-       If this is the first-level cache, the offset bits are included.
-       Otherwise, the offset bits are zero.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param ip: the address of the instruction that initiated the demand.
-       If the packet is a prefetch from another level, this value will be 0.
-   :param cache_hit: if this tag check is a hit, this value is true.
-   :param useful_prefetch: if this tag check hit a prior prefetch, this value is true.
-   :param type: one of the following
-
-     * ``access_type::LOAD``
-     * ``access_type::RFO``
-     * ``access_type::PREFETCH``
-     * ``access_type::WRITE``
-     * ``access_type::TRANSLATION``
-
-   :param metadata_in: the metadata carried along by the packet.
-
-   :return: The function should return metadata that will be stored alongside the block.
-
-.. cpp:function:: uint32_t prefetcher_cache_fill(champsim::address addr, uint32_t set, uint32_way, bool prefetch, champsim::address evicted_address, uint32_t metadata_in)
-.. cpp:function:: uint32_t prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_way, bool prefetch, uint64_t evicted_address, uint32_t metadata_in)
-
-   This function is called when a miss is filled in the cache.
-
-   :param addr: the address of the packet.
-       If this is the first-level cache, the offset bits are included.
-       Otherwise, the offset bits are zero.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param set: the set that the fill occurred in
-   :param way: the way that the fill occurred in, or ``this->NUM_WAY`` if a bypass occurred
-   :param prefetch: if this tag check hit a prior prefetch, this value is true.
-   :param evicted_address: the address of the evicted block.
-       If the fill was a bypass, this value will be default-constructed.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param metadata_in: the metadata carried along by the packet.
-
-   :return: The function should return metadata that will be stored alongside the block.
-
-.. cpp:function:: void prefetcher_cycle_operate()
-
-
-   This function is called each cycle, after all other operation has completed.
-
-.. cpp:function:: void prefetcher_final_stats()
-
-
-   This function is called at the end of the simulation and can be used to print statistics.
-
-
-.. cpp:function:: void prefetcher_branch_operate(champsim::address ip, uint8_t branch_type, champsim::address branch_target)
-.. cpp:function:: void prefetcher_branch_operate(uint64_t ip, uint8_t branch_type, uint64_t branch_target)
-
-
-   This function may be implemented by instruction prefetchers.
-
-   :param ip: The instruction pointer of the branch
-   :param branch_type: One of the following
-
-     * ``BRANCH_DIRECT_JUMP``: Direct non-call, unconditional branches, whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT``: Indirect non-call, unconditional branches, whose target is stored in a register
-     * ``BRANCH_CONDITIONAL``: A direct conditional branch
-     * ``BRANCH_DIRECT_CALL``: A call to a procedure whose target is encoded in the instruction
-     * ``BRANCH_INDIRECT_CALL``: A call to a procedure whose target is stored in a register
-     * ``BRANCH_RETURN``: A return to a calling procedure
-     * ``BRANCH_OTHER``: If the branch type cannot be determined
-
-   :param branch_target: The instruction pointer of the target
+.. doxygenstruct:: champsim::modules::prefetcher
+   :members:
 
 -----------------------------------
 Replacement Policies
 -----------------------------------
 
-A replacement policy module may implement five functions.
+A replacement policy module inherits from ``champsim::modules::replacement`` and must
+implement five functions.
 
-.. cpp:function:: void initialize_replacement()
+.. doxygenstruct:: champsim::modules::replacement
+   :members:
 
-   This function is called when the cache is initialized. You can use it to initialize elements of dynamic structures, such as ``std::vector`` or ``std::map``.
+-----------------------------------
+Cache Module Interface
+-----------------------------------
 
-.. cpp:function:: uint32_t find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t addr, access_type type)
-.. cpp:function:: uint32_t find_victim(uint32_t triggering_cpu, uint64_t instr_id, uint32_t set, const BLOCK* current_set, uint64_t ip, uint64_t addr, uint32_t type)
+The ``cache_module`` interface defines the contract that caches fulfill. Prefetchers
+and replacement policies can query their parent cache through this interface, for
+example to read queue occupancy or cache geometry.
 
-   This function is called when a tag is checked in the cache.
+.. doxygenstruct:: champsim::modules::cache_module
+   :members:
 
-   :param triggering_cpu: the core index that initiated this fill
-   :param instr_id: an instruction count that can be used to examine the program order of requests.
-   :param set: the set that the fill occurred in.
-   :param current_set: a pointer to the beginning of the set being accessed.
-   :param ip: the address of the instruction that initiated the demand.
-       If the packet is a prefetch from another level, this value will be 0.
-   :param addr: the address of the packet.
-       If this is the first-level cache, the offset bits are included.
-       Otherwise, the offset bits are zero.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param type: one of the following
+-----------------------------------
+Core Module Interface
+-----------------------------------
 
-     * ``access_type::LOAD``
-     * ``access_type::RFO``
-     * ``access_type::PREFETCH``
-     * ``access_type::WRITE``
-     * ``access_type::TRANSLATION``
+The ``core_module`` interface defines the contract that CPU cores fulfill. Branch
+predictors and BTBs are attached to a core_module.
 
-   :return: The function should return the way index that should be evicted, or ``this->NUM_WAY`` to indicate that a bypass should occur.
+.. doxygenstruct:: champsim::modules::core_module
+   :members:
 
-.. cpp:function:: void replacement_cache_fill(uint32_t triggering_cpu, long set, long way, champsim::address full_addr, champsim::address ip, champsim::address victim_addr, access_type type)
+-----------------------------------
+Memory Controller Interface
+-----------------------------------
 
-    This function is called when a block is filled in the cache.
-    It is called with the same timing as ``find_victim()``, but is additionally called when filling an invalid way.
-    Use of this function should be careful not to misinterpret fills to invalid ways.
+The ``memory_controller_module`` interface defines the contract that DRAM controllers
+fulfill. Stats can be retrieved per channel.
 
-   :param triggering_cpu: the core index that initiated this fill
-   :param set: the set that the fill occurred in.
-   :param way: the way that the fill occurred in.
-   :param full_addr: the address of the packet.
-       If this is the first-level cache, the offset bits are included.
-       Otherwise, the offset bits are zero.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param ip: the address of the instruction that initiated the demand.
-       If the packet is a prefetch from another level, this value will be 0.
-   :param victim_addr: the address of the evicted block, if this is a miss.
-       If this is a hit, the value is 0.
-   :param type: one of the following
-
-     * ``access_type::LOAD``
-     * ``access_type::RFO``
-     * ``access_type::PREFETCH``
-     * ``access_type::WRITE``
-     * ``access_type::TRANSLATION``
-
-.. cpp:function:: void update_replacement_state(uint32_t triggering_cpu, long set, long way, champsim::address addr, champsim::address ip, access_type type, bool hit)
-.. cpp:function:: void update_replacement_state(uint32_t triggering_cpu, long set, long way, champsim::address addr, champsim::address ip, champsim::address victim_addr, access_type type, bool hit)
-.. cpp:function:: void update_replacement_state(uint32_t triggering_cpu, long set, long way, champsim::address addr, champsim::address ip, champsim::address victim_addr, uint32_t type, bool hit)
-.. cpp:function:: void update_replacement_state(uint32_t triggering_cpu, long set, long way, uint64_t addr, uint64_t ip, uint64_t victim_addr, bool hit)
-
-   This function has different behavior depending on whether ``replacement_cache_fill()`` is defined.
-   If it is defined, this function is called when a tag check completes, whether the check is a hit or a miss.
-   If it is not defined, this function is called on hits and when a miss is filled (that is, with the same timing as ``replacement_cache_fill()``).
-
-   :param triggering_cpu: the core index that initiated this fill
-   :param set: the set that the fill occurred in.
-   :param way: the way that the fill occurred in.
-   :param addr: the address of the packet.
-       If this is the first-level cache, the offset bits are included.
-       Otherwise, the offset bits are zero.
-       If the cache was configured with ``"virtual_prefetch": true``, this address will be a virtual address.
-       Otherwise, this is a physical address.
-   :param ip: the address of the instruction that initiated the demand.
-       If the packet is a prefetch from another level, this value will be 0.
-   :param victim_addr: This value will be 0 unless ``replacement_cache_fill()`` is not defined and ``hit`` is false.
-       If so, this parameter is the address of the evicted block.
-   :param type: one of the following
-
-     * ``access_type::LOAD``
-     * ``access_type::RFO``
-     * ``access_type::PREFETCH``
-     * ``access_type::WRITE``
-     * ``access_type::TRANSLATION``
-   :param hit: true if the packet hit the cache, false otherwise.
-
-.. cpp:function:: void replacement_final_stats()
-
-   This function is called at the end of the simulation and can be used to print statistics.
+.. doxygenstruct:: champsim::modules::memory_controller_module
+   :members:
 

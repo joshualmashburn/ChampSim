@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tutorial: Creating New Modules &#8212; ChampSim  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/nature.css?v=279e0f84" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Module Support Library" href="Module-support-library.html" />
+    <link rel="prev" title="The ChampSim Module System" href="Modules.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Module-support-library.html" title="Module Support Library"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Modules.html" title="The ChampSim Module System"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tutorial: Creating New Modules</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tutorial-creating-new-modules">
+<span id="tutorial"></span><h1>Tutorial: Creating New Modules<a class="headerlink" href="#tutorial-creating-new-modules" title="Link to this heading">¶</a></h1>
+<p>This tutorial walks through creating modules for ChampSim from scratch, with detailed
+line-by-line commentary. By the end, you will understand:</p>
+<ul class="simple">
+<li><p>How to create a prefetcher</p></li>
+<li><p>How to create a replacement policy</p></li>
+<li><p>How to create a branch predictor</p></li>
+<li><p>How the <code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code> parameter system works</p></li>
+<li><p>How to define an entirely new module interface</p></li>
+</ul>
+<nav class="contents local" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#part-1-creating-a-prefetcher" id="id1">Part 1: Creating a Prefetcher</a></p>
+<ul>
+<li><p><a class="reference internal" href="#step-1-create-the-directory" id="id2">Step 1: Create the Directory</a></p></li>
+<li><p><a class="reference internal" href="#step-2-write-the-header" id="id3">Step 2: Write the Header</a></p></li>
+<li><p><a class="reference internal" href="#step-3-implement-the-module" id="id4">Step 3: Implement the Module</a></p></li>
+<li><p><a class="reference internal" href="#step-4-build" id="id5">Step 4: Build</a></p></li>
+<li><p><a class="reference internal" href="#step-5-configure-and-run" id="id6">Step 5: Configure and Run</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#part-2-creating-a-replacement-policy" id="id7">Part 2: Creating a Replacement Policy</a></p></li>
+<li><p><a class="reference internal" href="#part-3-creating-a-branch-predictor" id="id8">Part 3: Creating a Branch Predictor</a></p></li>
+<li><p><a class="reference internal" href="#part-4-understanding-modulebuilder" id="id9">Part 4: Understanding ModuleBuilder</a></p>
+<ul>
+<li><p><a class="reference internal" href="#reading-parameters" id="id10">Reading Parameters</a></p></li>
+<li><p><a class="reference internal" href="#accessing-the-parent-module" id="id11">Accessing the Parent Module</a></p></li>
+<li><p><a class="reference internal" href="#querying-module-name-and-model" id="id12">Querying Module Name and Model</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#part-5-debugging-module-construction" id="id13">Part 5: Debugging Module Construction</a></p></li>
+<li><p><a class="reference internal" href="#part-6-defining-a-new-interface" id="id14">Part 6: Defining a New Interface</a></p>
+<ul>
+<li><p><a class="reference internal" href="#step-1-define-the-interface" id="id15">Step 1: Define the Interface</a></p></li>
+<li><p><a class="reference internal" href="#step-2-register-the-interface" id="id16">Step 2: Register the Interface</a></p></li>
+<li><p><a class="reference internal" href="#step-3-hook-the-interface-into-the-parent" id="id17">Step 3: Hook the Interface into the Parent</a></p></li>
+<li><p><a class="reference internal" href="#step-4-write-implementations" id="id18">Step 4: Write Implementations</a></p></li>
+<li><p><a class="reference internal" href="#step-5-configure-it" id="id19">Step 5: Configure It</a></p></li>
+<li><p><a class="reference internal" href="#summary" id="id20">Summary</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#part-7-migrating-from-legacy-modules" id="id21">Part 7: Migrating from Legacy Modules</a></p></li>
+<li><p><a class="reference internal" href="#part-8-modernizing-the-default-config" id="id22">Part 8: Modernizing the Default Config</a></p>
+<ul>
+<li><p><a class="reference internal" href="#where-to-direct-attention" id="id23">Where to Direct Attention</a></p></li>
+<li><p><a class="reference internal" href="#step-1-clone-and-comment" id="id24">Step 1: Clone and Comment</a></p></li>
+<li><p><a class="reference internal" href="#step-2-core-parameters" id="id25">Step 2: Core Parameters</a></p></li>
+<li><p><a class="reference internal" href="#step-3-cache-hierarchy" id="id26">Step 3: Cache Hierarchy</a></p></li>
+<li><p><a class="reference internal" href="#step-4-dram" id="id27">Step 4: DRAM</a></p></li>
+<li><p><a class="reference internal" href="#step-5-validate-with-dump" id="id28">Step 5: Validate with –dump</a></p></li>
+<li><p><a class="reference internal" href="#step-6-why-the-defaults-are-what-they-are" id="id29">Step 6: Why the Defaults Are What They Are</a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="part-1-creating-a-prefetcher">
+<span id="tutorial-prefetcher"></span><h2><a class="toc-backref" href="#id1" role="doc-backlink">Part 1: Creating a Prefetcher</a><a class="headerlink" href="#part-1-creating-a-prefetcher" title="Link to this heading">¶</a></h2>
+<p>We will build a stride prefetcher from scratch. A stride prefetcher tracks the
+addresses accessed by each instruction pointer (IP). When it detects a repeating
+stride pattern, it prefetches ahead in that pattern.</p>
+<section id="step-1-create-the-directory">
+<h3><a class="toc-backref" href="#id2" role="doc-backlink">Step 1: Create the Directory</a><a class="headerlink" href="#step-1-create-the-directory" title="Link to this heading">¶</a></h3>
+<p>Each module lives in its own directory under the interface directory it implements.
+Prefetchers go under <code class="docutils literal notranslate"><span class="pre">prefetcher/</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">prefetcher</span><span class="o">/</span><span class="n">my_stride</span>
+</pre></div>
+</div>
+<p>The Makefile automatically discovers <code class="docutils literal notranslate"><span class="pre">.cc</span></code> files under <code class="docutils literal notranslate"><span class="pre">prefetcher/</span></code>,
+<code class="docutils literal notranslate"><span class="pre">replacement/</span></code>, <code class="docutils literal notranslate"><span class="pre">branch/</span></code>, and <code class="docutils literal notranslate"><span class="pre">btb/</span></code>, so there is no build system
+configuration needed.</p>
+</section>
+<section id="step-2-write-the-header">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Step 2: Write the Header</a><a class="headerlink" href="#step-2-write-the-header" title="Link to this heading">¶</a></h3>
+<p>Create <code class="docutils literal notranslate"><span class="pre">prefetcher/my_stride/my_stride.h</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="cp">#ifndef MY_STRIDE_H</span>
+<span class="linenos">  2</span><span class="cp">#define MY_STRIDE_H</span>
+<span class="linenos">  3</span>
+<span class="linenos">  4</span><span class="c1">// &lt;map&gt; gives us std::map for our tracking table.</span>
+<span class="linenos">  5</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
+<span class="linenos">  6</span>
+<span class="linenos">  7</span><span class="c1">// &quot;address.h&quot; provides champsim::address and champsim::block_number — ChampSim&#39;s</span>
+<span class="linenos">  8</span><span class="c1">// type-safe address types.  Raw uint64_t addresses are error-prone (byte vs block</span>
+<span class="linenos">  9</span><span class="c1">// vs page ambiguity), so ChampSim wraps them in distinct types.</span>
+<span class="linenos"> 10</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;address.h&quot;</span>
+<span class="linenos"> 11</span>
+<span class="linenos"> 12</span><span class="c1">// &quot;modules.h&quot; is the central module-system header.  It provides:</span>
+<span class="linenos"> 13</span><span class="c1">//   - champsim::modules::prefetcher   (the interface we inherit from)</span>
+<span class="linenos"> 14</span><span class="c1">//   - champsim::modules::ModuleBuilder (the constructor parameter)</span>
+<span class="linenos"> 15</span><span class="c1">//   - champsim::modules::cache_module  (the parent type for prefetchers)</span>
+<span class="linenos"> 16</span><span class="c1">//   - register_module&lt;T&gt;  (used to register our implementation)</span>
+<span class="linenos"> 17</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;modules.h&quot;</span>
+<span class="linenos"> 18</span>
+<span class="linenos"> 19</span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="linenos"> 20</span><span class="c1">// my_stride — A stride prefetcher with configurable degree.</span>
+<span class="linenos"> 21</span><span class="c1">//</span>
+<span class="linenos"> 22</span><span class="c1">// Inherits from champsim::modules::prefetcher, which itself inherits from</span>
+<span class="linenos"> 23</span><span class="c1">// module_base&lt;prefetcher, cache_module&gt;.  That template establishes two things:</span>
+<span class="linenos"> 24</span><span class="c1">//   1. Prefetchers are attached to a cache_module (the &quot;parent&quot;).</span>
+<span class="linenos"> 25</span><span class="c1">//   2. The static registration/factory infrastructure (register_module,</span>
+<span class="linenos"> 26</span><span class="c1">//      create_instance) is scoped to the prefetcher interface.</span>
+<span class="linenos"> 27</span><span class="c1">// --------------------------------------------------------------------------</span>
+<span class="linenos"> 28</span><span class="k">struct</span><span class="w"> </span><span class="nc">my_stride</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">prefetcher</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 29</span>
+<span class="linenos"> 30</span><span class="w">    </span><span class="c1">// --- Per-IP tracking state ---</span>
+<span class="linenos"> 31</span><span class="w">    </span><span class="c1">// We track each instruction pointer&#39;s last cache-line address and the</span>
+<span class="linenos"> 32</span><span class="w">    </span><span class="c1">// stride between the two most recent accesses.  When two consecutive</span>
+<span class="linenos"> 33</span><span class="w">    </span><span class="c1">// strides match, we have a pattern to prefetch.</span>
+<span class="linenos"> 34</span><span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">tracker_entry</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 35</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">block_number</span><span class="w"> </span><span class="n">last_addr</span><span class="p">{};</span><span class="w">                 </span><span class="c1">// cache-line address of last access</span>
+<span class="linenos"> 36</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">block_number</span><span class="o">::</span><span class="n">difference_type</span><span class="w"> </span><span class="n">stride</span><span class="p">{};</span><span class="w">   </span><span class="c1">// last observed stride (in cache lines)</span>
+<span class="linenos"> 37</span><span class="w">    </span><span class="p">};</span>
+<span class="linenos"> 38</span>
+<span class="linenos"> 39</span><span class="w">    </span><span class="c1">// --- Configurable fields ---</span>
+<span class="linenos"> 40</span><span class="w">    </span><span class="c1">// &quot;degree&quot; controls how many cache lines ahead we prefetch once a stride</span>
+<span class="linenos"> 41</span><span class="w">    </span><span class="c1">// pattern is detected.  It defaults to 3 but can be overridden from JSON.</span>
+<span class="linenos"> 42</span><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">degree</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="linenos"> 43</span>
+<span class="linenos"> 44</span><span class="w">    </span><span class="c1">// --- Parent cache pointer ---</span>
+<span class="linenos"> 45</span><span class="w">    </span><span class="c1">// We store a pointer to the parent cache_module so we can query runtime</span>
+<span class="linenos"> 46</span><span class="w">    </span><span class="c1">// state like MSHR occupancy.  This pointer is obtained from the</span>
+<span class="linenos"> 47</span><span class="w">    </span><span class="c1">// ModuleBuilder in the constructor.</span>
+<span class="linenos"> 48</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">*</span><span class="w"> </span><span class="n">cache_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="linenos"> 49</span>
+<span class="linenos"> 50</span><span class="w">    </span><span class="c1">// --- Tracking table ---</span>
+<span class="linenos"> 51</span><span class="w">    </span><span class="c1">// Maps instruction pointers to their tracker entries.  Using std::map</span>
+<span class="linenos"> 52</span><span class="w">    </span><span class="c1">// here for simplicity; a real design might use a fixed-size LRU table</span>
+<span class="linenos"> 53</span><span class="w">    </span><span class="c1">// (see champsim::msl::lru_table in ip_stride).</span>
+<span class="linenos"> 54</span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">tracker_entry</span><span class="o">&gt;</span><span class="w"> </span><span class="n">table</span><span class="p">;</span>
+<span class="linenos"> 55</span>
+<span class="linenos"> 56</span><span class="w">    </span><span class="c1">// --- Constructor ---</span>
+<span class="linenos"> 57</span><span class="w">    </span><span class="c1">// Every module MUST accept exactly one argument: a ModuleBuilder.</span>
+<span class="linenos"> 58</span><span class="w">    </span><span class="c1">// The module system calls this constructor when it instantiates the</span>
+<span class="linenos"> 59</span><span class="w">    </span><span class="c1">// module, passing in a builder pre-populated with JSON parameters</span>
+<span class="linenos"> 60</span><span class="w">    </span><span class="c1">// and a reference to the parent module.</span>
+<span class="linenos"> 61</span><span class="w">    </span><span class="n">my_stride</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">);</span>
+<span class="linenos"> 62</span>
+<span class="linenos"> 63</span><span class="w">    </span><span class="c1">// --- Interface overrides ---</span>
+<span class="linenos"> 64</span><span class="w">    </span><span class="c1">// champsim::modules::prefetcher declares six pure virtual methods.</span>
+<span class="linenos"> 65</span><span class="w">    </span><span class="c1">// We MUST override all of them.  For methods we don&#39;t need, we provide</span>
+<span class="linenos"> 66</span><span class="w">    </span><span class="c1">// an empty body with &quot;override {}&quot;.</span>
+<span class="linenos"> 67</span><span class="w">    </span><span class="c1">//</span>
+<span class="linenos"> 68</span><span class="w">    </span><span class="c1">// prefetcher_initialize: Called once before simulation begins.</span>
+<span class="linenos"> 69</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">prefetcher_initialize</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos"> 70</span>
+<span class="linenos"> 71</span><span class="w">    </span><span class="c1">// prefetcher_cache_operate: Called on every cache access (hit or miss).</span>
+<span class="linenos"> 72</span><span class="w">    </span><span class="c1">// This is the main hook — it&#39;s where we detect strides and issue</span>
+<span class="linenos"> 73</span><span class="w">    </span><span class="c1">// prefetches.  Returns metadata to pass through to future callbacks.</span>
+<span class="linenos"> 74</span><span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="nf">prefetcher_cache_operate</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos"> 75</span><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">cache_hit</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">useful_prefetch</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">,</span>
+<span class="linenos"> 76</span><span class="w">        </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos"> 77</span>
+<span class="linenos"> 78</span><span class="w">    </span><span class="c1">// prefetcher_cache_fill: Called when a cache line is filled (loaded into</span>
+<span class="linenos"> 79</span><span class="w">    </span><span class="c1">// the cache).  Useful for feedback-directed prefetching.  We don&#39;t need</span>
+<span class="linenos"> 80</span><span class="w">    </span><span class="c1">// it for a simple stride prefetcher, so we just pass through the metadata.</span>
+<span class="linenos"> 81</span><span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="nf">prefetcher_cache_fill</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">way</span><span class="p">,</span>
+<span class="linenos"> 82</span><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">prefetch</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">evicted_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">)</span><span class="w"> </span><span class="k">override</span>
+<span class="linenos"> 83</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="linenos"> 84</span>
+<span class="linenos"> 85</span><span class="w">    </span><span class="c1">// prefetcher_cycle_operate: Called once every cycle.  Useful if your</span>
+<span class="linenos"> 86</span><span class="w">    </span><span class="c1">// prefetcher needs to do work that isn&#39;t tied to a specific cache access</span>
+<span class="linenos"> 87</span><span class="w">    </span><span class="c1">// (e.g. draining a lookahead queue, as ip_stride does).</span>
+<span class="linenos"> 88</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">prefetcher_cycle_operate</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos"> 89</span>
+<span class="linenos"> 90</span><span class="w">    </span><span class="c1">// prefetcher_final_stats: Called at the end of simulation.  Use it to</span>
+<span class="linenos"> 91</span><span class="w">    </span><span class="c1">// print custom statistics.</span>
+<span class="linenos"> 92</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">prefetcher_final_stats</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos"> 93</span>
+<span class="linenos"> 94</span><span class="w">    </span><span class="c1">// prefetcher_branch_operate: Called on every branch instruction executed</span>
+<span class="linenos"> 95</span><span class="w">    </span><span class="c1">// by the core attached to this cache.  Some prefetchers (e.g. TAGE-based)</span>
+<span class="linenos"> 96</span><span class="w">    </span><span class="c1">// use branch outcomes.  We don&#39;t, so we stub it.</span>
+<span class="linenos"> 97</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">prefetcher_branch_operate</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">branch_type</span><span class="p">,</span>
+<span class="linenos"> 98</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">branch_target</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos"> 99</span><span class="p">};</span>
+<span class="linenos">100</span>
+<span class="linenos">101</span><span class="cp">#endif</span>
+</pre></div>
+</div>
+<p><strong>Why inherit from</strong> <code class="docutils literal notranslate"><span class="pre">champsim::modules::prefetcher</span></code>?  It is the interface that defines
+the contract between the cache and its prefetcher(s).  Every cache expects its prefetcher
+submodules to implement these six methods.  The <code class="docutils literal notranslate"><span class="pre">module_base</span></code> machinery behind
+<code class="docutils literal notranslate"><span class="pre">prefetcher</span></code> provides the static factory (<code class="docutils literal notranslate"><span class="pre">create_instance</span></code>, <code class="docutils literal notranslate"><span class="pre">register_module</span></code>) that
+the config system uses to instantiate your module by name.</p>
+<p><strong>Why must the constructor take</strong> <code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code>?  The registration macro stores a
+factory lambda <code class="docutils literal notranslate"><span class="pre">[](ModuleBuilder</span> <span class="pre">b){</span> <span class="pre">return</span> <span class="pre">std::make_unique&lt;T&gt;(b);</span> <span class="pre">}</span></code>.  If your
+constructor has a different signature, that lambda won’t compile and registration will
+fail.</p>
+</section>
+<section id="step-3-implement-the-module">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Step 3: Implement the Module</a><a class="headerlink" href="#step-3-implement-the-module" title="Link to this heading">¶</a></h3>
+<p>Create <code class="docutils literal notranslate"><span class="pre">prefetcher/my_stride/my_stride.cc</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;my_stride.h&quot;</span>
+<span class="linenos">  2</span>
+<span class="linenos">  3</span><span class="c1">// &quot;cache.h&quot; provides the concrete CACHE class.  We don&#39;t strictly need it here</span>
+<span class="linenos">  4</span><span class="c1">// because we only interact through the cache_module interface, but some modules</span>
+<span class="linenos">  5</span><span class="c1">// may need it for additional helpers.</span>
+<span class="linenos">  6</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cache.h&quot;</span>
+<span class="linenos">  7</span>
+<span class="linenos">  8</span><span class="c1">// =========================================================================</span>
+<span class="linenos">  9</span><span class="c1">// REGISTRATION</span>
+<span class="linenos"> 10</span><span class="c1">//</span>
+<span class="linenos"> 11</span><span class="c1">// This single line registers our class with the module system under the name</span>
+<span class="linenos"> 12</span><span class="c1">// &quot;my_stride&quot;.  When a config file says &quot;model&quot;: &quot;my_stride&quot;, the factory</span>
+<span class="linenos"> 13</span><span class="c1">// will call our constructor.</span>
+<span class="linenos"> 14</span><span class="c1">//</span>
+<span class="linenos"> 15</span><span class="c1">// The variable name (my_stride_reg) is arbitrary — it just needs to be a</span>
+<span class="linenos"> 16</span><span class="c1">// global so it runs at static-initialization time.</span>
+<span class="linenos"> 17</span><span class="c1">//</span>
+<span class="linenos"> 18</span><span class="c1">// Breaking down the type:</span>
+<span class="linenos"> 19</span><span class="c1">//   champsim::modules::prefetcher           — the interface we implement</span>
+<span class="linenos"> 20</span><span class="c1">//   ::register_module&lt;my_stride&gt;            — template helper on module_base</span>
+<span class="linenos"> 21</span><span class="c1">//   my_stride_reg(&quot;my_stride&quot;)             — constructor arg = model name</span>
+<span class="linenos"> 22</span><span class="c1">// =========================================================================</span>
+<span class="linenos"> 23</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">prefetcher</span><span class="o">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">my_stride</span><span class="o">&gt;</span>
+<span class="linenos"> 24</span><span class="w">    </span><span class="n">my_stride_reg</span><span class="p">(</span><span class="s">&quot;my_stride&quot;</span><span class="p">);</span>
+<span class="linenos"> 25</span>
+<span class="linenos"> 26</span><span class="c1">// =========================================================================</span>
+<span class="linenos"> 27</span><span class="c1">// CONSTRUCTOR</span>
+<span class="linenos"> 28</span><span class="c1">//</span>
+<span class="linenos"> 29</span><span class="c1">// The ModuleBuilder is pre-populated by the config system before we see it.</span>
+<span class="linenos"> 30</span><span class="c1">// It contains:</span>
+<span class="linenos"> 31</span><span class="c1">//   - A pointer to the parent module (a cache_module*)</span>
+<span class="linenos"> 32</span><span class="c1">//   - All JSON parameters as a string-&gt;std::any map</span>
+<span class="linenos"> 33</span><span class="c1">//   - The module name and model name</span>
+<span class="linenos"> 34</span><span class="c1">//</span>
+<span class="linenos"> 35</span><span class="c1">// get_parameter&lt;T&gt;(name, optional, default):</span>
+<span class="linenos"> 36</span><span class="c1">//   - name:     JSON key to look up</span>
+<span class="linenos"> 37</span><span class="c1">//   - optional: if true, return default_value when key is missing;</span>
+<span class="linenos"> 38</span><span class="c1">//               if false, exit with an error when key is missing</span>
+<span class="linenos"> 39</span><span class="c1">//   - default:  value to use when key is missing (only if optional=true)</span>
+<span class="linenos"> 40</span><span class="c1">//</span>
+<span class="linenos"> 41</span><span class="c1">// get_parent&lt;T&gt;():</span>
+<span class="linenos"> 42</span><span class="c1">//   - Returns a T* to the parent module.  For prefetchers and replacement</span>
+<span class="linenos"> 43</span><span class="c1">//     policies, T is cache_module.  For branch predictors and BTBs, T is</span>
+<span class="linenos"> 44</span><span class="c1">//     core_module.</span>
+<span class="linenos"> 45</span><span class="c1">// =========================================================================</span>
+<span class="linenos"> 46</span><span class="n">my_stride</span><span class="o">::</span><span class="n">my_stride</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">)</span>
+<span class="linenos"> 47</span><span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="n">degree</span><span class="p">(</span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;degree&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)),</span>
+<span class="linenos"> 48</span><span class="w">      </span><span class="n">cache_</span><span class="p">(</span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">())</span>
+<span class="linenos"> 49</span><span class="p">{</span>
+<span class="linenos"> 50</span><span class="w">    </span><span class="c1">// At this point:</span>
+<span class="linenos"> 51</span><span class="w">    </span><span class="c1">//   degree == the &quot;degree&quot; value from JSON, or 3 if absent</span>
+<span class="linenos"> 52</span><span class="w">    </span><span class="c1">//   cache_ == pointer to the parent cache (never null if config is valid)</span>
+<span class="linenos"> 53</span><span class="p">}</span>
+<span class="linenos"> 54</span>
+<span class="linenos"> 55</span><span class="c1">// =========================================================================</span>
+<span class="linenos"> 56</span><span class="c1">// MAIN HOOK: prefetcher_cache_operate</span>
+<span class="linenos"> 57</span><span class="c1">//</span>
+<span class="linenos"> 58</span><span class="c1">// Called by the cache on every access (loads, stores, prefetch fills).</span>
+<span class="linenos"> 59</span><span class="c1">//</span>
+<span class="linenos"> 60</span><span class="c1">// Parameters:</span>
+<span class="linenos"> 61</span><span class="c1">//   addr           — full byte address of the access</span>
+<span class="linenos"> 62</span><span class="c1">//   ip             — instruction pointer that caused the access</span>
+<span class="linenos"> 63</span><span class="c1">//   cache_hit      — true if the access was a cache hit</span>
+<span class="linenos"> 64</span><span class="c1">//   useful_prefetch— true if a prior prefetch for this address was used</span>
+<span class="linenos"> 65</span><span class="c1">//   type           — LOAD, RFO (store), PREFETCH, WRITE, or TRANSLATION</span>
+<span class="linenos"> 66</span><span class="c1">//   metadata_in    — metadata propagated from a prior prefetcher in the chain</span>
+<span class="linenos"> 67</span><span class="c1">//</span>
+<span class="linenos"> 68</span><span class="c1">// Returns: metadata to propagate to the next prefetcher in the chain.</span>
+<span class="linenos"> 69</span><span class="c1">// =========================================================================</span>
+<span class="linenos"> 70</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">my_stride</span><span class="o">::</span><span class="n">prefetcher_cache_operate</span><span class="p">(</span>
+<span class="linenos"> 71</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos"> 72</span><span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">cache_hit</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">useful_prefetch</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">,</span>
+<span class="linenos"> 73</span><span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">)</span>
+<span class="linenos"> 74</span><span class="p">{</span>
+<span class="linenos"> 75</span><span class="w">    </span><span class="c1">// Convert the byte address to a cache-line (block) number.</span>
+<span class="linenos"> 76</span><span class="w">    </span><span class="c1">// champsim::block_number strips the low bits (the block offset),</span>
+<span class="linenos"> 77</span><span class="w">    </span><span class="c1">// giving us a cache-line-granularity address for stride computation.</span>
+<span class="linenos"> 78</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">block_number</span><span class="w"> </span><span class="n">cl_addr</span><span class="p">{</span><span class="n">addr</span><span class="p">};</span>
+<span class="linenos"> 79</span>
+<span class="linenos"> 80</span><span class="w">    </span><span class="c1">// Look up whether we&#39;ve seen this IP before.</span>
+<span class="linenos"> 81</span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">table</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">ip</span><span class="p">);</span>
+<span class="linenos"> 82</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">table</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 83</span><span class="w">        </span><span class="c1">// We&#39;ve seen this IP before.  Compute the stride: the difference</span>
+<span class="linenos"> 84</span><span class="w">        </span><span class="c1">// between the current cache-line and the last one this IP accessed.</span>
+<span class="linenos"> 85</span><span class="w">        </span><span class="c1">// champsim::offset(a, b) returns b - a in block-number units.</span>
+<span class="linenos"> 86</span><span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">stride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">offset</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">last_addr</span><span class="p">,</span><span class="w"> </span><span class="n">cl_addr</span><span class="p">);</span>
+<span class="linenos"> 87</span>
+<span class="linenos"> 88</span><span class="w">        </span><span class="c1">// Only prefetch if:</span>
+<span class="linenos"> 89</span><span class="w">        </span><span class="c1">//   1. stride != 0   — the IP didn&#39;t access the same line twice</span>
+<span class="linenos"> 90</span><span class="w">        </span><span class="c1">//   2. stride == last_stride — the pattern is consistent</span>
+<span class="linenos"> 91</span><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">stride</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">stride</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">stride</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 92</span><span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">degree</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 93</span><span class="w">                </span><span class="c1">// Compute the prefetch address: current line + (stride * (i+1))</span>
+<span class="linenos"> 94</span><span class="w">                </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">pf_addr</span><span class="p">{</span><span class="n">cl_addr</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">stride</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">))};</span>
+<span class="linenos"> 95</span>
+<span class="linenos"> 96</span><span class="w">                </span><span class="c1">// Decide whether to fill this level or a lower level.</span>
+<span class="linenos"> 97</span><span class="w">                </span><span class="c1">// When MSHRs are less than 50% full, fill this cache level</span>
+<span class="linenos"> 98</span><span class="w">                </span><span class="c1">// (L2C).  When they&#39;re busy, fill the level below (LLC)</span>
+<span class="linenos"> 99</span><span class="w">                </span><span class="c1">// to avoid polluting the closer cache.</span>
+<span class="linenos">100</span><span class="w">                </span><span class="kt">bool</span><span class="w"> </span><span class="n">fill_this_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cache_</span><span class="o">-&gt;</span><span class="n">get_mshr_occupancy_ratio</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.5</span><span class="p">;</span>
+<span class="linenos">101</span>
+<span class="linenos">102</span><span class="w">                </span><span class="c1">// prefetch_line() is provided by the prefetcher base class.</span>
+<span class="linenos">103</span><span class="w">                </span><span class="c1">// It issues the prefetch through the parent cache.</span>
+<span class="linenos">104</span><span class="w">                </span><span class="c1">// Arguments: address, fill_this_level, metadata.</span>
+<span class="linenos">105</span><span class="w">                </span><span class="n">prefetch_line</span><span class="p">(</span><span class="n">pf_addr</span><span class="p">,</span><span class="w"> </span><span class="n">fill_this_level</span><span class="p">,</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">);</span>
+<span class="linenos">106</span><span class="w">            </span><span class="p">}</span>
+<span class="linenos">107</span><span class="w">        </span><span class="p">}</span>
+<span class="linenos">108</span>
+<span class="linenos">109</span><span class="w">        </span><span class="c1">// Update the tracker for next time.</span>
+<span class="linenos">110</span><span class="w">        </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">stride</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stride</span><span class="p">;</span>
+<span class="linenos">111</span><span class="w">        </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">last_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cl_addr</span><span class="p">;</span>
+<span class="linenos">112</span><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos">113</span><span class="w">        </span><span class="c1">// First time seeing this IP.  Create a tracker entry with stride 0</span>
+<span class="linenos">114</span><span class="w">        </span><span class="c1">// (we need at least two accesses to compute a stride).</span>
+<span class="linenos">115</span><span class="w">        </span><span class="n">table</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">cl_addr</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="linenos">116</span><span class="w">    </span><span class="p">}</span>
+<span class="linenos">117</span>
+<span class="linenos">118</span><span class="w">    </span><span class="c1">// Pass metadata through unchanged.</span>
+<span class="linenos">119</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">metadata_in</span><span class="p">;</span>
+<span class="linenos">120</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="step-4-build">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Step 4: Build</a><a class="headerlink" href="#step-4-build" title="Link to this heading">¶</a></h3>
+<p>Rebuild ChampSim.  The Makefile automatically discovers source files under
+<code class="docutils literal notranslate"><span class="pre">prefetcher/</span></code>, <code class="docutils literal notranslate"><span class="pre">replacement/</span></code>, <code class="docutils literal notranslate"><span class="pre">branch/</span></code>, and <code class="docutils literal notranslate"><span class="pre">btb/</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>make -j$(nproc)
+</pre></div>
+</div>
+<p>If you get a linker error about duplicate symbols, make sure your <code class="docutils literal notranslate"><span class="pre">register_module</span></code>
+variable name is unique across all modules.</p>
+</section>
+<section id="step-5-configure-and-run">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">Step 5: Configure and Run</a><a class="headerlink" href="#step-5-configure-and-run" title="Link to this heading">¶</a></h3>
+<p><strong>Legacy config</strong> — the simplest option, just name the model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="s2">&quot;my_stride&quot;</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To pass parameters to the prefetcher, use the object form (see
+<a class="reference internal" href="Creating-a-configuration-file.html#legacy-submodule-params"><span class="std std-ref">Passing Parameters to Submodules</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;L2C&quot;</span><span class="p">:</span> <span class="p">{</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;my_stride&quot;</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Explicit config</strong> — the prefetcher is a child of the cache module:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;cpu0_L2C_prefetcher&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;my_stride&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="mi">4</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Run</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">champsim</span> <span class="o">--</span><span class="n">config</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span> \
+    <span class="o">--</span><span class="n">warmup</span><span class="o">-</span><span class="n">instructions</span> <span class="mi">200000000</span> \
+    <span class="o">--</span><span class="n">simulation</span><span class="o">-</span><span class="n">instructions</span> <span class="mi">500000000</span> \
+    <span class="n">trace</span><span class="o">.</span><span class="n">champsimtrace</span><span class="o">.</span><span class="n">xz</span>
+</pre></div>
+</div>
+<p><strong>Verify with</strong> <code class="docutils literal notranslate"><span class="pre">--dump</span></code> — add <code class="docutils literal notranslate"><span class="pre">--dump</span></code> to see every module’s parameters and
+connections, confirming your prefetcher was constructed with the right degree:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">champsim</span> <span class="o">--</span><span class="n">config</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">dump</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="part-2-creating-a-replacement-policy">
+<span id="tutorial-replacement"></span><h2><a class="toc-backref" href="#id7" role="doc-backlink">Part 2: Creating a Replacement Policy</a><a class="headerlink" href="#part-2-creating-a-replacement-policy" title="Link to this heading">¶</a></h2>
+<p>This section builds a simple LRU (Least Recently Used) replacement policy.  It
+follows the same three-step pattern as the prefetcher: inherit, override, register.</p>
+<p><strong>Header</strong> (<code class="docutils literal notranslate"><span class="pre">replacement/my_lru/my_lru.h</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#ifndef MY_LRU_H</span>
+<span class="linenos"> 2</span><span class="cp">#define MY_LRU_H</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+<span class="linenos"> 5</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;modules.h&quot;</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos"> 8</span><span class="c1">// my_lru — Least Recently Used replacement policy.</span>
+<span class="linenos"> 9</span><span class="c1">//</span>
+<span class="linenos">10</span><span class="c1">// Inherits from champsim::modules::replacement, which is</span>
+<span class="linenos">11</span><span class="c1">// module_base&lt;replacement, cache_module&gt;.  Like prefetchers, replacement</span>
+<span class="linenos">12</span><span class="c1">// policies are children of a cache_module.</span>
+<span class="linenos">13</span><span class="c1">//</span>
+<span class="linenos">14</span><span class="c1">// The replacement interface has four pure virtual methods:</span>
+<span class="linenos">15</span><span class="c1">//   initialize_replacement()       — one-time setup</span>
+<span class="linenos">16</span><span class="c1">//   find_victim(...)               — pick a way to evict</span>
+<span class="linenos">17</span><span class="c1">//   update_replacement_state(...)  — called on every access (hit or miss)</span>
+<span class="linenos">18</span><span class="c1">//   replacement_cache_fill(...)    — called when a new line is filled</span>
+<span class="linenos">19</span><span class="c1">//   replacement_final_stats()      — end-of-simulation hook</span>
+<span class="linenos">20</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">21</span><span class="k">struct</span><span class="w"> </span><span class="nc">my_lru</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">replacement</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="w">    </span><span class="c1">// Number of ways per set — we read this from the parent cache at</span>
+<span class="linenos">24</span><span class="w">    </span><span class="c1">// construction time so our flat vector is correctly sized.</span>
+<span class="linenos">25</span><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">num_ways</span><span class="p">;</span>
+<span class="linenos">26</span>
+<span class="linenos">27</span><span class="w">    </span><span class="c1">// Flat vector of last-used timestamps, indexed as [set * num_ways + way].</span>
+<span class="linenos">28</span><span class="w">    </span><span class="c1">// A flat vector is faster than a map&lt;pair&lt;long,long&gt;, ...&gt; because the</span>
+<span class="linenos">29</span><span class="w">    </span><span class="c1">// access pattern is dense and predictable.</span>
+<span class="linenos">30</span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint64_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">last_used</span><span class="p">;</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span><span class="w">    </span><span class="c1">// Monotonically increasing timestamp.  We increment it on every access,</span>
+<span class="linenos">33</span><span class="w">    </span><span class="c1">// giving us a total ordering of recency.</span>
+<span class="linenos">34</span><span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">cycle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="linenos">35</span>
+<span class="linenos">36</span><span class="w">    </span><span class="c1">// Constructor — reads cache geometry from the parent.</span>
+<span class="linenos">37</span><span class="w">    </span><span class="n">my_lru</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">);</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="w">    </span><span class="c1">// --- Interface overrides ---</span>
+<span class="linenos">40</span>
+<span class="linenos">41</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">initialize_replacement</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos">42</span>
+<span class="linenos">43</span><span class="w">    </span><span class="c1">// find_victim: Return the way index within &quot;set&quot; that should be evicted.</span>
+<span class="linenos">44</span><span class="w">    </span><span class="c1">// The cache calls this when it needs to make room for a new line.</span>
+<span class="linenos">45</span><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="nf">find_victim</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">triggering_cpu</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">instr_id</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span>
+<span class="linenos">46</span><span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">cache_block</span><span class="o">*</span><span class="w"> </span><span class="n">current_set</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos">47</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">full_addr</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">48</span>
+<span class="linenos">49</span><span class="w">    </span><span class="c1">// update_replacement_state: Called on every cache access (hit or miss).</span>
+<span class="linenos">50</span><span class="w">    </span><span class="c1">// We use it to update the recency timestamp.</span>
+<span class="linenos">51</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">update_replacement_state</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">triggering_cpu</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">way</span><span class="p">,</span>
+<span class="linenos">52</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">full_addr</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos">53</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">victim_addr</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">hit</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">54</span>
+<span class="linenos">55</span><span class="w">    </span><span class="c1">// replacement_cache_fill: Called when a new line is physically written</span>
+<span class="linenos">56</span><span class="w">    </span><span class="c1">// into the cache.  We also update the timestamp here.</span>
+<span class="linenos">57</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">replacement_cache_fill</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">triggering_cpu</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">way</span><span class="p">,</span>
+<span class="linenos">58</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">full_addr</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos">59</span><span class="w">        </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">victim_addr</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">60</span>
+<span class="linenos">61</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">replacement_final_stats</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos">62</span><span class="p">};</span>
+<span class="linenos">63</span>
+<span class="linenos">64</span><span class="cp">#endif</span>
+</pre></div>
+</div>
+<p><strong>Implementation</strong> (<code class="docutils literal notranslate"><span class="pre">replacement/my_lru/my_lru.cc</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;my_lru.h&quot;</span>
+<span class="linenos"> 2</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;algorithm&gt;</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="c1">// Register under the name &quot;my_lru&quot;.</span>
+<span class="linenos"> 5</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">replacement</span><span class="o">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">my_lru</span><span class="o">&gt;</span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="n">my_lru_reg</span><span class="p">(</span><span class="s">&quot;my_lru&quot;</span><span class="p">);</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos"> 9</span><span class="c1">// Constructor</span>
+<span class="linenos">10</span><span class="c1">//</span>
+<span class="linenos">11</span><span class="c1">// We query the parent cache for its geometry (num_sets, num_ways) so we can</span>
+<span class="linenos">12</span><span class="c1">// size our data structures correctly.  This is the typical pattern for</span>
+<span class="linenos">13</span><span class="c1">// replacement policies: they need to know how big the cache is.</span>
+<span class="linenos">14</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">15</span><span class="n">my_lru</span><span class="o">::</span><span class="n">my_lru</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">)</span>
+<span class="linenos">16</span><span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="n">num_ways</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="linenos">17</span><span class="w">          </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">num_ways</span><span class="p">())),</span>
+<span class="linenos">18</span><span class="w">      </span><span class="n">last_used</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="linenos">19</span><span class="w">          </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">num_sets</span><span class="p">()</span>
+<span class="linenos">20</span><span class="w">          </span><span class="o">*</span><span class="w"> </span><span class="n">num_ways</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="linenos">21</span><span class="p">{</span>
+<span class="linenos">22</span><span class="w">    </span><span class="c1">// last_used is now a flat vector of size (sets * ways), all initialized</span>
+<span class="linenos">23</span><span class="w">    </span><span class="c1">// to 0.  Way indices within each set are at offsets [set*ways .. set*ways+ways).</span>
+<span class="linenos">24</span><span class="p">}</span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">27</span><span class="c1">// find_victim: Scan the last_used timestamps for this set and return the</span>
+<span class="linenos">28</span><span class="c1">// way with the smallest (oldest) timestamp.</span>
+<span class="linenos">29</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">30</span><span class="kt">long</span><span class="w"> </span><span class="n">my_lru</span><span class="o">::</span><span class="n">find_victim</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="cm">/*triggering_cpu*/</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="cm">/*instr_id*/</span><span class="p">,</span>
+<span class="linenos">31</span><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">cache_block</span><span class="o">*</span><span class="w"> </span><span class="cm">/*current_set*/</span><span class="p">,</span>
+<span class="linenos">32</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*ip*/</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*full_addr*/</span><span class="p">,</span>
+<span class="linenos">33</span><span class="w">    </span><span class="n">access_type</span><span class="w"> </span><span class="cm">/*type*/</span><span class="p">)</span>
+<span class="linenos">34</span><span class="p">{</span>
+<span class="linenos">35</span><span class="w">    </span><span class="c1">// Point to the start of this set&#39;s slice of the flat vector.</span>
+<span class="linenos">36</span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">begin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">next</span><span class="p">(</span><span class="n">last_used</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">set</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">num_ways</span><span class="p">);</span>
+<span class="linenos">37</span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">next</span><span class="p">(</span><span class="n">begin</span><span class="p">,</span><span class="w"> </span><span class="n">num_ways</span><span class="p">);</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="w">    </span><span class="c1">// std::min_element finds the way with the smallest last-used time.</span>
+<span class="linenos">40</span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">victim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">min_element</span><span class="p">(</span><span class="n">begin</span><span class="p">,</span><span class="w"> </span><span class="n">end</span><span class="p">);</span>
+<span class="linenos">41</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">distance</span><span class="p">(</span><span class="n">begin</span><span class="p">,</span><span class="w"> </span><span class="n">victim</span><span class="p">);</span>
+<span class="linenos">42</span><span class="p">}</span>
+<span class="linenos">43</span>
+<span class="linenos">44</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">45</span><span class="c1">// update_replacement_state: Stamp the accessed way with the current time.</span>
+<span class="linenos">46</span><span class="c1">//</span>
+<span class="linenos">47</span><span class="c1">// We skip writeback hits because writebacks are not demand accesses — they</span>
+<span class="linenos">48</span><span class="c1">// are cache maintenance operations.  Promoting a line on a writeback would</span>
+<span class="linenos">49</span><span class="c1">// artificially extend its lifetime.</span>
+<span class="linenos">50</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">51</span><span class="kt">void</span><span class="w"> </span><span class="n">my_lru</span><span class="o">::</span><span class="n">update_replacement_state</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="cm">/*triggering_cpu*/</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span>
+<span class="linenos">52</span><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">way</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*full_addr*/</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*ip*/</span><span class="p">,</span>
+<span class="linenos">53</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*victim_addr*/</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">hit</span><span class="p">)</span>
+<span class="linenos">54</span><span class="p">{</span>
+<span class="linenos">55</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hit</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">access_type</span><span class="o">::</span><span class="n">WRITE</span><span class="p">)</span>
+<span class="linenos">56</span><span class="w">        </span><span class="n">last_used</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">set</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">num_ways</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">way</span><span class="p">))</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cycle</span><span class="o">++</span><span class="p">;</span>
+<span class="linenos">57</span><span class="p">}</span>
+<span class="linenos">58</span>
+<span class="linenos">59</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">60</span><span class="c1">// replacement_cache_fill: A new line was just written into set/way.</span>
+<span class="linenos">61</span><span class="c1">// Mark it as recently used.</span>
+<span class="linenos">62</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">63</span><span class="kt">void</span><span class="w"> </span><span class="n">my_lru</span><span class="o">::</span><span class="n">replacement_cache_fill</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="cm">/*triggering_cpu*/</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">set</span><span class="p">,</span>
+<span class="linenos">64</span><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">way</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*full_addr*/</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*ip*/</span><span class="p">,</span>
+<span class="linenos">65</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*victim_addr*/</span><span class="p">,</span><span class="w"> </span><span class="n">access_type</span><span class="w"> </span><span class="cm">/*type*/</span><span class="p">)</span>
+<span class="linenos">66</span><span class="p">{</span>
+<span class="linenos">67</span><span class="w">    </span><span class="n">last_used</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">set</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">num_ways</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">way</span><span class="p">))</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cycle</span><span class="o">++</span><span class="p">;</span>
+<span class="linenos">68</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="part-3-creating-a-branch-predictor">
+<span id="tutorial-branchpredictor"></span><h2><a class="toc-backref" href="#id8" role="doc-backlink">Part 3: Creating a Branch Predictor</a><a class="headerlink" href="#part-3-creating-a-branch-predictor" title="Link to this heading">¶</a></h2>
+<p>Branch predictors follow the same pattern, but they are children of <code class="docutils literal notranslate"><span class="pre">core_module</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">cache_module</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">branch_predictor</span></code> interface has three pure virtual methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">initialize_branch_predictor()</span></code> — one-time setup</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predict_branch(ip,</span> <span class="pre">predicted_target,</span> <span class="pre">always_taken,</span> <span class="pre">branch_type)</span></code> — return <code class="docutils literal notranslate"><span class="pre">true</span></code>
+for taken, <code class="docutils literal notranslate"><span class="pre">false</span></code> for not-taken</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">last_branch_result(ip,</span> <span class="pre">target,</span> <span class="pre">taken,</span> <span class="pre">branch_type)</span></code> — called after the branch is
+resolved so you can update predictor state</p></li>
+</ul>
+<p><strong>A simple bimodal predictor</strong> (<code class="docutils literal notranslate"><span class="pre">branch/my_bimodal/my_bimodal.h</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#ifndef MY_BIMODAL_H</span>
+<span class="linenos"> 2</span><span class="cp">#define MY_BIMODAL_H</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+<span class="linenos"> 5</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;modules.h&quot;</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos"> 8</span><span class="c1">// my_bimodal — A simple bimodal branch predictor.</span>
+<span class="linenos"> 9</span><span class="c1">//</span>
+<span class="linenos">10</span><span class="c1">// Uses a table of 2-bit saturating counters indexed by the low bits of the</span>
+<span class="linenos">11</span><span class="c1">// instruction pointer.  This is the simplest dynamic branch predictor.</span>
+<span class="linenos">12</span><span class="c1">//</span>
+<span class="linenos">13</span><span class="c1">// Inherits from champsim::modules::branch_predictor, which is</span>
+<span class="linenos">14</span><span class="c1">// module_base&lt;branch_predictor, core_module&gt;.  Branch predictors are</span>
+<span class="linenos">15</span><span class="c1">// children of a core_module.</span>
+<span class="linenos">16</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">17</span><span class="k">struct</span><span class="w"> </span><span class="nc">my_bimodal</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">branch_predictor</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="w">    </span><span class="c1">// Number of index bits — controls table size (2^index_bits entries).</span>
+<span class="linenos">20</span><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">index_bits</span><span class="p">;</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="w">    </span><span class="c1">// Table of 2-bit saturating counters.  Each entry is 0–3:</span>
+<span class="linenos">23</span><span class="w">    </span><span class="c1">//   0,1 = predict not-taken</span>
+<span class="linenos">24</span><span class="w">    </span><span class="c1">//   2,3 = predict taken</span>
+<span class="linenos">25</span><span class="w">    </span><span class="c1">// We use int8_t to save space.</span>
+<span class="linenos">26</span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">table</span><span class="p">;</span>
+<span class="linenos">27</span>
+<span class="linenos">28</span><span class="w">    </span><span class="c1">// Constructor reads table_size from JSON config.</span>
+<span class="linenos">29</span><span class="w">    </span><span class="n">my_bimodal</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">);</span>
+<span class="linenos">30</span>
+<span class="linenos">31</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">initialize_branch_predictor</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+<span class="linenos">32</span>
+<span class="linenos">33</span><span class="w">    </span><span class="c1">// predict_branch: Return true (taken) or false (not-taken).</span>
+<span class="linenos">34</span><span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">predict_branch</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">predicted_target</span><span class="p">,</span>
+<span class="linenos">35</span><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">always_taken</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">branch_type</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">36</span>
+<span class="linenos">37</span><span class="w">    </span><span class="c1">// last_branch_result: Update the counter after the branch is resolved.</span>
+<span class="linenos">38</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">last_branch_result</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">target</span><span class="p">,</span>
+<span class="linenos">39</span><span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">taken</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">branch_type</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">40</span><span class="p">};</span>
+<span class="linenos">41</span>
+<span class="linenos">42</span><span class="cp">#endif</span>
+</pre></div>
+</div>
+<p><strong>Implementation</strong> (<code class="docutils literal notranslate"><span class="pre">branch/my_bimodal/my_bimodal.cc</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;my_bimodal.h&quot;</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="c1">// Register as &quot;my_bimodal&quot;.</span>
+<span class="linenos"> 4</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">branch_predictor</span><span class="o">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">my_bimodal</span><span class="o">&gt;</span>
+<span class="linenos"> 5</span><span class="w">    </span><span class="n">my_bimodal_reg</span><span class="p">(</span><span class="s">&quot;my_bimodal&quot;</span><span class="p">);</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos"> 8</span><span class="c1">// Constructor</span>
+<span class="linenos"> 9</span><span class="c1">//</span>
+<span class="linenos">10</span><span class="c1">// Read table_size from JSON (default 4096 entries = 12 index bits).</span>
+<span class="linenos">11</span><span class="c1">// Initialize all counters to 2 (weakly taken), a common starting point.</span>
+<span class="linenos">12</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">13</span><span class="n">my_bimodal</span><span class="o">::</span><span class="n">my_bimodal</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">)</span>
+<span class="linenos">14</span><span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="n">index_bits</span><span class="p">(</span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;index_bits&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">)),</span>
+<span class="linenos">15</span><span class="w">      </span><span class="n">table</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">index_bits</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w">  </span><span class="c1">// 2^index_bits entries, init to &quot;weakly taken&quot;</span>
+<span class="linenos">16</span><span class="p">{</span>
+<span class="linenos">17</span><span class="p">}</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">20</span><span class="c1">// predict_branch</span>
+<span class="linenos">21</span><span class="c1">//</span>
+<span class="linenos">22</span><span class="c1">// Index into the counter table using the low bits of the IP.</span>
+<span class="linenos">23</span><span class="c1">// Counter &gt;= 2 means &quot;predict taken&quot;.</span>
+<span class="linenos">24</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">25</span><span class="kt">bool</span><span class="w"> </span><span class="n">my_bimodal</span><span class="o">::</span><span class="n">predict_branch</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos">26</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*predicted_target*/</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="cm">/*always_taken*/</span><span class="p">,</span>
+<span class="linenos">27</span><span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="cm">/*branch_type*/</span><span class="p">)</span>
+<span class="linenos">28</span><span class="p">{</span>
+<span class="linenos">29</span><span class="w">    </span><span class="c1">// Use ip.to&lt;std::size_t&gt;() to extract the raw integer value.</span>
+<span class="linenos">30</span><span class="w">    </span><span class="c1">// Mask with (table_size - 1) to get an index.</span>
+<span class="linenos">31</span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="p">.</span><span class="n">to</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">((</span><span class="mi">1u</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">index_bits</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="linenos">32</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="linenos">33</span><span class="p">}</span>
+<span class="linenos">34</span>
+<span class="linenos">35</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">36</span><span class="c1">// last_branch_result</span>
+<span class="linenos">37</span><span class="c1">//</span>
+<span class="linenos">38</span><span class="c1">// Increment the counter if the branch was taken, decrement if not-taken.</span>
+<span class="linenos">39</span><span class="c1">// Saturate at 0 and 3 (2-bit counter).</span>
+<span class="linenos">40</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">41</span><span class="kt">void</span><span class="w"> </span><span class="n">my_bimodal</span><span class="o">::</span><span class="n">last_branch_result</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">ip</span><span class="p">,</span>
+<span class="linenos">42</span><span class="w">    </span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="cm">/*target*/</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">taken</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="cm">/*branch_type*/</span><span class="p">)</span>
+<span class="linenos">43</span><span class="p">{</span>
+<span class="linenos">44</span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="p">.</span><span class="n">to</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">((</span><span class="mi">1u</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">index_bits</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="linenos">45</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">taken</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span>
+<span class="linenos">46</span><span class="w">        </span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>
+<span class="linenos">47</span><span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">taken</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="linenos">48</span><span class="w">        </span><span class="n">table</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">--</span><span class="p">;</span>
+<span class="linenos">49</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="part-4-understanding-modulebuilder">
+<span id="tutorial-modulebuilder"></span><h2><a class="toc-backref" href="#id9" role="doc-backlink">Part 4: Understanding ModuleBuilder</a><a class="headerlink" href="#part-4-understanding-modulebuilder" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code> is the object the module system passes to your constructor.  It carries
+all the information your module needs to initialize itself.</p>
+<section id="reading-parameters">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Reading Parameters</a><a class="headerlink" href="#reading-parameters" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">get_parameter&lt;T&gt;(name,</span> <span class="pre">optional,</span> <span class="pre">default_value)</span></code> reads a JSON value:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// REQUIRED: exits with an error if &quot;sets&quot; is not in the JSON.</span>
+<span class="c1">// The third argument is ignored when optional=false, but you must provide it</span>
+<span class="c1">// due to the template signature.</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">sets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;sets&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="c1">// OPTIONAL: returns 3 if &quot;degree&quot; is not in the JSON.</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">degree</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;degree&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+
+<span class="c1">// STRING parameter:</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;mode&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;normal&quot;</span><span class="p">);</span>
+
+<span class="c1">// SIZE parameter — uses std::size_t, which is 64-bit unsigned.</span>
+<span class="c1">// numeric_any_cast handles converting JSON integers (stored as int64_t)</span>
+<span class="c1">// to std::size_t automatically.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">sz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parameter</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;table_size&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The parameter name corresponds to a key in the module’s JSON config entry.
+See <a class="reference internal" href="Creating-a-configuration-file.html#legacy-submodule-params"><span class="std std-ref">Passing Parameters to Submodules</span></a> and the
+<a class="reference internal" href="Explicit-configuration-format.html#explicit-config"><span class="std std-ref">Explicit Configuration Format</span></a> for how these values
+get into the <code class="docutils literal notranslate"><span class="pre">ModuleBuilder</span></code>.</p>
+</section>
+<section id="accessing-the-parent-module">
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">Accessing the Parent Module</a><a class="headerlink" href="#accessing-the-parent-module" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">get_parent&lt;T&gt;()</span></code> returns a pointer to the module that owns this submodule:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Prefetchers and replacement policies → parent is cache_module</span>
+<span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">cache</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Branch predictors and BTBs → parent is core_module</span>
+<span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">core</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">core_module</span><span class="o">&gt;</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>Store the pointer in a member variable if you need it after construction.  Methods
+available on <code class="docutils literal notranslate"><span class="pre">cache_module</span></code> include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_mshr_occupancy_ratio()</span></code> — MSHR load as a fraction (0.0 to 1.0)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_mshr_size()</span></code> — total MSHR capacity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_sets()</span></code> / <code class="docutils literal notranslate"><span class="pre">num_ways()</span></code> — cache geometry</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_virtual_prefetch()</span></code> — whether prefetch addresses are virtual</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_rq_occupancy()</span></code> / <code class="docutils literal notranslate"><span class="pre">get_wq_occupancy()</span></code> / <code class="docutils literal notranslate"><span class="pre">get_pq_occupancy()</span></code> — queue loads</p></li>
+</ul>
+</section>
+<section id="querying-module-name-and-model">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">Querying Module Name and Model</a><a class="headerlink" href="#querying-module-name-and-model" title="Link to this heading">¶</a></h3>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// The instance name (e.g. &quot;cpu0_L2C_prefetcher&quot;):</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_name</span><span class="p">();</span>
+
+<span class="c1">// The model name (e.g. &quot;my_stride&quot;):</span>
+<span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_model</span><span class="p">();</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="part-5-debugging-module-construction">
+<span id="tutorial-debugging"></span><h2><a class="toc-backref" href="#id13" role="doc-backlink">Part 5: Debugging Module Construction</a><a class="headerlink" href="#part-5-debugging-module-construction" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--dump</span></code> to see every module that was constructed, its parameters, and its
+connections:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bin</span><span class="o">/</span><span class="n">champsim</span> <span class="o">--</span><span class="n">config</span> <span class="n">my_config</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">dump</span>
+</pre></div>
+</div>
+<p>Example output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[cpu0_L2C_prefetcher] degree = 4 (set)
+[cpu0_L2C_prefetcher] created_module = my_stride (set)
+[cpu0_L2C_replacement] created_module = lru (set)
+</pre></div>
+</div>
+<p>This is invaluable for verifying that:</p>
+<ul class="simple">
+<li><p>Your module was instantiated (look for <code class="docutils literal notranslate"><span class="pre">created_module</span> <span class="pre">=</span> <span class="pre">your_model_name</span></code>)</p></li>
+<li><p>Parameters have the expected values (<code class="docutils literal notranslate"><span class="pre">(set)</span></code> vs <code class="docutils literal notranslate"><span class="pre">(default)</span></code>)</p></li>
+<li><p>Parent/child connections are correct</p></li>
+</ul>
+</section>
+<section id="part-6-defining-a-new-interface">
+<span id="tutorial-newinterface"></span><h2><a class="toc-backref" href="#id14" role="doc-backlink">Part 6: Defining a New Interface</a><a class="headerlink" href="#part-6-defining-a-new-interface" title="Link to this heading">¶</a></h2>
+<p>ChampSim ships with built-in interfaces for prefetchers, replacement policies, branch
+predictors, and BTBs.  The module system is fully extensible — you can define your own
+interface types, attach them to existing parent modules, and the config system will
+construct them for you from JSON.</p>
+<p>This section walks through adding a <strong>cache_indexer</strong> interface: a submodule of a
+cache that owns the address → set-index mapping.  The default mapping in ChampSim
+is a simple bit-slice of the block address, which is a common source of conflict
+misses on pathological access patterns (power-of-two strides, aliasing page tables).
+A pluggable indexer lets you swap the mapping (bit-slice, XOR hashing, prime
+modulo, skewed associativity) at runtime from the config file without touching
+the cache core.</p>
+<p>The end state is:</p>
+<ul class="simple">
+<li><p>an interface header <code class="docutils literal notranslate"><span class="pre">inc/cache_indexer.h</span></code>,</p></li>
+<li><p>an interface registration in <code class="docutils literal notranslate"><span class="pre">src/modules.cc</span></code>,</p></li>
+<li><p>a hook inside <code class="docutils literal notranslate"><span class="pre">CACHE::get_set_index</span></code> that consults the indexer when one is attached,</p></li>
+<li><p>two implementations (<code class="docutils literal notranslate"><span class="pre">bit_slice</span></code> and <code class="docutils literal notranslate"><span class="pre">xor_hash</span></code>) under <code class="docutils literal notranslate"><span class="pre">indexer/</span></code>,</p></li>
+<li><p>and a JSON config entry that attaches the indexer as a child of a cache module.</p></li>
+</ul>
+<section id="step-1-define-the-interface">
+<h3><a class="toc-backref" href="#id15" role="doc-backlink">Step 1: Define the Interface</a><a class="headerlink" href="#step-1-define-the-interface" title="Link to this heading">¶</a></h3>
+<p>Create <code class="docutils literal notranslate"><span class="pre">inc/cache_indexer.h</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#ifndef CHAMPSIM_CACHE_INDEXER_H</span>
+<span class="linenos"> 2</span><span class="cp">#define CHAMPSIM_CACHE_INDEXER_H</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;modules.h&quot;</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="k">namespace</span><span class="w"> </span><span class="nn">champsim</span><span class="o">::</span><span class="nn">modules</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos"> 9</span><span class="c1">// cache_indexer — A submodule of cache_module that computes the set index</span>
+<span class="linenos">10</span><span class="c1">// for a given address.</span>
+<span class="linenos">11</span><span class="c1">//</span>
+<span class="linenos">12</span><span class="c1">// Inherits from module_base&lt;cache_indexer, cache_module&gt;.</span>
+<span class="linenos">13</span><span class="c1">//</span>
+<span class="linenos">14</span><span class="c1">// The first template argument is the interface type itself (CRTP).  This</span>
+<span class="linenos">15</span><span class="c1">// keeps the static module_map / instance_map unique to this interface so a</span>
+<span class="linenos">16</span><span class="c1">// cache_indexer registered as &quot;bit_slice&quot; won&#39;t collide with a prefetcher</span>
+<span class="linenos">17</span><span class="c1">// registered as &quot;bit_slice&quot;.  The second argument is the parent type —</span>
+<span class="linenos">18</span><span class="c1">// because indexers live under a cache, that&#39;s cache_module.</span>
+<span class="linenos">19</span><span class="c1">//</span>
+<span class="linenos">20</span><span class="c1">// module_base provides (inherited):</span>
+<span class="linenos">21</span><span class="c1">//   - register_module&lt;T&gt;   : register an implementation by model name</span>
+<span class="linenos">22</span><span class="c1">//   - register_interface   : register this interface type by string name</span>
+<span class="linenos">23</span><span class="c1">//   - create_instance(...) : factory used by the config system</span>
+<span class="linenos">24</span><span class="c1">// -------------------------------------------------------------------------</span>
+<span class="linenos">25</span><span class="k">struct</span><span class="w"> </span><span class="nc">cache_indexer</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">module_base</span><span class="o">&lt;</span><span class="n">cache_indexer</span><span class="p">,</span><span class="w"> </span><span class="n">cache_module</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos">26</span>
+<span class="linenos">27</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">cache_indexer</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
+<span class="linenos">28</span>
+<span class="linenos">29</span><span class="w">  </span><span class="c1">// compute_set_index — map a byte address to a set index in</span>
+<span class="linenos">30</span><span class="w">  </span><span class="c1">// [0, num_sets()).  The cache asserts the return value is in-range.</span>
+<span class="linenos">31</span><span class="w">  </span><span class="c1">//</span>
+<span class="linenos">32</span><span class="w">  </span><span class="c1">// If you want the cache-line-granularity address, strip</span>
+<span class="linenos">33</span><span class="w">  </span><span class="c1">// get_parent&lt;cache_module&gt;()-&gt;get_offset_bits() bits off the bottom.</span>
+<span class="linenos">34</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">compute_set_index</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="linenos">35</span><span class="p">};</span>
+<span class="linenos">36</span>
+<span class="linenos">37</span><span class="p">}</span><span class="w"> </span><span class="c1">// namespace champsim::modules</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="cp">#endif</span>
+</pre></div>
+</div>
+<p><strong>Why CRTP?</strong>  The first template parameter to <code class="docutils literal notranslate"><span class="pre">module_base</span></code> is always the
+interface class itself.  <code class="docutils literal notranslate"><span class="pre">module_base&lt;cache_indexer,</span> <span class="pre">cache_module&gt;</span></code> instantiates a
+set of static registries that are unique to the <code class="docutils literal notranslate"><span class="pre">cache_indexer</span></code> interface.  A
+module registered as <code class="docutils literal notranslate"><span class="pre">&quot;lru&quot;</span></code> under <code class="docutils literal notranslate"><span class="pre">replacement</span></code> will not be visible through
+<code class="docutils literal notranslate"><span class="pre">cache_indexer</span></code>’s registry and vice-versa.</p>
+</section>
+<section id="step-2-register-the-interface">
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">Step 2: Register the Interface</a><a class="headerlink" href="#step-2-register-the-interface" title="Link to this heading">¶</a></h3>
+<p>The explicit config parser looks up interfaces by string name so that
+<code class="docutils literal notranslate"><span class="pre">&quot;module&quot;:</span> <span class="pre">&quot;cache_indexer&quot;</span></code> in JSON resolves to our <code class="docutils literal notranslate"><span class="pre">module_base</span></code>
+specialization.  Add a single line to <code class="docutils literal notranslate"><span class="pre">src/modules.cc</span></code> (where the other
+interfaces — prefetcher, replacement, branch, btb — are registered):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cache_indexer.h&quot;</span>
+
+<span class="k">static</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="o">::</span><span class="n">register_interface</span>
+<span class="w">    </span><span class="n">cache_indexer_iface_reg</span><span class="p">(</span><span class="s">&quot;cache_indexer&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This runs at static-initialization time and makes
+<code class="docutils literal notranslate"><span class="pre">interface_registry::create(&quot;cache_indexer&quot;,</span> <span class="pre">builder,</span> <span class="pre">parent)</span></code> available to the
+explicit environment.  The string <code class="docutils literal notranslate"><span class="pre">&quot;cache_indexer&quot;</span></code> is exactly what you will use
+as the <code class="docutils literal notranslate"><span class="pre">&quot;module&quot;</span></code> key in the JSON config.</p>
+</section>
+<section id="step-3-hook-the-interface-into-the-parent">
+<h3><a class="toc-backref" href="#id17" role="doc-backlink">Step 3: Hook the Interface into the Parent</a><a class="headerlink" href="#step-3-hook-the-interface-into-the-parent" title="Link to this heading">¶</a></h3>
+<p>An interface with no consumer does nothing.  The cache needs to construct the
+indexer submodule from its builder and consult it on every set lookup.  Two
+surgical edits to <code class="docutils literal notranslate"><span class="pre">CACHE</span></code> are required.</p>
+<p>First, in <code class="docutils literal notranslate"><span class="pre">inc/cache.h</span></code>, store an indexer pointer and populate it in the
+cache constructor from the builder’s submodules.  We treat the indexer as a
+<em>required</em> submodule: every cache must declare at least one <code class="docutils literal notranslate"><span class="pre">cache_indexer</span></code>
+child in its JSON config.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// In the CACHE class body, alongside pref_module_pimpl / repl_module_pimpl:</span>
+<span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="o">*</span><span class="w"> </span><span class="n">indexer_module_pimpl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="c1">// In the CACHE constructor, alongside the existing submodule loops.</span>
+<span class="c1">// get_submodules defaults to optional=false, so a missing</span>
+<span class="c1">// &quot;cache_indexer&quot; child causes the simulator to exit with an error</span>
+<span class="c1">// rather than silently producing an unindexed cache.</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">sub</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="n">get_submodules</span><span class="p">(</span><span class="s">&quot;cache_indexer&quot;</span><span class="p">))</span>
+<span class="w">  </span><span class="n">indexer_module_pimpl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="o">::</span><span class="n">create_instance</span><span class="p">(</span>
+<span class="w">      </span><span class="n">sub</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">));</span>
+</pre></div>
+</div>
+<p>The loop form is intentional.  <code class="docutils literal notranslate"><span class="pre">get_submodules</span></code> returns a vector; writing it
+as a loop handles any-N submodules uniformly.  For this interface we keep only
+the last one because a cache has a single address → set mapping; another
+interface (e.g. a listener) would <code class="docutils literal notranslate"><span class="pre">push_back</span></code> into a vector here instead.
+If you wanted to permit caches without an indexer, you would pass
+<code class="docutils literal notranslate"><span class="pre">optional=true</span></code> as the second argument — <code class="docutils literal notranslate"><span class="pre">get_submodules</span></code> would then return
+an empty vector instead of erroring out, and the loop body would simply not
+run.</p>
+<p>Second, in <code class="docutils literal notranslate"><span class="pre">src/cache.cc</span></code>, route <code class="docutils literal notranslate"><span class="pre">get_set_index</span></code> through the indexer:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">long</span><span class="w"> </span><span class="nf">CACHE::get_set_index</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">address</span><span class="p">)</span><span class="w"> </span><span class="k">const</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">indexer_module_pimpl</span><span class="o">-&gt;</span><span class="n">compute_set_index</span><span class="p">(</span><span class="n">address</span><span class="p">);</span>
+<span class="w">  </span><span class="n">assert</span><span class="p">(</span><span class="n">idx</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NUM_SET</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">idx</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="step-4-write-implementations">
+<h3><a class="toc-backref" href="#id18" role="doc-backlink">Step 4: Write Implementations</a><a class="headerlink" href="#step-4-write-implementations" title="Link to this heading">¶</a></h3>
+<p>Implementations live under <code class="docutils literal notranslate"><span class="pre">indexer/&lt;model_name&gt;/</span></code> so the Makefile can discover
+them.  (Add <code class="docutils literal notranslate"><span class="pre">indexer</span></code> to the <code class="docutils literal notranslate"><span class="pre">find</span></code> list in the Makefile’s
+<code class="docutils literal notranslate"><span class="pre">module_sources</span></code> line alongside <code class="docutils literal notranslate"><span class="pre">branch</span> <span class="pre">btb</span> <span class="pre">prefetcher</span> <span class="pre">replacement</span></code> — the
+build system rules follow the same pattern as the other module directories.)</p>
+<p>The default bit-slice, made explicit (<code class="docutils literal notranslate"><span class="pre">indexer/bit_slice/bit_slice.h</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#ifndef BIT_SLICE_INDEXER_H</span>
+<span class="linenos"> 2</span><span class="cp">#define BIT_SLICE_INDEXER_H</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cache_indexer.h&quot;</span>
+<span class="linenos"> 5</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;champsim.h&quot;</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="k">struct</span><span class="w"> </span><span class="nc">bit_slice</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="w"> </span><span class="p">{</span>
+<span class="linenos"> 8</span><span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="n">num_sets</span><span class="p">;</span>
+<span class="linenos"> 9</span><span class="w">  </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="w"> </span><span class="n">offset_bits</span><span class="p">;</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="w">  </span><span class="n">bit_slice</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">);</span>
+<span class="linenos">12</span><span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="nf">compute_set_index</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="linenos">13</span><span class="p">};</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="cp">#endif</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">indexer/bit_slice/bit_slice.cc</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;bit_slice.h&quot;</span>
+<span class="linenos"> 2</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cache.h&quot;</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="c1">// Register under the model name &quot;bit_slice&quot;.</span>
+<span class="linenos"> 5</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="o">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">bit_slice</span><span class="o">&gt;</span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="n">bit_slice_reg</span><span class="p">(</span><span class="s">&quot;bit_slice&quot;</span><span class="p">);</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="n">bit_slice</span><span class="o">::</span><span class="n">bit_slice</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">)</span>
+<span class="linenos"> 9</span><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="n">num_sets</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="linenos">10</span><span class="w">      </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">num_sets</span><span class="p">())),</span>
+<span class="linenos">11</span><span class="w">    </span><span class="n">offset_bits</span><span class="p">(</span>
+<span class="linenos">12</span><span class="w">      </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">get_offset_bits</span><span class="p">())</span>
+<span class="linenos">13</span><span class="p">{}</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="kt">long</span><span class="w"> </span><span class="n">bit_slice</span><span class="o">::</span><span class="n">compute_set_index</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">)</span>
+<span class="linenos">16</span><span class="p">{</span>
+<span class="linenos">17</span><span class="w">  </span><span class="c1">// Canonical bit-slice: use champsim::address::slice with a</span>
+<span class="linenos">18</span><span class="w">  </span><span class="c1">// dynamic_extent describing [offset_bits, offset_bits + lg2(num_sets)),</span>
+<span class="linenos">19</span><span class="w">  </span><span class="c1">// then unwrap the strongly-typed slice with .to&lt;long&gt;(). This is the</span>
+<span class="linenos">20</span><span class="w">  </span><span class="c1">// same expression CACHE::get_set_index uses for its built-in fallback.</span>
+<span class="linenos">21</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">addr</span>
+<span class="linenos">22</span><span class="w">      </span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">dynamic_extent</span><span class="p">{</span><span class="n">offset_bits</span><span class="p">,</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">lg2</span><span class="p">(</span><span class="n">num_sets</span><span class="p">)})</span>
+<span class="linenos">23</span><span class="w">      </span><span class="p">.</span><span class="n">to</span><span class="o">&lt;</span><span class="kt">long</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="linenos">24</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>A one-line XOR-folding hash that reduces conflict misses on power-of-two strides
+(<code class="docutils literal notranslate"><span class="pre">indexer/xor_hash/xor_hash.cc</span></code>):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;xor_hash.h&quot;</span>
+<span class="linenos"> 2</span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cache.h&quot;</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_indexer</span><span class="o">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">xor_hash</span><span class="o">&gt;</span>
+<span class="linenos"> 5</span><span class="w">    </span><span class="n">xor_hash_reg</span><span class="p">(</span><span class="s">&quot;xor_hash&quot;</span><span class="p">);</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="n">xor_hash</span><span class="o">::</span><span class="n">xor_hash</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">ModuleBuilder</span><span class="w"> </span><span class="n">builder</span><span class="p">)</span>
+<span class="linenos"> 8</span><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="n">num_sets</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="linenos"> 9</span><span class="w">      </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">num_sets</span><span class="p">())),</span>
+<span class="linenos">10</span><span class="w">    </span><span class="n">index_bits</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">lg2</span><span class="p">(</span><span class="n">num_sets</span><span class="p">)),</span>
+<span class="linenos">11</span><span class="w">    </span><span class="n">offset_bits</span><span class="p">(</span>
+<span class="linenos">12</span><span class="w">      </span><span class="n">builder</span><span class="p">.</span><span class="n">get_parent</span><span class="o">&lt;</span><span class="n">champsim</span><span class="o">::</span><span class="n">modules</span><span class="o">::</span><span class="n">cache_module</span><span class="o">&gt;</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">get_offset_bits</span><span class="p">())</span>
+<span class="linenos">13</span><span class="p">{}</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="kt">long</span><span class="w"> </span><span class="n">xor_hash</span><span class="o">::</span><span class="n">compute_set_index</span><span class="p">(</span><span class="n">champsim</span><span class="o">::</span><span class="n">address</span><span class="w"> </span><span class="n">addr</span><span class="p">)</span>
+<span class="linenos">16</span><span class="p">{</span>
+<span class="linenos">17</span><span class="w">  </span><span class="c1">// Fold two adjacent index_bits-wide fields of the block address</span>
+<span class="linenos">18</span><span class="w">  </span><span class="c1">// together. Each field is pulled with champsim::address::slice + a</span>
+<span class="linenos">19</span><span class="w">  </span><span class="c1">// dynamic_extent whose second argument is the slice width in bits, so</span>
+<span class="linenos">20</span><span class="w">  </span><span class="c1">// we stay inside the strongly-typed address API.</span>
+<span class="linenos">21</span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">low_bits</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">dynamic_extent</span><span class="p">{</span><span class="n">offset_bits</span><span class="p">,</span><span class="w"> </span><span class="n">index_bits</span><span class="p">};</span>
+<span class="linenos">22</span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">high_bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">dynamic_extent</span><span class="p">{</span>
+<span class="linenos">23</span><span class="w">      </span><span class="n">offset_bits</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">champsim</span><span class="o">::</span><span class="n">data</span><span class="o">::</span><span class="n">bits</span><span class="p">{</span><span class="n">index_bits</span><span class="p">},</span><span class="w"> </span><span class="n">index_bits</span><span class="p">};</span>
+<span class="linenos">24</span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">low</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">addr</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="n">low_bits</span><span class="p">).</span><span class="n">to</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="linenos">25</span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">high</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">addr</span><span class="p">.</span><span class="n">slice</span><span class="p">(</span><span class="n">high_bits</span><span class="p">).</span><span class="n">to</span><span class="o">&lt;</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="linenos">26</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">long</span><span class="o">&gt;</span><span class="p">(</span><span class="n">low</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="n">high</span><span class="p">);</span>
+<span class="linenos">27</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Prefer <code class="docutils literal notranslate"><span class="pre">champsim::address::slice</span></code> (combined with <code class="docutils literal notranslate"><span class="pre">champsim::dynamic_extent</span></code>
+or one of the named extents in <code class="docutils literal notranslate"><span class="pre">inc/extent.h</span></code>) over manually converting the
+address to a <code class="docutils literal notranslate"><span class="pre">uint64_t</span></code> and shifting.  The slice API keeps the offset and
+width checked by the type system, composes with <code class="docutils literal notranslate"><span class="pre">champsim::address::splice</span></code>
+and <code class="docutils literal notranslate"><span class="pre">slice_upper</span></code> for more complex hashes, and — importantly — is what the
+rest of ChampSim uses, so your indexer reads like the surrounding code.</p>
+</div>
+</section>
+<section id="step-5-configure-it">
+<h3><a class="toc-backref" href="#id19" role="doc-backlink">Step 5: Configure It</a><a class="headerlink" href="#step-5-configure-it" title="Link to this heading">¶</a></h3>
+<p>In the explicit config, the indexer is a child of a cache module, right next to
+the prefetcher and replacement submodules:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;LLC&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;DEFAULT_CACHE&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;num_sets&quot;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">,</span> <span class="s2">&quot;num_ways&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+  <span class="s2">&quot;children&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;llc_pf&quot;</span><span class="p">,</span>   <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;prefetcher&quot;</span><span class="p">,</span>    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;no&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;llc_repl&quot;</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;replacement&quot;</span><span class="p">,</span>   <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;lru&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;llc_idx&quot;</span><span class="p">,</span>  <span class="s2">&quot;module&quot;</span><span class="p">:</span> <span class="s2">&quot;cache_indexer&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;xor_hash&quot;</span><span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Run <code class="docutils literal notranslate"><span class="pre">bin/champsim</span> <span class="pre">--config</span> <span class="pre">my_config.json</span> <span class="pre">--dump</span></code> and confirm the line:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">llc_idx</span><span class="p">]</span> <span class="n">created_module</span> <span class="o">=</span> <span class="n">xor_hash</span> <span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>appears before the cache itself is constructed.  If the <code class="docutils literal notranslate"><span class="pre">cache_indexer</span></code>
+child is omitted from the config, <code class="docutils literal notranslate"><span class="pre">get_submodules(&quot;cache_indexer&quot;)</span></code> exits
+with a <code class="docutils literal notranslate"><span class="pre">required</span> <span class="pre">submodules</span> <span class="pre">of</span> <span class="pre">interface</span> <span class="pre">cache_indexer</span> <span class="pre">not</span> <span class="pre">found</span></code> error,
+making the missing wiring impossible to overlook.</p>
+</section>
+<section id="summary">
+<h3><a class="toc-backref" href="#id20" role="doc-backlink">Summary</a><a class="headerlink" href="#summary" title="Link to this heading">¶</a></h3>
+<p>Defining a new interface is four pieces:</p>
+<ol class="arabic simple">
+<li><p><strong>Interface class</strong> inheriting <code class="docutils literal notranslate"><span class="pre">module_base&lt;YourInterface,</span> <span class="pre">ParentType&gt;</span></code>.</p></li>
+<li><p><strong>Interface registration</strong> via <code class="docutils literal notranslate"><span class="pre">register_interface(&quot;name&quot;)</span></code> in a <code class="docutils literal notranslate"><span class="pre">.cc</span></code> file.</p></li>
+<li><p><strong>Implementation class(es)</strong> inheriting the interface, registered with
+<code class="docutils literal notranslate"><span class="pre">register_module&lt;Impl&gt;(&quot;model_name&quot;)</span></code>.</p></li>
+<li><p><strong>Parent integration</strong> — the parent module pulls submodule builders out via
+<code class="docutils literal notranslate"><span class="pre">builder.get_submodules(&quot;name&quot;)</span></code>, creates instances with
+<code class="docutils literal notranslate"><span class="pre">YourInterface::create_instance(sub,</span> <span class="pre">this)</span></code>, and calls the virtual methods at
+the relevant points.</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">module_base</span></code> template provides all the factory and registration
+infrastructure.  You define the virtual methods and the integration point inside
+the parent module.</p>
+</section>
+</section>
+<section id="part-7-migrating-from-legacy-modules">
+<span id="tutorial-migration"></span><h2><a class="toc-backref" href="#id21" role="doc-backlink">Part 7: Migrating from Legacy Modules</a><a class="headerlink" href="#part-7-migrating-from-legacy-modules" title="Link to this heading">¶</a></h2>
+<p>If you have modules written for an older version of ChampSim that used free-function
+hooks (e.g. <code class="docutils literal notranslate"><span class="pre">void</span> <span class="pre">CACHE::prefetcher_initialize()</span></code>), here is how to update them:</p>
+<ol class="arabic">
+<li><p><strong>Create a class</strong> inheriting from the appropriate interface
+(<code class="docutils literal notranslate"><span class="pre">champsim::modules::prefetcher</span></code>, <code class="docutils literal notranslate"><span class="pre">::replacement</span></code>, <code class="docutils literal notranslate"><span class="pre">::branch_predictor</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">::btb</span></code>).</p></li>
+<li><p><strong>Move your free functions</strong> into the class as method overrides:</p>
+<ul class="simple">
+<li><p>Remove the <code class="docutils literal notranslate"><span class="pre">CACHE::</span></code> or <code class="docutils literal notranslate"><span class="pre">O3_CPU::</span></code> prefix.</p></li>
+<li><p>Update parameter types: <code class="docutils literal notranslate"><span class="pre">uint64_t</span></code> addresses become <code class="docutils literal notranslate"><span class="pre">champsim::address</span></code>,
+<code class="docutils literal notranslate"><span class="pre">uint8_t</span> <span class="pre">type</span></code> becomes <code class="docutils literal notranslate"><span class="pre">access_type</span> <span class="pre">type</span></code>, etc.</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">override</span></code> to each method.</p></li>
+</ul>
+</li>
+<li><p><strong>Move global state</strong> into member variables.  Each module instance gets its own
+state — you no longer need to key state by cache/CPU pointer.</p></li>
+<li><p><strong>Add a constructor</strong> that takes <code class="docutils literal notranslate"><span class="pre">champsim::modules::ModuleBuilder</span></code>.  If you need
+access to the parent cache or core, call <code class="docutils literal notranslate"><span class="pre">builder.get_parent&lt;T&gt;()</span></code>.</p></li>
+<li><p><strong>Add a registration line</strong> in your <code class="docutils literal notranslate"><span class="pre">.cc</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span><span class="p">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">my_pref</span><span class="o">&gt;</span><span class="p">(</span><span class="s2">&quot;my_pref&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Remove the</strong> <code class="docutils literal notranslate"><span class="pre">__legacy__</span></code> <strong>file</strong> if one exists in your module directory.</p></li>
+<li><p><strong>Stub any new pure virtual methods</strong> that didn’t exist in the old interface (e.g.
+<code class="docutils literal notranslate"><span class="pre">prefetcher_branch_operate</span></code>, <code class="docutils literal notranslate"><span class="pre">replacement_cache_fill</span></code>) with <code class="docutils literal notranslate"><span class="pre">override</span> <span class="pre">{}</span></code>.</p></li>
+</ol>
+<p>Example diff for a prefetcher:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">OLD</span> <span class="p">(</span><span class="n">free</span><span class="o">-</span><span class="n">function</span> <span class="n">style</span><span class="p">):</span>
+<span class="n">void</span> <span class="n">CACHE</span><span class="p">::</span><span class="n">prefetcher_initialize</span><span class="p">()</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+<span class="n">uint32_t</span> <span class="n">CACHE</span><span class="p">::</span><span class="n">prefetcher_cache_operate</span><span class="p">(</span><span class="n">uint64_t</span> <span class="n">addr</span><span class="p">,</span> <span class="n">uint64_t</span> <span class="n">ip</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+
+<span class="o">//</span> <span class="n">NEW</span> <span class="p">(</span><span class="n">class</span><span class="o">-</span><span class="n">based</span> <span class="n">style</span><span class="p">):</span>
+<span class="n">struct</span> <span class="n">my_pref</span> <span class="p">:</span> <span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span> <span class="p">{</span>
+    <span class="n">my_pref</span><span class="p">(</span><span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">ModuleBuilder</span> <span class="n">builder</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="n">void</span> <span class="n">prefetcher_initialize</span><span class="p">()</span> <span class="n">override</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+    <span class="n">uint32_t</span> <span class="n">prefetcher_cache_operate</span><span class="p">(</span><span class="n">champsim</span><span class="p">::</span><span class="n">address</span> <span class="n">addr</span><span class="p">,</span> <span class="n">champsim</span><span class="p">::</span><span class="n">address</span> <span class="n">ip</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="n">override</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+    <span class="o">//</span> <span class="o">...</span> <span class="nb">all</span> <span class="n">other</span> <span class="n">pure</span> <span class="n">virtuals</span> <span class="n">stubbed</span> <span class="ow">or</span> <span class="n">implemented</span>
+<span class="p">};</span>
+<span class="n">champsim</span><span class="p">::</span><span class="n">modules</span><span class="p">::</span><span class="n">prefetcher</span><span class="p">::</span><span class="n">register_module</span><span class="o">&lt;</span><span class="n">my_pref</span><span class="o">&gt;</span><span class="p">(</span><span class="s2">&quot;my_pref&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="part-8-modernizing-the-default-config">
+<span id="tutorial-modernization"></span><h2><a class="toc-backref" href="#id22" role="doc-backlink">Part 8: Modernizing the Default Config</a><a class="headerlink" href="#part-8-modernizing-the-default-config" title="Link to this heading">¶</a></h2>
+<p>The default <code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code> shipped with the repository is a
+documentation artifact.  Its own header says so:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;_description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sample/documentation config. Does not represent a</span>
+<span class="s2"> reasonable system; intended only to illustrate config file structure.&quot;</span>
+</pre></div>
+</div>
+<p>Running experiments against it and reporting the results as representative of a
+contemporary CPU is a common source of bad numbers.  The defaults were
+reasonable in the mid-2010s; they are not in 2026.  This section walks through
+upgrading the default config to something closer to an Intel <strong>Redwood Cove</strong>
+(Meteor Lake / Granite Rapids P-core) system and explains what each change
+buys you.  The approximate specs we are targeting:</p>
+<ul class="simple">
+<li><p>~5 GHz core clock, ~6-wide front-end, ~6-wide allocate, 12-wide (MATH + LOAD + STORE) execute.</p></li>
+<li><p>512-entry ROB, ~280-entry INT / ~332-entry FP register files, ~205-entry scheduler,
+~192-entry load queue, ~114-entry store queue.</p></li>
+<li><p>48 KB 12-way L1D, ~5 cycle load-to-use at 5 GHz.</p></li>
+<li><p>64 KB 8-way L1I (doubled vs. Golden Cove — one of Redwood Cove’s visible
+front-end changes).</p></li>
+<li><p>2 MB private L2 (client parts; Granite Rapids doubles this to 4 MB).</p></li>
+<li><p>~3 MB / core 12-way shared L3 slice (client).</p></li>
+<li><p>DDR5-5600, 2 channels (client) — Granite Rapids uses DDR5-6400 / MCR-DIMM.</p></li>
+</ul>
+<p>The goal here is not perfect fidelity (ChampSim’s core model is abstract,
+and does not model a specific ISA or microarchitecture) but <strong>realistic values</strong>
+so that replacement/prefetch comparisons are not dominated by
+obvious model artifacts (e.g. a ROB that empties in a single cycle).</p>
+<section id="where-to-direct-attention">
+<h3><a class="toc-backref" href="#id23" role="doc-backlink">Where to Direct Attention</a><a class="headerlink" href="#where-to-direct-attention" title="Link to this heading">¶</a></h3>
+<p>When cloning <code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code> into an experimental config, audit these
+parameters in roughly decreasing order of impact:</p>
+<ol class="arabic simple">
+<li><p><strong>Core width and window sizes</strong> (<code class="docutils literal notranslate"><span class="pre">rob_size</span></code>, <code class="docutils literal notranslate"><span class="pre">lq_size</span></code>, <code class="docutils literal notranslate"><span class="pre">sq_size</span></code>,
+<code class="docutils literal notranslate"><span class="pre">scheduler_size</span></code>, <code class="docutils literal notranslate"><span class="pre">*_width</span></code>).  The default ROB of 352 and LQ of 128 are
+usably close to Redwood Cove, but the 4-wide execute / 2-wide LQ are too
+narrow for a modern OoO core and silently gate MLP.</p></li>
+<li><p><strong>L1D latency and size</strong>.  The default <code class="docutils literal notranslate"><span class="pre">5/64/12</span></code> is fine; double-check it
+matches the accuracy you want.</p></li>
+<li><p><strong>L2 size</strong>.  The default 512 KB / 8-way L2 is ~4× smaller than Redwood
+Cove’s 2 MB / 16-way private L2 (client parts).  Undersized L2s push more
+traffic to LLC and DRAM and distort prefetcher evaluations.</p></li>
+<li><p><strong>LLC size</strong>.  The default 2048 sets × 16 ways × 64 B = <strong>2 MB</strong>.  Modern
+server parts are 30 MB+; client parts are 30 MB+.  Per-core LLC slices are
+in the 1.5–3 MB range.  Running with 2 MB shared LLC for any benchmark with
+a working set larger than ~1 MB is a DRAM-bound experiment by construction.</p></li>
+<li><p><strong>DRAM speed</strong>.  The default <code class="docutils literal notranslate"><span class="pre">data_rate:</span> <span class="pre">3200</span></code> (DDR4-3200) is two
+generations behind the DDR5-5600 (client) / DDR5-6400 + MCR-DIMM (server)
+that ships with Redwood Cove systems.</p></li>
+<li><p><strong>Prefetchers</strong>.  The defaults are <code class="docutils literal notranslate"><span class="pre">no</span></code> at L1D/L1I and <code class="docutils literal notranslate"><span class="pre">spp_dev</span></code> at L2C.
+This asymmetry is a deliberate documentation choice; for a realistic
+comparison baseline you typically want <code class="docutils literal notranslate"><span class="pre">ip_stride</span></code> or <code class="docutils literal notranslate"><span class="pre">va_ampm_lite</span></code>
+at <strong>L1D</strong> (both are virtually-addressed L1D prefetchers in this repo —
+<code class="docutils literal notranslate"><span class="pre">va_ampm_lite</span></code> is page-region AMPM on VA), <code class="docutils literal notranslate"><span class="pre">next_line</span></code> at L1I, and
+<code class="docutils literal notranslate"><span class="pre">spp_dev</span></code> at L2C.</p></li>
+<li><p><strong>Memory timings</strong> (<code class="docutils literal notranslate"><span class="pre">nCAS</span></code>, <code class="docutils literal notranslate"><span class="pre">nRCD</span></code>, <code class="docutils literal notranslate"><span class="pre">nRP</span></code>, <code class="docutils literal notranslate"><span class="pre">nRAS</span></code>).  The defaults
+target DDR4; DDR5 timings are different in absolute cycles.</p></li>
+<li><p><strong>MSHR sizes</strong>.  L1D MSHR = 16 is acceptable; Redwood Cove sustains
+~16 outstanding demand misses. However, L2C MSHR = 32 is undersized.
+Redwood Cove has 64 MSHRs in its L2C. An undersized MSHR caps effective MLP.</p></li>
+</ol>
+</section>
+<section id="step-1-clone-and-comment">
+<h3><a class="toc-backref" href="#id24" role="doc-backlink">Step 1: Clone and Comment</a><a class="headerlink" href="#step-1-clone-and-comment" title="Link to this heading">¶</a></h3>
+<p>Copy <code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code> to <code class="docutils literal notranslate"><span class="pre">redwood_cove.json</span></code>.  Immediately replace the
+<code class="docutils literal notranslate"><span class="pre">_description</span></code> field with a real citation of the specs you are targeting and
+the date you snapshotted them — future-you will thank you.</p>
+</section>
+<section id="step-2-core-parameters">
+<h3><a class="toc-backref" href="#id25" role="doc-backlink">Step 2: Core Parameters</a><a class="headerlink" href="#step-2-core-parameters" title="Link to this heading">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;ooo_cpu&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">  </span><span class="nt">&quot;frequency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;ifetch_buffer_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;decode_buffer_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;dispatch_buffer_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;register_file_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">192</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;rob_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">512</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;lq_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">192</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sq_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">114</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;fetch_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;decode_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;dispatch_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;execute_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;lq_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sq_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;retire_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;mispredict_penalty&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;scheduler_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">205</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;decode_latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;dispatch_latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;schedule_latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;execute_latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;branch_predictor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hashed_perceptron&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;btb&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;basic_btb&quot;</span>
+<span class="p">}]</span>
+</pre></div>
+</div>
+</section>
+<section id="step-3-cache-hierarchy">
+<h3><a class="toc-backref" href="#id26" role="doc-backlink">Step 3: Cache Hierarchy</a><a class="headerlink" href="#step-3-cache-hierarchy" title="Link to this heading">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;L1I&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;sets&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ways&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;mshr_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;prefetcher&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;next_line&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="nt">&quot;L1D&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;sets&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;ways&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mshr_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;prefetcher&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ip_stride&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="nt">&quot;L2C&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;sets&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2048</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ways&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mshr_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;prefetcher&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;spp_dev&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="nt">&quot;LLC&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;sets&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ways&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mshr_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">96</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;prefetcher&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;no&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;replacement&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;srrip&quot;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Sizes: 64 KB / 48 KB / 2 MB / ~3 MB (per core) with 64 B lines.
+Latencies are in <strong>cache cycles</strong>.  Note that ChampSim’s single-LLC
+model does not distinguish slice access time from interconnect hops; <code class="docutils literal notranslate"><span class="pre">40</span></code> is
+the aggregate LLC hit latency in LLC cycles.</p>
+<p>The defaults omit <code class="docutils literal notranslate"><span class="pre">replacement</span></code> at all levels except LLC; for a modern
+baseline, <code class="docutils literal notranslate"><span class="pre">srrip</span></code> at LLC is a reasonable starting point.  Leave L1/L2 at the
+built-in LRU by omitting the key.</p>
+</section>
+<section id="step-4-dram">
+<h3><a class="toc-backref" href="#id27" role="doc-backlink">Step 4: DRAM</a><a class="headerlink" href="#step-4-dram" title="Link to this heading">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;physical_memory&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;data_rate&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5600</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;channels&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;ranks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bankgroups&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;banks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bank_rows&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">65536</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bank_columns&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2048</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;channel_width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;wq_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">96</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;rq_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">96</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;nCAS&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;nRCD&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;nRP&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;nRAS&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">88</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;refresh_period&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;refreshes_per_period&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8192</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The timings above are approximate DDR5-5600 values scaled into ChampSim’s
+DRAM-cycle unit.  Two channels doubles the achievable BW; many single-channel
+ChampSim runs are silently bottlenecked there.</p>
+</section>
+<section id="step-5-validate-with-dump">
+<h3><a class="toc-backref" href="#id28" role="doc-backlink">Step 5: Validate with –dump</a><a class="headerlink" href="#step-5-validate-with-dump" title="Link to this heading">¶</a></h3>
+<p>Every time you change a config parameter, confirm it took effect:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bin/champsim<span class="w"> </span>--config<span class="w"> </span>redwood_cove.json<span class="w"> </span>--dump<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+<p>Look for <code class="docutils literal notranslate"><span class="pre">(default)</span></code> tags — those indicate a parameter you thought you set
+but didn’t (common after renames or typos).</p>
+</section>
+<section id="step-6-why-the-defaults-are-what-they-are">
+<h3><a class="toc-backref" href="#id29" role="doc-backlink">Step 6: Why the Defaults Are What They Are</a><a class="headerlink" href="#step-6-why-the-defaults-are-what-they-are" title="Link to this heading">¶</a></h3>
+<p>The shipped defaults are optimized for <strong>readability of the config file</strong>, not
+realism.  Small numbers (8-way, 64-set) make it obvious which field is which
+when you’re learning the format.</p>
+<p>When in doubt, start from <code class="docutils literal notranslate"><span class="pre">champsim_config.json</span></code> for <strong>structure</strong>, refer
+to <strong>published values</strong> for your config, and <code class="docutils literal notranslate"><span class="pre">--dump</span></code> after every edit to
+confirm the settings landed where you expected.</p>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Tutorial: Creating New Modules</a><ul>
+<li><a class="reference internal" href="#part-1-creating-a-prefetcher">Part 1: Creating a Prefetcher</a><ul>
+<li><a class="reference internal" href="#step-1-create-the-directory">Step 1: Create the Directory</a></li>
+<li><a class="reference internal" href="#step-2-write-the-header">Step 2: Write the Header</a></li>
+<li><a class="reference internal" href="#step-3-implement-the-module">Step 3: Implement the Module</a></li>
+<li><a class="reference internal" href="#step-4-build">Step 4: Build</a></li>
+<li><a class="reference internal" href="#step-5-configure-and-run">Step 5: Configure and Run</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#part-2-creating-a-replacement-policy">Part 2: Creating a Replacement Policy</a></li>
+<li><a class="reference internal" href="#part-3-creating-a-branch-predictor">Part 3: Creating a Branch Predictor</a></li>
+<li><a class="reference internal" href="#part-4-understanding-modulebuilder">Part 4: Understanding ModuleBuilder</a><ul>
+<li><a class="reference internal" href="#reading-parameters">Reading Parameters</a></li>
+<li><a class="reference internal" href="#accessing-the-parent-module">Accessing the Parent Module</a></li>
+<li><a class="reference internal" href="#querying-module-name-and-model">Querying Module Name and Model</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#part-5-debugging-module-construction">Part 5: Debugging Module Construction</a></li>
+<li><a class="reference internal" href="#part-6-defining-a-new-interface">Part 6: Defining a New Interface</a><ul>
+<li><a class="reference internal" href="#step-1-define-the-interface">Step 1: Define the Interface</a></li>
+<li><a class="reference internal" href="#step-2-register-the-interface">Step 2: Register the Interface</a></li>
+<li><a class="reference internal" href="#step-3-hook-the-interface-into-the-parent">Step 3: Hook the Interface into the Parent</a></li>
+<li><a class="reference internal" href="#step-4-write-implementations">Step 4: Write Implementations</a></li>
+<li><a class="reference internal" href="#step-5-configure-it">Step 5: Configure It</a></li>
+<li><a class="reference internal" href="#summary">Summary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#part-7-migrating-from-legacy-modules">Part 7: Migrating from Legacy Modules</a></li>
+<li><a class="reference internal" href="#part-8-modernizing-the-default-config">Part 8: Modernizing the Default Config</a><ul>
+<li><a class="reference internal" href="#where-to-direct-attention">Where to Direct Attention</a></li>
+<li><a class="reference internal" href="#step-1-clone-and-comment">Step 1: Clone and Comment</a></li>
+<li><a class="reference internal" href="#step-2-core-parameters">Step 2: Core Parameters</a></li>
+<li><a class="reference internal" href="#step-3-cache-hierarchy">Step 3: Cache Hierarchy</a></li>
+<li><a class="reference internal" href="#step-4-dram">Step 4: DRAM</a></li>
+<li><a class="reference internal" href="#step-5-validate-with-dump">Step 5: Validate with –dump</a></li>
+<li><a class="reference internal" href="#step-6-why-the-defaults-are-what-they-are">Step 6: Why the Defaults Are What They Are</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="Modules.html"
+                          title="previous chapter">The ChampSim Module System</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="Module-support-library.html"
+                          title="next chapter">Module Support Library</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Tutorial.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div><div role="note">
+  <h3> This page on other branches</h3>
+  <h4>Branches</h4>
+  <ul>
+      
+        <li><a href="../master/index.html">master</a></li>
+      
+      
+        <li><strong>develop</strong></li>
+      
+  </ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Module-support-library.html" title="Module Support Library"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Modules.html" title="The ChampSim Module System"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">ChampSim  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tutorial: Creating New Modules</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, The ChampSim Contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

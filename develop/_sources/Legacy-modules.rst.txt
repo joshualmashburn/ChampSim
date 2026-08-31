@@ -4,24 +4,24 @@
 The Legacy ChampSim Module System
 ====================================
 
+.. warning::
+
+   The free-function module system described on this page is **not supported** in the
+   runtime (RT) version of ChampSim. It is documented here for historical reference only,
+   as many published artifacts use this system.
+
+   New work should use the current class-based module system described in :ref:`Modules`.
+   For guidance on migrating legacy modules to the new system, see the
+   :ref:`migration guide <Tutorial>`.
+
 Previous versions of ChampSim used the following module system.
-Many modules exist in published artifacts, so documentation is included here.
-New work should use the updated module system.
+Modules were implemented as sets of free functions with specific names and signatures.
+The ``CACHE::`` or ``O3_CPU::`` prefix indicated which simulator component the function
+belonged to.
 
-Legacy modules can be enabled by adding an empty file named "__legacy__" in the same directory as the module sources.
-This is the preferred method.
-Alternatively, ChampSim can be configured with (for example)::
-
-    {
-        "L2C": {
-            "prefetcher" {
-                "path": "../path/to/module",
-                "legacy": true
-            }
-        }
-    }
-
-ChampSim uses four kinds of modules:
+In older compile-time (CT) builds, legacy modules could be enabled by adding an empty file
+named ``__legacy__`` in the same directory as the module sources, or by setting
+``"legacy": true`` in the JSON config. These mechanisms are not available in RT builds.
 
 * Branch Direction Predictors
 * Branch Target Predictors

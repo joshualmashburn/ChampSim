@@ -2,7 +2,7 @@ Welcome to the ChampSim wiki!
 ====================================
 
 ChampSim is an open-source trace based simulator maintained at Texas A&M University and through the support of the computer architecture community.
-ChampSim was originally developed to provide a platform for microarchitectural competitions (DPC3, DPC2, CRC2, IPC1, etc.) and has since been used for the development of multiple state-of-the-art cache replacement and prefetching policies.
+ChampSim was originally developed to provide a platform for microarchitectural competitions (DPC4, DPC3, DPC2, CRC2, IPC1, etc.) and has since been used for the development of multiple state-of-the-art cache replacement and prefetching policies.
 
 We encourage you to read below to see if ChampSim is right for your research, class, or project!
 
@@ -11,8 +11,10 @@ We encourage you to read below to see if ChampSim is right for your research, cl
    :caption: Contents:
 
    Modules
+   Tutorial
    Module-support-library
    Creating-a-configuration-file
+   Explicit-configuration-format
    Configuration-API
    Address-operations
    Byte-sizes
@@ -20,6 +22,7 @@ We encourage you to read below to see if ChampSim is right for your research, cl
    Core-model
    Cache-model
    Legacy-modules
+   Publications-using-champsim
 
 ChampSim is commonly used as the basis for academic research.
 See a list of publications that use ChampSim :ref:`here <Publications>`.
@@ -30,7 +33,7 @@ ChampSim's Goal
 
 The ultimate design philosophy of ChampSim is to provide an environment where an architect can realistically begin performing significant research within a month, but the simulator works right out of the box for exploration and quickly prototyping cache management ideas!
 With this in mind, ChampSim development works towards maintaining an accurate Out of Order execution and cache memory model without the overhead of larger multi-layered architectural research platforms.
-There are ChampSim-ready traces available online (from CRC2, IPC1, DPC3, and CVP) to let you quickly get started.
+There are ChampSim-ready traces available online (from CRC2, IPC1, DPC3, DPC4, and CVP) to let you quickly get started.
 The ChampSim design philosophy is summed up in three main design principles:
 
 * Low startup time: The user should be able to perform new and meaningful memory system research in one month.
@@ -42,7 +45,7 @@ What ChampSim is
 -------------------
 
 * A fast trace-based simulator that can get you started in computer architecture research quickly without a deeper understanding of microarchitecture.
-* A modular simulator, with multiple interchangeable pieces that can be configured at compile time. This leads to diverse simulation environments and enables you to simulate the system you need!
+* A modular simulator, with multiple interchangeable pieces that can be configured at runtime via JSON. This leads to diverse simulation environments and enables you to simulate the system you need!
 
 ----------------------
 What ChampSim is not
